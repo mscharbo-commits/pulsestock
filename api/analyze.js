@@ -18,7 +18,7 @@ export default async function handler(req) {
   try {
     const body = await req.json();
 
-    const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,15 +33,12 @@ export default async function handler(req) {
       }),
     });
 
-    if (!anthropicResp.ok) {
-      const err = await anthropicResp.text();
-      return new Response(err, {
-        status: anthropicResp.status,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-      });
+    if (!resp.ok) {
+      const err = await resp.text();
+      return new Response(err, { status: resp.status, headers: { 'Access-Control-Allow-Origin': '*' } });
     }
 
-    return new Response(anthropicResp.body, {
+    return new Response(resp.body, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Access-Control-Allow-Origin': '*',
@@ -51,10 +48,7 @@ export default async function handler(req) {
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   }
 }
