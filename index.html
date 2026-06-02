@@ -194,6 +194,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <button class="nav-tab" onclick="showPage('screener',this)">Screener</button>
       <button class="nav-tab" onclick="showPage('portfolio',this)">Portfolio</button>
       <a href="/community.html" class="nav-tab-link">💬 Community</a>
+      <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
     </nav>
     <div class="header-badge">AI-Powered · Live Data</div>
   </div>
@@ -315,13 +316,21 @@ async function fetchProfile(ticker){
   }catch(e){return null;}
 }
 
+async function fetchAnalyst(ticker){
+  try{
+    const r = await fetch('/api/analyst?ticker='+encodeURIComponent(ticker));
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+
 async function doAnalyze(){
   const ticker=document.getElementById('ticker-input').value.trim().toUpperCase();
   if(!ticker) return;
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker)]);
+  const[quote,profile,analyst]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker)]);
 
   if(!quote||quote.price===0){
     el.innerHTML=`<div class="card" style="border-color:var(--red);background:var(--red-bg);"><p style="color:var(--red);font-size:14px;font-weight:500;">⚠ Could not find "${ticker}"</p><p style="color:#9B2C1F;font-size:13px;margin-top:4px;">Check the ticker symbol and try again.</p></div>`;
@@ -333,11 +342,17 @@ async function doAnalyze(){
   const name=profile?.name||ticker;
   const sector=profile?.finnhubIndustry||f.sector||'—';
   const mktCap=profile?.marketCapitalization?(profile.marketCapitalization>1000?'$'+(profile.marketCapitalization/1000).toFixed(2)+'T':'$'+profile.marketCapitalization.toFixed(0)+'B'):'—';
-  const h52=f.h52||'—';
-  const l52=f.l52||'—';
+  const h52=analyst?.fiftyTwoWeekHigh?analyst.fiftyTwoWeekHigh.toFixed(2):(f.h52||'—');
+  const l52=analyst?.fiftyTwoWeekLow?analyst.fiftyTwoWeekLow.toFixed(2):(f.l52||'—');
   const pricePct=h52!=='—'&&l52!=='—'?((quote.price-parseFloat(l52))/(parseFloat(h52)-parseFloat(l52))*100).toFixed(0):50;
-  const total=(f.abuy||0)+(f.ahold||0)+(f.asell||0);
-  const upside=f.atp?(((parseFloat(f.atp.replace(/[$,]/g,''))-quote.price)/quote.price)*100).toFixed(1):'—';
+  // Use real analyst data if available
+  const aBuy    = analyst ? (analyst.strongBuy||0)+(analyst.buy||0)    : (f.abuy||0);
+  const aHold   = analyst ? (analyst.hold||0)                           : (f.ahold||0);
+  const aSell   = analyst ? (analyst.sell||0)+(analyst.strongSell||0)   : (f.asell||0);
+  const aTarget = analyst?.targetMean ? '$'+analyst.targetMean.toFixed(2) : (f.atp||'—');
+  const aRec    = analyst?.recommendation ? analyst.recommendation.replace(/_/g,' ').toUpperCase() : null;
+  const total   = aBuy + aHold + aSell;
+  const upside=analyst?.targetMean?(((analyst.targetMean-quote.price)/quote.price)*100).toFixed(1):(f.atp?(((parseFloat(f.atp.replace(/[$,]/g,''))-quote.price)/quote.price)*100).toFixed(1):'—');
   const rsiN=parseInt(f.rsi||50);
   const macdBull=f.macd&&f.msig?parseFloat(f.macd)>parseFloat(f.msig):true;
   const above50=f.ma50?quote.price>parseFloat(f.ma50):true;
@@ -391,15 +406,29 @@ async function doAnalyze(){
       <div class="met"><div class="ml">Fwd P/E</div><div class="mv">${f.fwdPe}x</div></div>
       <div class="met"><div class="ml">PEG Ratio</div><div class="mv">${f.peg}</div></div>
       <div class="met"><div class="ml">EV/EBITDA</div><div class="mv">${f.evEbitda}x</div></div>
-      <div class="met"><div class="ml">Analyst Target</div><div class="mv">${f.atp||'—'}</div></div>
+      <div class="met"><div class="ml">Analyst Target</div><div class="mv">${aTarget}</div></div>
       <div class="met"><div class="ml">Upside to TP</div><div class="mv ${parseFloat(upside)>=0?'up':'down'}">${upside}%</div></div>
-      <div class="met"><div class="ml">Dividend Yield</div><div class="mv">${f.div||'—'}</div></div>
-      <div class="met"><div class="ml">Buybacks</div><div class="mv">${f.bb||'—'}</div></div>
+      <div class="met"><div class="ml">Dividend Yield</div><div class="mv">${analyst?.dividendYield?(analyst.dividendYield*100).toFixed(2)+'%':(f.div||'—')}</div></div>
+      <div class="met"><div class="ml">Beta</div><div class="mv">${analyst?.beta?analyst.beta.toFixed(2):(f.beta||'—')}</div></div>
     </div>
     ${total>0?`<div style="padding-top:12px;border-top:1px solid var(--border);">
-      <div style="font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Analyst Ratings (${total})</div>
-      <div class="analyst-numbers"><span style="color:var(--green);font-weight:600;">Buy ${f.abuy}</span><span style="color:var(--text3);">Hold ${f.ahold}</span><span style="color:var(--red);font-weight:600;">Sell ${f.asell}</span></div>
-      <div class="analyst-bar"><div style="flex:${f.abuy};background:var(--green);border-radius:3px 0 0 3px;"></div><div style="flex:${f.ahold};background:var(--surface3);"></div><div style="flex:${f.asell};background:var(--red);border-radius:0 3px 3px 0;"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;">Analyst Ratings (${total})</div>
+        ${aRec?'<span style="font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--green-bg);color:var(--green);">'+aRec+'</span>':''}
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;">
+        ${analyst?.targetLow&&analyst?.targetHigh?'Target range: $'+analyst.targetLow.toFixed(2)+' — $'+analyst.targetHigh.toFixed(2):''}
+      </div>
+      <div class="analyst-numbers">
+        <span style="color:var(--green);font-weight:600;">Buy ${aBuy}</span>
+        <span style="color:var(--text3);">Hold ${aHold}</span>
+        <span style="color:var(--red);font-weight:600;">Sell ${aSell}</span>
+      </div>
+      <div class="analyst-bar">
+        <div style="flex:${aBuy||0.5};background:var(--green);border-radius:3px 0 0 3px;"></div>
+        <div style="flex:${aHold||0.5};background:var(--surface3);"></div>
+        <div style="flex:${aSell||0.5};background:var(--red);border-radius:0 3px 3px 0;"></div>
+      </div>
     </div>`:''}
   </div>
 
