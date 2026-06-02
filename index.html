@@ -495,8 +495,14 @@ async function doAnalyze(){
 
 async function loadQuoteSentiment(ticker){
   const slug=ticker.toLowerCase();
-  const{data}=await sbClient.from('sentiment_votes').select('vote').eq('room_slug',slug);
-  const votes=data||[];
+  // Check ticker room AND general room AND hot-picks room for votes on this ticker
+  const{data:d1}=await sbClient.from('sentiment_votes').select('vote').eq('room_slug',slug);
+  const{data:d2}=await sbClient.from('sentiment_votes').select('vote').eq('room_slug','general');
+  const{data:d3}=await sbClient.from('sentiment_votes').select('vote').eq('room_slug','hot-picks');
+  // Also check picks table for this ticker to count direction as votes
+  const{data:picks}=await sbClient.from('picks').select('direction').eq('ticker',ticker.toUpperCase());
+  const pickVotes=(picks||[]).map(p=>({vote:p.direction==='BUY'?'buy':'sell'}));
+  const votes=[...(d1||[]),...(d2||[]),...(d3||[]),...pickVotes];
   const buy=votes.filter(v=>v.vote==='buy').length;
   const hold=votes.filter(v=>v.vote==='hold').length;
   const sell=votes.filter(v=>v.vote==='sell').length;
