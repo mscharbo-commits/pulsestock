@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <style>
 :root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--surface3:#E9ECF2;--border:#E2E6ED;--border2:#D0D6E0;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--accent2:#0F4FC4;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -76,7 +77,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .mv{font-size:15px;font-weight:500;font-family:'DM Mono',monospace;}
 
 /* TradingView chart */
-.tv-chart-wrap{width:100%;height:450px;margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);}
+.tv-chart-wrap{width:100%;height:520px;margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);}
 
 .range-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:6px;}
 .range-track{height:3px;background:var(--surface3);border-radius:2px;position:relative;margin-bottom:14px;}
@@ -431,6 +432,44 @@ document.addEventListener('click',function(e){
   if(!e.target.closest('.search-wrap')) closeDropdown();
 });
 
+var tvWidget = null;
+
+function initTVChart(ticker){
+  var container = document.getElementById('tv-widget-'+ticker);
+  if(!container) return;
+  // Clean up previous widget
+  if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; }
+  container.innerHTML = '';
+  try {
+    tvWidget = new TradingView.widget({
+      container_id: 'tv-widget-'+ticker,
+      symbol: ticker,
+      interval: 'D',
+      timezone: 'exchange',
+      theme: 'light',
+      style: '1',
+      locale: 'en',
+      toolbar_bg: '#F4F7FD',
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      withdateranges: true,
+      allow_symbol_change: false,
+      studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
+      width: '100%',
+      height: 450,
+      autosize: true,
+      show_popup_button: true,
+      popup_width: '1000',
+      popup_height: '650',
+    });
+  } catch(e) {
+    // Fallback to iframe if widget fails
+    container.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol='+ticker+'&interval=D&hidesidetoolbar=0&hidetoptoolbar=0&toolbarbg=F4F7FD&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&theme=light&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&locale=en" style="width:100%;height:450px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
+  }
+}
+
 async function fetchQuote(ticker){
   if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<10000) return quoteCache[ticker].data;
   try{
@@ -516,15 +555,8 @@ async function doAnalyze(){
     </div>
 
     <!-- TradingView Chart -->
-    <div class="tv-chart-wrap">
-      <div class="tradingview-widget-container" style="height:100%;">
-        <iframe
-          src="https://s.tradingview.com/widgetembed/?frameElementId=tv_${ticker}&symbol=${ticker}&interval=D&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=0&saveimage=0&toolbarbg=F4F7FD&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&theme=light&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&showpopupbutton=1&locale=en"
-          style="width:100%;height:100%;border:none;"
-          allowtransparency="true"
-          allowfullscreen>
-        </iframe>
-      </div>
+    <div class="tv-chart-wrap" id="tv-wrap-${ticker}">
+      <div class="tradingview-widget-container" id="tv-widget-${ticker}" style="height:100%;width:100%;"></div>
     </div>
 
     <div class="range-row">
@@ -629,6 +661,7 @@ async function doAnalyze(){
   </div>`;
 
   loadQuoteSentiment(ticker);
+  initTVChart(ticker);
 }
 
 async function loadQuoteSentiment(ticker){
