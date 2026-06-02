@@ -371,22 +371,17 @@ function onTickerInput(val){
 async function searchTickers(query){
   var dd=document.getElementById('search-dropdown');
   try{
-    var url='https://query1.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(query)+'&quotesCount=8&newsCount=0&listsCount=0&enableFuzzyQuery=true';
-    var r=await fetch(url);
-    var d=await r.json();
-    var quotes=(d.quotes||[]).filter(function(q){
-      return q.symbol&&(q.shortname||q.longname)&&q.quoteType!=='OPTION'&&q.quoteType!=='FUTURE';
-    }).slice(0,8);
+    var r=await fetch('/api/search?q='+encodeURIComponent(query));
+    var quotes=await r.json();
     searchResults=quotes;
-    if(!quotes.length){dd.innerHTML='<div class="search-loading">No results found</div>';return;}
+    if(!quotes.length){dd.innerHTML='<div class="search-loading">No results — try typing the ticker symbol directly</div>';return;}
     dd.innerHTML=quotes.map(function(q,i){
-      var exch=q.exchange||q.exchDisp||'';
-      var exchColor=exch.indexOf('NAS')!==-1?'#065F46':exch.indexOf('NYS')!==-1?'#1E40AF':exch.indexOf('OTC')!==-1?'#78350F':'';
+      var exch=q.exchange||'';
+      var exchColor=exch.indexOf('NAS')!==-1?'#065F46':exch.indexOf('NYS')!==-1?'#1E40AF':exch.indexOf('OTC')!==-1?'#78350F':'#4A5568';
       var exchBg=exch.indexOf('NAS')!==-1?'#D1FAE5':exch.indexOf('NYS')!==-1?'#DBEAFE':exch.indexOf('OTC')!==-1?'#FEF3C7':'#F2F4F7';
-      var name=q.shortname||q.longname||q.symbol;
       return '<div class="search-result" data-sym="'+q.symbol+'" data-idx="'+i+'" onclick="selectResult(this.dataset.sym)">'
         +'<span class="sr-ticker">'+q.symbol+'</span>'
-        +'<span class="sr-name">'+name+'</span>'
+        +'<span class="sr-name">'+q.name+'</span>'
         +(exch?'<span class="sr-exchange" style="background:'+exchBg+';color:'+exchColor+';">'+exch+'</span>':'')
         +'</div>';
     }).join('');
