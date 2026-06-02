@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <style>
 :root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--surface3:#E9ECF2;--border:#E2E6ED;--border2:#D0D6E0;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--accent2:#0F4FC4;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
@@ -87,7 +89,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ind-tab{padding:8px 16px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s;}
 .ind-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
 .ind-tab:hover:not(.active){color:var(--text);background:var(--surface);}
-.indicator-chart-wrap{position:relative;height:200px;padding:12px 16px 8px;display:block;}
+.indicator-chart-wrap{position:relative;height:200px;padding:12px 16px 8px;}
 .indicator-chart-wrap canvas{width:100%!important;}
 .ind-legend{display:flex;gap:14px;padding:6px 16px 10px;flex-wrap:wrap;}
 .ind-legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);}
@@ -300,8 +302,8 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
         <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
       </div>
-      <div class="indicator-chart-wrap" style="height:200px;padding:16px;">
-        <canvas id="ind-chart" style="display:block;width:100%;height:168px;"></canvas>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
       </div>
       <div class="ind-legend" id="ind-legend"></div>
     </div>
@@ -1250,11 +1252,19 @@ function renderIndicator() {
 
   if(legend) legend.innerHTML = legendHtml;
 
+  // Force explicit canvas dimensions before creating chart
+  var wrap = ctx.parentElement;
+  var w = wrap ? wrap.clientWidth - 32 : 600;
+  ctx.width = w;
+  ctx.height = 160;
+  ctx.style.width = w + 'px';
+  ctx.style.height = '160px';
+
   indChart = new Chart(ctx, {
     type: chartType,
     data: { labels: labels, datasets: datasets },
     options: {
-      responsive: true,
+      responsive: false,
       maintainAspectRatio: false,
       interaction: { mode:'index', intersect:false },
       plugins: {
