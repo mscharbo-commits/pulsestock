@@ -567,18 +567,30 @@ function renderEdgar(ticker, data){
   var statusColor = isReporting ? 'var(--green)' : 'var(--amber)';
   var statusBg = isReporting ? 'var(--green-bg)' : 'var(--amber-bg)';
   var statusText = isReporting ? '✅ Fully Reporting (SEC)' : '⚠️ No recent SEC filings found';
-  var lastFiled = data.lastFilingDate ? ' · Last filed: ' + data.lastFilingDate : '';
   var types = data.filingTypes && data.filingTypes.length ? ' · ' + data.filingTypes.join(', ') : '';
+  var fin = data.financials || {};
+  var finStr = '';
+  if(fin.revenue) finStr += ' Revenue: $' + fin.revenue + '.';
+  if(fin.netIncome) finStr += ' Net Income: $' + fin.netIncome + '.';
+  if(fin.assets) finStr += ' Total Assets: $' + fin.assets + '.';
+  if(fin.cash) finStr += ' Cash: $' + fin.cash + '.';
+  var finHtml = fin.revenue || fin.assets || fin.cash
+    ? '<span style="font-size:12px;color:var(--text3);">'+(fin.revenue?'Rev $'+fin.revenue+' ':'')+(fin.netIncome?'NI $'+fin.netIncome+' ':'')+(fin.assets?'Assets $'+fin.assets+' ':'')+(fin.cash?'Cash $'+fin.cash:'')+'</span>'
+    : '';
 
   el.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
     + '<span style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:'+statusBg+';color:'+statusColor+';">'+statusText+'</span>'
-    + (data.lastFilingDate ? '<span style="font-size:12px;color:var(--text3);">Last filing: '+data.lastFilingDate+types+'</span>' : '')
-    + '<a href="'+data.edgarUrl+'" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">View on EDGAR ↗</a>'
+    + (data.lastFilingDate ? '<span style="font-size:12px;color:var(--text3);">Last: '+data.lastFilingDate+types+'</span>' : '')
+    + finHtml
+    + '<a href="'+data.edgarUrl+'" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">EDGAR ↗</a>'
     + '</div>';
 
-  // Update AI prompt context with edgar data
+  // Store full context for AI
   if(isReporting) {
-    window._edgarContext = ticker + ' is a fully reporting SEC company. Recent filings: ' + (data.filingTypes||[]).join(', ') + '. Last filing: ' + (data.lastFilingDate||'N/A') + '.';
+    window._edgarContext = ticker + ' (' + (data.companyName||ticker) + ') is a FULLY REPORTING SEC company with audited financial statements.'
+      + ' Recent SEC filings: ' + (data.filingTypes||[]).join(', ') + '. Last filing: ' + (data.lastFilingDate||'N/A') + '.'
+      + (finStr || ' Financial data from SEC XBRL filings is available.')
+      + ' Do NOT say financials are unavailable or assume minimal activity. Analyze this as an ongoing operating business.';
   } else {
     window._edgarContext = '';
   }
