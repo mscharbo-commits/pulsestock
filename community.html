@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock Community</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
+input,select,textarea{font-family:'DM Sans',sans-serif;outline:none;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;transition:border-color .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.header-inner{max-width:1300px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
+.logo-name span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.nav-links{display:flex;gap:4px;}
+.nav-link{padding:7px 14px;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--text2);background:none;text-decoration:none;display:flex;align-items:center;gap:5px;}
+.nav-link:hover,.nav-link.active{background:var(--accent-light);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-size:13.5px;font-weight:500;}
+.btn-primary:hover{background:#0F4FC4;transform:translateY(-1px);}
+.btn-ghost{background:none;color:var(--text2);padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1.5px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);}
+
+/* LAYOUT */
+.main{max-width:1300px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:1fr 360px;gap:24px;}
+
+/* AUTH MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--surface);border-radius:var(--radius);padding:32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.modal h2{font-size:22px;font-weight:600;margin-bottom:6px;}
+.modal p{font-size:14px;color:var(--text2);margin-bottom:24px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.form-group input{width:100%;}
+.modal-footer{margin-top:20px;text-align:center;font-size:13px;color:var(--text3);}
+.modal-footer button{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;font-weight:500;}
+.error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+
+/* CHAT */
+.chat-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 140px);}
+.chat-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.chat-header h2{font-size:16px;font-weight:600;}
+.online-badge{font-size:12px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:5px;}
+.online-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.messages-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+.messages-area::-webkit-scrollbar{width:4px;}
+.messages-area::-webkit-scrollbar-track{background:transparent;}
+.messages-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.msg{display:flex;gap:10px;align-items:flex-start;}
+.msg-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;flex-shrink:0;}
+.msg-content{flex:1;}
+.msg-header{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.msg-username{font-size:13px;font-weight:600;}
+.msg-time{font-size:11px;color:var(--text3);}
+.msg-body{font-size:14px;color:var(--text2);line-height:1.55;}
+.pick-msg{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:6px;}
+.pick-direction{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
+.pick-buy{background:var(--green-bg);color:var(--green);}
+.pick-sell{background:var(--red-bg);color:var(--red);}
+.pick-ticker{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;}
+.pick-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.pick-level{text-align:center;}
+.pick-level-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
+.pick-level-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
+.pick-notes{font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.55;}
+.pick-actions{display:flex;align-items:center;gap:8px;}
+.upvote-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);}
+.upvote-btn:hover,.upvote-btn.voted{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.result-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.result-pending{background:var(--amber-bg);color:var(--amber);}
+.result-win{background:var(--green-bg);color:var(--green);}
+.result-loss{background:var(--red-bg);color:var(--red);}
+.chat-input-area{padding:14px 16px;border-top:1px solid var(--border);}
+.input-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.input-tab{font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:6px;color:var(--text2);background:none;border:1.5px solid transparent;}
+.input-tab.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent-light);}
+.msg-input-row{display:flex;gap:8px;}
+.msg-input-row input{flex:1;font-size:14px;}
+.send-btn{background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:500;white-space:nowrap;}
+.send-btn:hover{background:#0F4FC4;}
+.pick-form{display:flex;flex-direction:column;gap:10px;}
+.pick-form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.pick-form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pf-group label{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.pf-group input,.pf-group select,.pf-group textarea{width:100%;font-size:13px;padding:8px 10px;}
+.login-prompt{text-align:center;padding:20px;font-size:13.5px;color:var(--text3);}
+.login-prompt button{color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;font-size:13.5px;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:20px;}
+.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.sidebar-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+
+/* LEADERBOARD */
+.leader-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.leader-row:last-child{border-bottom:none;}
+.leader-rank{font-size:13px;font-weight:700;color:var(--text3);width:20px;text-align:center;font-family:'DM Mono',monospace;}
+.leader-rank.gold{color:#F59E0B;}
+.leader-rank.silver{color:#94A3B8;}
+.leader-rank.bronze{color:#B45309;}
+.leader-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;}
+.leader-info{flex:1;}
+.leader-name{font-size:13.5px;font-weight:600;}
+.leader-stats{font-size:11.5px;color:var(--text3);margin-top:1px;}
+.leader-score{text-align:right;}
+.leader-winrate{font-size:14px;font-weight:600;color:var(--green);}
+.leader-picks{font-size:11px;color:var(--text3);}
+
+/* HOT PICKS */
+.hot-pick{padding:10px 0;border-bottom:1px solid var(--border);}
+.hot-pick:last-child{border-bottom:none;}
+.hot-pick-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.hot-pick-ticker{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;}
+.hot-pick-user{font-size:12px;color:var(--text3);}
+.hot-pick-stats{display:flex;gap:8px;align-items:center;}
+
+/* USER CARD */
+.user-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;}
+.user-avatar-lg{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;}
+.user-info{flex:1;}
+.user-name{font-size:14px;font-weight:600;}
+.user-stats{font-size:12px;color:var(--text3);margin-top:2px;}
+
+.fade-in{animation:fi .3s ease;} @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13.5px;}
+
+@media(max-width:900px){.main{grid-template-columns:1fr;}.sidebar{display:none;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">P</div>
+      <span class="logo-name">Pulse<span>Stock</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">📊 Analyze</a>
+      <a href="/community.html" class="nav-link active">💬 Community</a>
+    </nav>
+    <div class="header-right" id="header-auth">
+      <button class="btn-ghost" onclick="showAuth('login')">Log in</button>
+      <button class="btn-primary" onclick="showAuth('signup')">Sign up</button>
+    </div>
+  </div>
+</header>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="auth-modal" style="display:none;">
+  <div class="modal">
+    <h2 id="auth-title">Create account</h2>
+    <p id="auth-subtitle">Join the PulseStock community to share picks and track your record.</p>
+    <div id="auth-error" style="display:none;" class="error-msg"></div>
+    <div id="signup-fields">
+      <div class="form-group">
+        <label>Username / Screen name</label>
+        <input type="text" id="auth-username" placeholder="e.g. BullishMark" maxlength="20"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@email.com"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="Min 6 characters"/>
+    </div>
+    <button class="btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="submitAuth()" id="auth-submit-btn">Create account</button>
+    <div class="modal-footer">
+      <span id="auth-toggle-text">Already have an account?</span>
+      <button onclick="toggleAuth()" id="auth-toggle-btn">Log in</button>
+      <br/><button onclick="closeAuth()" style="color:var(--text3);margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <!-- CHAT -->
+  <div class="chat-container">
+    <div class="chat-header">
+      <div>
+        <h2>💬 Community Chat</h2>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Share picks, discuss markets, track your record</div>
+      </div>
+      <div class="online-badge"><div class="online-dot"></div> Live</div>
+    </div>
+    <div class="messages-area" id="messages-area">
+      <div class="empty">Loading messages...</div>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-tabs">
+        <button class="input-tab active" onclick="switchTab('chat',this)">💬 Chat</button>
+        <button class="input-tab" onclick="switchTab('pick',this)">📈 Post a Pick</button>
+      </div>
+      <!-- CHAT INPUT -->
+      <div id="chat-input-panel">
+        <div class="msg-input-row">
+          <input type="text" id="msg-input" placeholder="Type a message... (Enter to send)" onkeydown="if(event.key==='Enter')sendMessage()"/>
+          <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+        <div class="login-prompt" id="chat-login-prompt" style="display:none;">
+          <button onclick="showAuth('signup')">Sign up</button> or <button onclick="showAuth('login')">log in</button> to join the conversation
+        </div>
+      </div>
+      <!-- PICK INPUT -->
+      <div id="pick-input-panel" style="display:none;">
+        <div class="pick-form">
+          <div class="pick-form-row">
+            <div class="pf-group">
+              <label>Ticker</label>
+              <input type="text" id="pick-ticker" placeholder="AAPL" maxlength="6" style="text-transform:uppercase;"/>
+            </div>
+            <div class="pf-group">
+              <label>Direction</label>
+              <select id="pick-direction">
+                <option value="BUY">🟢 BUY</option>
+                <option value="SELL">🔴 SELL / SHORT</option>
+              </select>
+            </div>
+            <div class="pf-group">
+              <label>Entry $</label>
+              <input type="number" id="pick-entry" placeholder="213.00"/>
+            </div>
+          </div>
+          <div class="pick-form-row">
+            <div class="pf-group">
+              <label>Target $</label>
+              <input type="number" id="pick-target" placeholder="235.00"/>
+            </div>
+            <div class="pf-group">
+              <label>Stop Loss $</label>
+              <input type="number" id="pick-stop" placeholder="195.00"/>
+            </div>
+            <div class="pf-group">
+              <label>Timeframe</label>
+              <select id="pick-timeframe">
+                <option>1 week</option>
+                <option selected>1 month</option>
+                <option>3 months</option>
+                <option>6 months</option>
+              </select>
+            </div>
+          </div>
+          <div class="pf-group">
+            <label>Thesis (optional)</label>
+            <textarea id="pick-notes" placeholder="Why are you making this pick?" rows="2" style="resize:none;width:100%;font-size:13px;padding:8px 10px;"></textarea>
+          </div>
+          <button class="send-btn" onclick="postPick()" style="align-self:flex-end;padding:10px 24px;">Post Pick →</button>
+        </div>
+        <div class="login-prompt" id="pick-login-prompt" style="display:none;">
+          <button onclick="showAuth('signup')">Sign up</button> to post picks and track your record
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <!-- USER CARD -->
+    <div class="sidebar-card" id="user-sidebar-card" style="display:none;">
+      <div class="user-card" id="user-card-content"></div>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">🏆 Leaderboard</div>
+      <div id="leaderboard-content"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- HOT PICKS -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">🔥 Top Picks This Month</div>
+      <div id="hot-picks-content"><div class="empty">No picks yet</div></div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">📖 How Scoring Works</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;">
+        <p style="margin-bottom:8px;">🎯 <strong>Win</strong> — pick hits target price within timeframe</p>
+        <p style="margin-bottom:8px;">❌ <strong>Loss</strong> — stop loss hit before target</p>
+        <p style="margin-bottom:8px;">⏳ <strong>Pending</strong> — pick still active</p>
+        <p style="margin-bottom:8px;">👍 <strong>Upvotes</strong> — community confidence in pick</p>
+        <p><strong>Rank</strong> = win rate × avg return × upvotes</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let currentProfile = null;
+let isLogin = false;
+let activeTab = 'chat';
+let msgSubscription = null;
+
+const COLORS = ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE185D','#059669'];
+
+// ── INIT ──
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await setUser(session.user);
+  updateUI();
+  loadMessages();
+  loadLeaderboard();
+  loadHotPicks();
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) await setUser(session.user);
+    else { currentUser = null; currentProfile = null; }
+    updateUI();
+  });
+
+  // realtime messages
+  msgSubscription = sb.channel('messages')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+      appendMessage(payload.new);
+    })
+    .subscribe();
+}
+
+async function setUser(user) {
+  currentUser = user;
+  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  currentProfile = data;
+}
+
+function updateUI() {
+  const authDiv = document.getElementById('header-auth');
+  const userCard = document.getElementById('user-sidebar-card');
+  const chatInput = document.getElementById('msg-input');
+  const chatPrompt = document.getElementById('chat-login-prompt');
+  const pickPrompt = document.getElementById('pick-login-prompt');
+  const pickForm = document.querySelector('.pick-form');
+
+  if (currentProfile) {
+    authDiv.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:${currentProfile.avatar_color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;">${currentProfile.username[0].toUpperCase()}</div>
+        <span style="font-size:14px;font-weight:500;">${currentProfile.username}</span>
+        <button class="btn-ghost" onclick="signOut()" style="font-size:12px;padding:6px 12px;">Sign out</button>
+      </div>`;
+    userCard.style.display = 'block';
+    document.getElementById('user-card-content').innerHTML = `
+      <div class="user-avatar-lg" style="background:${currentProfile.avatar_color};">${currentProfile.username[0].toUpperCase()}</div>
+      <div class="user-info">
+        <div class="user-name">${currentProfile.username}</div>
+        <div class="user-stats">Member since ${new Date(currentProfile.created_at).toLocaleDateString()}</div>
+      </div>`;
+    chatInput.style.display = 'block';
+    chatInput.disabled = false;
+    chatPrompt.style.display = 'none';
+    if (pickForm) pickForm.style.display = 'flex';
+    if (pickPrompt) pickPrompt.style.display = 'none';
+  } else {
+    authDiv.innerHTML = `
+      <button class="btn-ghost" onclick="showAuth('login')">Log in</button>
+      <button class="btn-primary" onclick="showAuth('signup')">Sign up</button>`;
+    userCard.style.display = 'none';
+    chatInput.style.display = 'none';
+    chatPrompt.style.display = 'block';
+    if (pickForm) pickForm.style.display = 'none';
+    if (pickPrompt) pickPrompt.style.display = 'block';
+  }
+}
+
+// ── AUTH ──
+function showAuth(mode) {
+  isLogin = mode === 'login';
+  document.getElementById('auth-modal').style.display = 'flex';
+  document.getElementById('signup-fields').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-title').textContent = isLogin ? 'Welcome back' : 'Create account';
+  document.getElementById('auth-subtitle').textContent = isLogin ? 'Log in to your PulseStock account.' : 'Join the community to share picks and track your record.';
+  document.getElementById('auth-submit-btn').textContent = isLogin ? 'Log in' : 'Create account';
+  document.getElementById('auth-toggle-text').textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('auth-toggle-btn').textContent = isLogin ? 'Sign up' : 'Log in';
+  document.getElementById('auth-error').style.display = 'none';
+}
+function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
+function toggleAuth() { showAuth(isLogin ? 'signup' : 'login'); }
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const username = document.getElementById('auth-username').value.trim();
+  const errEl = document.getElementById('auth-error');
+  const btn = document.getElementById('auth-submit-btn');
+  btn.textContent = 'Please wait...'; btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
+    if (isLogin) {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } else {
+      if (!username) throw new Error('Please enter a username');
+      if (username.length < 3) throw new Error('Username must be at least 3 characters');
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) throw error;
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      const { error: profileError } = await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: color });
+      if (profileError) throw profileError;
+      await setUser(data.user);
+    }
+    closeAuth();
+    updateUI();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+  btn.textContent = isLogin ? 'Log in' : 'Create account';
+  btn.disabled = false;
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  currentUser = null; currentProfile = null;
+  updateUI();
+}
+
+// ── MESSAGES ──
+async function loadMessages() {
+  const { data } = await sb.from('messages').select('*').order('created_at', { ascending: true }).limit(100);
+  const area = document.getElementById('messages-area');
+  if (!data || !data.length) { area.innerHTML = '<div class="empty">No messages yet. Be the first to say hello! 👋</div>'; return; }
+  area.innerHTML = '';
+  data.forEach(m => appendMessage(m, false));
+  area.scrollTop = area.scrollHeight;
+}
+
+function appendMessage(msg, scroll = true) {
+  const area = document.getElementById('messages-area');
+  const empty = area.querySelector('.empty');
+  if (empty) empty.remove();
+
+  const isPick = msg.content.startsWith('__PICK__');
+  const div = document.createElement('div');
+  div.className = 'msg fade-in';
+
+  const color = COLORS[msg.username.charCodeAt(0) % COLORS.length];
+  const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  if (isPick) {
+    const pick = JSON.parse(msg.content.replace('__PICK__', ''));
+    const isBuy = pick.direction === 'BUY';
+    const upside = (((pick.target_price - pick.entry_price) / pick.entry_price) * 100).toFixed(1);
+    const risk = (((pick.entry_price - pick.stop_loss) / pick.entry_price) * 100).toFixed(1);
+    div.innerHTML = `
+      <div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
+      <div class="msg-content">
+        <div class="msg-header">
+          <span class="msg-username">${msg.username}</span>
+          <span class="msg-time">${time}</span>
+          <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:500;">Pick</span>
+        </div>
+        <div class="pick-msg">
+          <div class="pick-direction ${isBuy?'pick-buy':'pick-sell'}">${isBuy?'🟢 BUY':'🔴 SELL'}</div>
+          <div class="pick-ticker">${pick.ticker}</div>
+          <div class="pick-levels">
+            <div class="pick-level"><div class="pick-level-label">Entry</div><div class="pick-level-val">$${pick.entry_price}</div></div>
+            <div class="pick-level"><div class="pick-level-label">Target <span style="color:var(--green);">+${upside}%</span></div><div class="pick-level-val" style="color:var(--green);">$${pick.target_price}</div></div>
+            <div class="pick-level"><div class="pick-level-label">Stop <span style="color:var(--red);">-${risk}%</span></div><div class="pick-level-val" style="color:var(--red);">$${pick.stop_loss}</div></div>
+          </div>
+          ${pick.notes ? `<div class="pick-notes">${pick.notes}</div>` : ''}
+          <div class="pick-actions">
+            <button class="upvote-btn" onclick="upvotePick('${pick.id}',this)">👍 <span>${pick.upvotes||0}</span></button>
+            <span class="result-badge result-pending">⏳ Pending</span>
+            <span style="font-size:11px;color:var(--text3);">${pick.timeframe||'1 month'}</span>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    div.innerHTML = `
+      <div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
+      <div class="msg-content">
+        <div class="msg-header"><span class="msg-username">${msg.username}</span><span class="msg-time">${time}</span></div>
+        <div class="msg-body">${escHtml(msg.content)}</div>
+      </div>`;
+  }
+  area.appendChild(div);
+  if (scroll) area.scrollTop = area.scrollHeight;
+}
+
+async function sendMessage() {
+  if (!currentProfile) { showAuth('signup'); return; }
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  await sb.from('messages').insert({ user_id: currentUser.id, username: currentProfile.username, content });
+}
+
+// ── PICKS ──
+async function postPick() {
+  if (!currentProfile) { showAuth('signup'); return; }
+  const ticker = document.getElementById('pick-ticker').value.trim().toUpperCase();
+  const direction = document.getElementById('pick-direction').value;
+  const entry = parseFloat(document.getElementById('pick-entry').value);
+  const target = parseFloat(document.getElementById('pick-target').value);
+  const stop = parseFloat(document.getElementById('pick-stop').value);
+  const notes = document.getElementById('pick-notes').value.trim();
+  const timeframe = document.getElementById('pick-timeframe').value;
+  if (!ticker || !entry || !target || !stop) { alert('Please fill in ticker, entry, target, and stop loss.'); return; }
+
+  const { data: pick, error } = await sb.from('picks').insert({
+    user_id: currentUser.id, username: currentProfile.username,
+    ticker, direction, entry_price: entry, target_price: target, stop_loss: stop, notes
+  }).select().single();
+  if (error) { alert('Error posting pick: ' + error.message); return; }
+
+  const msgContent = '__PICK__' + JSON.stringify({ ...pick, timeframe });
+  await sb.from('messages').insert({ user_id: currentUser.id, username: currentProfile.username, content: msgContent });
+
+  document.getElementById('pick-ticker').value = '';
+  document.getElementById('pick-entry').value = '';
+  document.getElementById('pick-target').value = '';
+  document.getElementById('pick-stop').value = '';
+  document.getElementById('pick-notes').value = '';
+  switchTab('chat', document.querySelector('.input-tab'));
+  loadHotPicks();
+}
+
+async function upvotePick(pickId, btn) {
+  if (!currentProfile) { showAuth('login'); return; }
+  const countEl = btn.querySelector('span');
+  const { error } = await sb.from('pick_upvotes').insert({ pick_id: pickId, user_id: currentUser.id });
+  if (!error) {
+    await sb.from('picks').update({ upvotes: parseInt(countEl.textContent) + 1 }).eq('id', pickId);
+    countEl.textContent = parseInt(countEl.textContent) + 1;
+    btn.classList.add('voted');
+    loadLeaderboard(); loadHotPicks();
+  }
+}
+
+// ── LEADERBOARD ──
+async function loadLeaderboard() {
+  const { data } = await sb.from('picks').select('username, result, upvotes');
+  if (!data || !data.length) {
+    document.getElementById('leaderboard-content').innerHTML = '<div class="empty">No picks yet. Be the first!</div>';
+    return;
+  }
+  const users = {};
+  data.forEach(p => {
+    if (!users[p.username]) users[p.username] = { picks: 0, wins: 0, upvotes: 0 };
+    users[p.username].picks++;
+    if (p.result === 'win') users[p.username].wins++;
+    users[p.username].upvotes += p.upvotes || 0;
+  });
+  const ranked = Object.entries(users).map(([name, s]) => ({
+    name, ...s, winRate: s.picks ? Math.round((s.wins / s.picks) * 100) : 0,
+    score: s.picks * (s.wins / Math.max(s.picks, 1)) + s.upvotes * 0.5
+  })).sort((a, b) => b.score - a.score).slice(0, 10);
+
+  const medals = ['🥇', '🥈', '🥉'];
+  document.getElementById('leaderboard-content').innerHTML = ranked.map((u, i) => {
+    const color = COLORS[u.name.charCodeAt(0) % COLORS.length];
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    return `<div class="leader-row">
+      <div class="leader-rank ${rankClass}">${medals[i] || (i+1)}</div>
+      <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
+      <div class="leader-info">
+        <div class="leader-name">${u.name}</div>
+        <div class="leader-stats">${u.picks} picks · ${u.upvotes} 👍</div>
+      </div>
+      <div class="leader-score">
+        <div class="leader-winrate">${u.winRate}%</div>
+        <div class="leader-picks">win rate</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadHotPicks() {
+  const { data } = await sb.from('picks').select('*').eq('result','pending').order('upvotes', { ascending: false }).limit(5);
+  if (!data || !data.length) { document.getElementById('hot-picks-content').innerHTML = '<div class="empty">No active picks yet</div>'; return; }
+  document.getElementById('hot-picks-content').innerHTML = data.map(p => {
+    const isBuy = p.direction === 'BUY';
+    const upside = (((p.target_price - p.entry_price) / p.entry_price) * 100).toFixed(1);
+    return `<div class="hot-pick">
+      <div class="hot-pick-header">
+        <div>
+          <span class="hot-pick-ticker">${p.ticker}</span>
+          <span style="font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px;${isBuy?'background:var(--green-bg);color:var(--green);':'background:var(--red-bg);color:var(--red);'}">${isBuy?'BUY':'SELL'}</span>
+        </div>
+        <span style="font-size:12px;font-weight:600;color:var(--green);">+${upside}%</span>
+      </div>
+      <div class="hot-pick-user" style="margin-bottom:6px;">by ${p.username}</div>
+      <div class="hot-pick-stats">
+        <span style="font-size:12px;color:var(--text3);">$${p.entry_price} → $${p.target_price}</span>
+        <span style="font-size:12px;color:var(--text3);margin-left:auto;">👍 ${p.upvotes}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.querySelectorAll('.input-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('chat-input-panel').style.display = tab === 'chat' ? 'block' : 'none';
+  document.getElementById('pick-input-panel').style.display = tab === 'pick' ? 'block' : 'none';
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>
