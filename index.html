@@ -655,6 +655,7 @@ async function doAnalyze(){
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
+  window._currentProfile = profile;
 
   if(!quote||quote.price===0){
     el.innerHTML=`<div class="card" style="border-color:var(--red);background:var(--red-bg);"><p style="color:var(--red);font-size:14px;font-weight:500;">⚠ Could not find "${ticker}"</p><p style="color:#9B2C1F;font-size:13px;margin-top:4px;">Check the ticker symbol and try again.</p></div>`;
@@ -911,6 +912,7 @@ async function runAIAnalysis(ticker, name, sector){
   var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A');
   var curChange = liveQuote ? (liveQuote.pct >= 0 ? '+' : '') + liveQuote.pct.toFixed(2) + '%' : '';
   var h52live = liveQuote ? null : null;
+  var profile = window._currentProfile || {};
   var exchangeInfo = profile ? (profile.exchange || profile.finnhubIndustry || '') : '';
   var isOTC = exchangeInfo.toUpperCase().indexOf('OTC') !== -1 || exchangeInfo.toUpperCase().indexOf('PINK') !== -1 || ticker.indexOf('.') !== -1;
   var otcNote = isOTC ? 'This company trades on OTC Markets. ' : '';
