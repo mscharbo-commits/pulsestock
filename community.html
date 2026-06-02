@@ -287,14 +287,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
         <button class="sent-btn sent-sell" id="vote-sell" onclick="castVote('sell')">🔴 Sell</button>
       </div>
       <div class="sentiment-track">
-        <div class="sentiment-track-buy" id="track-buy" style="flex:33"></div>
-        <div class="sentiment-track-hold" id="track-hold" style="flex:34"></div>
-        <div class="sentiment-track-sell" id="track-sell" style="flex:33"></div>
+        <div class="sentiment-track-buy" id="track-buy" style="flex:1;background:var(--surface3);"></div>
+        <div class="sentiment-track-hold" id="track-hold" style="flex:1;background:var(--surface3);"></div>
+        <div class="sentiment-track-sell" id="track-sell" style="flex:1;background:var(--surface3);"></div>
       </div>
       <div class="sentiment-labels">
-        <span class="sentiment-label" style="color:var(--green);" id="label-buy">33% Buy</span>
-        <span class="sentiment-label" style="color:var(--amber);" id="label-hold">34% Hold</span>
-        <span class="sentiment-label" style="color:var(--red);" id="label-sell">33% Sell</span>
+        <span class="sentiment-label" style="color:var(--green);" id="label-buy">— Buy</span>
+        <span class="sentiment-label" style="color:var(--amber);" id="label-hold">— Hold</span>
+        <span class="sentiment-label" style="color:var(--red);" id="label-sell">— Sell</span>
       </div>
     </div>
     <div class="chat-input-area">
@@ -566,9 +566,15 @@ async function postPick(){
   const{data:pick,error}=await sb.from('picks').insert({user_id:currentUser.id,username:currentProfile.username,ticker,direction,entry_price:entry,target_price:target,stop_loss:stop,notes}).select().single();
   if(error){alert('Error: '+error.message);return;}
   await sb.from('messages').insert({user_id:currentUser.id,username:currentProfile.username,content:'__PICK__'+JSON.stringify({...pick,timeframe}),room_id:currentRoom});
+  // Auto-cast sentiment vote matching pick direction
+  const sentVote=direction==='BUY'?'buy':'sell';
+  await sb.from('sentiment_votes').upsert({room_slug:currentRoom,user_id:currentUser.id,vote:sentVote},{onConflict:'room_slug,user_id'});
+  userVote=sentVote;
+  ['vote-buy','vote-hold','vote-sell'].forEach(id=>{const b=document.getElementById(id);if(b)b.classList.toggle('active',id==='vote-'+sentVote);});
   ['pick-ticker','pick-entry','pick-target','pick-stop','pick-notes'].forEach(id=>document.getElementById(id).value='');
   switchTab('chat',document.querySelector('.input-tab'));
   loadHotPicks();
+  loadSentiment(currentRoom);
 }
 
 async function upvotePick(pickId,btn){
@@ -853,15 +859,30 @@ async function loadSentiment(roomSlug){
 
 function renderSentiment(counts,total){
   const buy=counts.buy||0,hold=counts.hold||0,sell=counts.sell||0;
-  const t=buy+hold+sell||1;
+  const t=buy+hold+sell;
+  document.getElementById('sentiment-vote-count').textContent=t+' vote'+(t===1?'':'s');
+  if(t===0){
+    document.getElementById('track-buy').style.flex=1;
+    document.getElementById('track-hold').style.flex=1;
+    document.getElementById('track-sell').style.flex=1;
+    document.getElementById('track-buy').style.background='var(--surface3)';
+    document.getElementById('track-hold').style.background='var(--surface3)';
+    document.getElementById('track-sell').style.background='var(--surface3)';
+    document.getElementById('label-buy').textContent='— Buy';
+    document.getElementById('label-hold').textContent='— Hold';
+    document.getElementById('label-sell').textContent='— Sell';
+    return;
+  }
   const bp=Math.round(buy/t*100),hp=Math.round(hold/t*100),sp=100-bp-hp;
-  document.getElementById('track-buy').style.flex=bp||1;
-  document.getElementById('track-hold').style.flex=hp||1;
-  document.getElementById('track-sell').style.flex=sp||1;
+  document.getElementById('track-buy').style.flex=bp||0.5;
+  document.getElementById('track-hold').style.flex=hp||0.5;
+  document.getElementById('track-sell').style.flex=sp||0.5;
+  document.getElementById('track-buy').style.background='var(--green)';
+  document.getElementById('track-hold').style.background='var(--amber)';
+  document.getElementById('track-sell').style.background='var(--red)';
   document.getElementById('label-buy').textContent=bp+'% Buy';
   document.getElementById('label-hold').textContent=hp+'% Hold';
   document.getElementById('label-sell').textContent=sp+'% Sell';
-  document.getElementById('sentiment-vote-count').textContent=(buy+hold+sell)+' vote'+((buy+hold+sell)===1?'':'s');
 }
 
 async function castVote(vote){
