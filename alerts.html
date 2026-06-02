@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Price Alerts</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
+input,select{font-family:'DM Sans',sans-serif;outline:none;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;transition:border-color .15s;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.header-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
+.logo-name span{color:var(--accent);}
+.nav-links{display:flex;gap:4px;}
+.nav-link{padding:7px 14px;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--text2);text-decoration:none;}
+.nav-link:hover,.nav-link.active{background:var(--accent-light);color:var(--accent);}
+.btn-primary{background:var(--accent);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;}
+.btn-primary:hover{background:#0F4FC4;transform:translateY(-1px);}
+.btn-ghost{background:none;color:var(--text2);padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1.5px solid var(--border);}
+.btn-ghost:hover{background:var(--surface2);}
+
+.main{max-width:1100px;margin:0 auto;padding:32px 24px;}
+.page-header{margin-bottom:28px;}
+.page-header h1{font-size:26px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;}
+.page-header p{font-size:14px;color:var(--text2);}
+
+.layout{display:grid;grid-template-columns:380px 1fr;gap:24px;}
+
+/* CREATE ALERT CARD */
+.create-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);height:fit-content;position:sticky;top:80px;}
+.create-card h2{font-size:16px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.form-group input,.form-group select{width:100%;}
+.alert-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.alert-type-btn{padding:10px;border-radius:8px;font-size:13px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);text-align:center;cursor:pointer;transition:all .15s;}
+.alert-type-btn.active-above{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.alert-type-btn.active-below{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.current-price-display{background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.cpd-label{font-size:12px;color:var(--text3);}
+.cpd-price{font-size:16px;font-weight:600;font-family:'DM Mono',monospace;}
+.success-msg{background:var(--green-bg);color:var(--green);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+.error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+
+/* ALERTS LIST */
+.alerts-section h2{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.alert-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;transition:all .15s;}
+.alert-card:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(26,107,245,.1);}
+.alert-card.triggered{opacity:.6;border-style:dashed;}
+.alert-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.alert-icon-above{background:var(--green-bg);}
+.alert-icon-below{background:var(--red-bg);}
+.alert-info{flex:1;}
+.alert-ticker{font-size:16px;font-weight:600;font-family:'DM Mono',monospace;}
+.alert-desc{font-size:13px;color:var(--text2);margin-top:2px;}
+.alert-prices{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.alert-target{font-size:15px;font-weight:600;font-family:'DM Mono',monospace;}
+.alert-current{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;}
+.alert-progress{width:100%;height:4px;background:var(--surface2);border-radius:2px;margin-top:10px;overflow:hidden;}
+.alert-progress-fill{height:100%;border-radius:2px;transition:width .5s;}
+.badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-block;}
+.badge-active{background:var(--green-bg);color:var(--green);}
+.badge-triggered{background:var(--amber-bg);color:var(--amber);}
+.badge-above{background:var(--green-bg);color:var(--green);}
+.badge-below{background:var(--red-bg);color:var(--red);}
+.delete-btn{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:500;background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.delete-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red);}
+
+/* LOGIN WALL */
+.login-wall{text-align:center;padding:60px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+.login-wall h2{font-size:22px;font-weight:600;margin-bottom:10px;}
+.login-wall p{color:var(--text2);font-size:14px;margin-bottom:24px;line-height:1.6;}
+
+/* HOW IT WORKS */
+.how-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow);}
+.how-steps{display:flex;flex-direction:column;gap:14px;margin-top:14px;}
+.how-step{display:flex;gap:14px;align-items:flex-start;}
+.how-num{width:26px;height:26px;border-radius:50%;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;margin-top:1px;}
+.how-text h4{font-size:13.5px;font-weight:600;margin-bottom:3px;}
+.how-text p{font-size:13px;color:var(--text2);line-height:1.55;}
+
+.empty-state{text-align:center;padding:48px 24px;color:var(--text3);}
+.empty-state h3{font-size:18px;font-weight:600;color:var(--text2);margin-bottom:8px;}
+.empty-state p{font-size:14px;max-width:300px;margin:0 auto;line-height:1.6;}
+
+.dots{display:flex;gap:4px;justify-content:center;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:dp 1.4s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+@media(max-width:768px){.layout{grid-template-columns:1fr;}.create-card{position:static;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo"><div class="logo-icon">P</div><span class="logo-name">Pulse<span>Stock</span></span></a>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">📊 Analyze</a>
+      <a href="/community.html" class="nav-link">💬 Community</a>
+      <a href="/alerts.html" class="nav-link active">🔔 Alerts</a>
+    </nav>
+    <div id="header-auth" style="display:flex;align-items:center;gap:10px;"></div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="page-header">
+    <h1>🔔 Price Alerts</h1>
+    <p>Get notified by email when your stocks hit your target prices. Set alerts above or below any price level.</p>
+  </div>
+
+  <!-- NOT LOGGED IN -->
+  <div id="login-wall" style="display:none;">
+    <div class="login-wall">
+      <div style="font-size:48px;margin-bottom:16px;">🔔</div>
+      <h2>Sign in to set price alerts</h2>
+      <p>Create a free PulseStock account to set unlimited price alerts and get email notifications when your stocks move.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn-primary" onclick="showAuth('signup')">Create free account</button>
+        <button class="btn-ghost" onclick="showAuth('login')">Log in</button>
+      </div>
+    </div>
+    <div class="how-card" style="margin-top:24px;">
+      <div style="font-size:15px;font-weight:600;">How price alerts work</div>
+      <div class="how-steps">
+        <div class="how-step"><div class="how-num">1</div><div class="how-text"><h4>Set your alert</h4><p>Enter a ticker, choose above or below, and set your target price.</p></div></div>
+        <div class="how-step"><div class="how-num">2</div><div class="how-text"><h4>We monitor it</h4><p>PulseStock checks prices every 5 minutes using live market data.</p></div></div>
+        <div class="how-step"><div class="how-num">3</div><div class="how-text"><h4>Get notified</h4><p>The moment your price is hit, we send you an email instantly.</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGGED IN -->
+  <div id="alerts-layout" class="layout" style="display:none;">
+    <!-- CREATE ALERT -->
+    <div>
+      <div class="create-card">
+        <h2>🔔 Create Alert</h2>
+        <div id="create-success" class="success-msg" style="display:none;"></div>
+        <div id="create-error" class="error-msg" style="display:none;"></div>
+        <div class="form-group">
+          <label>Ticker symbol</label>
+          <input type="text" id="alert-ticker" placeholder="AAPL" maxlength="10" style="text-transform:uppercase;" oninput="fetchAlertPrice(this.value)"/>
+        </div>
+        <div class="current-price-display" id="alert-price-display" style="display:none;">
+          <span class="cpd-label">Current price</span>
+          <span class="cpd-price" id="alert-current-price">—</span>
+        </div>
+        <div class="form-group">
+          <label>Alert type</label>
+          <div class="alert-type-grid">
+            <button class="alert-type-btn" id="btn-above" onclick="setAlertType('above')">📈 Price goes above</button>
+            <button class="alert-type-btn" id="btn-below" onclick="setAlertType('below')">📉 Price goes below</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label id="target-label">Target price ($)</label>
+          <input type="number" id="alert-target" placeholder="e.g. 320.00" step="0.01"/>
+        </div>
+        <div class="form-group">
+          <label>Your email</label>
+          <input type="email" id="alert-email" placeholder="you@email.com"/>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:12px;" onclick="createAlert()">Set Alert →</button>
+        <p style="font-size:12px;color:var(--text3);margin-top:10px;text-align:center;">Free · No credit card · Cancel anytime</p>
+      </div>
+    </div>
+
+    <!-- ALERTS LIST -->
+    <div class="alerts-section">
+      <h2>
+        <span>My Alerts <span id="alert-count-badge" style="font-size:12px;font-weight:500;background:var(--surface2);color:var(--text3);padding:2px 10px;border-radius:20px;margin-left:6px;">0</span></span>
+        <button onclick="checkAllAlerts()" style="font-size:12px;padding:6px 14px;border-radius:6px;background:var(--accent-light);color:var(--accent);font-weight:500;">🔄 Check now</button>
+      </h2>
+      <div id="alerts-list"><div style="display:flex;justify-content:center;padding:40px;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>
+    </div>
+  </div>
+</main>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:28px 32px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.15);">
+    <h2 id="auth-title" style="font-size:20px;font-weight:600;margin-bottom:16px;">Create account</h2>
+    <div id="auth-error" style="display:none;background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;"></div>
+    <div id="auth-signup-fields">
+      <div style="margin-bottom:12px;"><label style="display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Username</label><input type="text" id="auth-username" placeholder="Your display name" style="width:100%;"/></div>
+    </div>
+    <div style="margin-bottom:12px;"><label style="display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Email</label><input type="email" id="auth-email-modal" placeholder="you@email.com" style="width:100%;"/></div>
+    <div style="margin-bottom:16px;"><label style="display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Password</label><input type="password" id="auth-password" placeholder="Min 6 characters" style="width:100%;"/></div>
+    <button class="btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="submitAuth()" id="auth-btn">Create account</button>
+    <div style="margin-top:14px;text-align:center;font-size:13px;color:var(--text3);">
+      <span id="auth-toggle-text">Already have an account?</span>
+      <button onclick="toggleAuth()" id="auth-toggle-btn" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;font-weight:500;margin-left:4px;">Log in</button><br/>
+      <button onclick="document.getElementById('auth-modal').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY='sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const FINNHUB_KEY='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let currentUser=null,currentProfile=null,isLogin=false,alertType='above';
+let priceCache={};
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){currentUser=session.user;await loadProfile();}
+  updateUI();
+  sb.auth.onAuthStateChange(async(_,session)=>{
+    if(session){currentUser=session.user;await loadProfile();}
+    else{currentUser=null;currentProfile=null;}
+    updateUI();
+  });
+}
+
+async function loadProfile(){
+  const{data}=await sb.from('profiles').select('*').eq('id',currentUser.id).single();
+  currentProfile=data;
+  if(currentUser.email) document.getElementById('alert-email').value=currentUser.email;
+}
+
+function updateUI(){
+  const authDiv=document.getElementById('header-auth');
+  if(currentProfile){
+    authDiv.innerHTML='<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+currentProfile.avatar_color+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;">'+currentProfile.username[0].toUpperCase()+'</div>'
+      +'<span style="font-size:13.5px;font-weight:500;">'+currentProfile.username+'</span>'
+      +'<button class="btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="signOut()">Sign out</button>'
+      +'</div>';
+    document.getElementById('login-wall').style.display='none';
+    document.getElementById('alerts-layout').style.display='grid';
+    loadAlerts();
+  }else{
+    authDiv.innerHTML='<button class="btn-ghost" onclick="showAuth(\"login\")">Log in</button><button class="btn-primary" onclick="showAuth(\"signup\")" style="margin-left:8px;">Sign up</button>';
+    document.getElementById('login-wall').style.display='block';
+    document.getElementById('alerts-layout').style.display='none';
+  }
+}
+
+// ── PRICE FETCH ──
+let priceTimeout=null;
+async function fetchAlertPrice(ticker){
+  clearTimeout(priceTimeout);
+  const t=ticker.trim().toUpperCase();
+  if(t.length<1){document.getElementById('alert-price-display').style.display='none';return;}
+  priceTimeout=setTimeout(async()=>{
+    try{
+      let price=priceCache[t];
+      if(!price){
+        const r=await fetch('https://finnhub.io/api/v1/quote?symbol='+t+'&token='+FINNHUB_KEY);
+        const d=await r.json();
+        if(d&&d.c>0){price=d.c;priceCache[t]=price;}
+      }
+      if(price){
+        document.getElementById('alert-price-display').style.display='flex';
+        document.getElementById('alert-current-price').textContent='$'+price.toFixed(2);
+        // Suggest target price
+        const input=document.getElementById('alert-target');
+        if(!input.value){
+          input.value=alertType==='above'?(price*1.05).toFixed(2):(price*0.95).toFixed(2);
+        }
+      }else{
+        document.getElementById('alert-price-display').style.display='none';
+      }
+    }catch(e){document.getElementById('alert-price-display').style.display='none';}
+  },500);
+}
+
+function setAlertType(type){
+  alertType=type;
+  document.getElementById('btn-above').className='alert-type-btn'+(type==='above'?' active-above':'');
+  document.getElementById('btn-below').className='alert-type-btn'+(type==='below'?' active-below':'');
+  document.getElementById('target-label').textContent=type==='above'?'Alert when price goes above ($)':'Alert when price goes below ($)';
+  // Re-suggest target
+  const ticker=document.getElementById('alert-ticker').value.trim().toUpperCase();
+  const price=priceCache[ticker];
+  if(price){
+    document.getElementById('alert-target').value=type==='above'?(price*1.05).toFixed(2):(price*0.95).toFixed(2);
+  }
+}
+
+// ── CREATE ALERT ──
+async function createAlert(){
+  const ticker=document.getElementById('alert-ticker').value.trim().toUpperCase();
+  const target=parseFloat(document.getElementById('alert-target').value);
+  const email=document.getElementById('alert-email').value.trim();
+  const successEl=document.getElementById('create-success');
+  const errorEl=document.getElementById('create-error');
+  successEl.style.display='none';errorEl.style.display='none';
+
+  if(!ticker||!target||!email){errorEl.textContent='Please fill in all fields.';errorEl.style.display='block';return;}
+  if(!email.includes('@')){errorEl.textContent='Please enter a valid email address.';errorEl.style.display='block';return;}
+
+  const currentPrice=priceCache[ticker]||null;
+  const{error}=await sb.from('price_alerts').insert({user_id:currentUser.id,email,ticker,alert_type:alertType,target_price:target,current_price:currentPrice,status:'active'});
+  if(error){errorEl.textContent='Error creating alert: '+error.message;errorEl.style.display='block';return;}
+
+  successEl.textContent='✅ Alert set! We will email '+email+' when '+ticker+' goes '+alertType+' $'+target+'.';
+  successEl.style.display='block';
+  document.getElementById('alert-ticker').value='';
+  document.getElementById('alert-target').value='';
+  document.getElementById('alert-price-display').style.display='none';
+  loadAlerts();
+  setTimeout(()=>successEl.style.display='none',5000);
+}
+
+// ── LOAD ALERTS ──
+async function loadAlerts(){
+  const{data}=await sb.from('price_alerts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const el=document.getElementById('alerts-list');
+  const badge=document.getElementById('alert-count-badge');
+  if(!data||!data.length){
+    badge.textContent='0';
+    el.innerHTML='<div class="empty-state"><div style="font-size:40px;margin-bottom:14px;">🔔</div><h3>No alerts yet</h3><p>Set your first price alert using the form on the left.</p></div>';
+    return;
+  }
+  const active=data.filter(a=>a.status==='active').length;
+  badge.textContent=data.length;
+  el.innerHTML=data.map(function(a){
+    var isAbove=a.alert_type==='above';
+    var cur=priceCache[a.ticker]||a.current_price||0;
+    var pct=cur&&a.target_price?Math.min(100,Math.max(0,isAbove?(cur/a.target_price*100):(a.target_price/cur*100))).toFixed(0):0;
+    var progressColor=isAbove?'var(--green)':'var(--red)';
+    var dist=cur&&a.target_price?Math.abs(((a.target_price-cur)/cur)*100).toFixed(1):null;
+    var cardClass='alert-card'+(a.status==='triggered'?' triggered':'');
+    var iconClass='alert-icon '+(isAbove?'alert-icon-above':'alert-icon-above alert-icon-below').split(' ')[isAbove?0:1];
+    var iconClass2=isAbove?'alert-icon alert-icon-above':'alert-icon alert-icon-below';
+    var icon=isAbove?'📈':'📉';
+    var badgeDir=isAbove?'badge badge-above':'badge badge-below';
+    var dirText=isAbove?'Above':'Below';
+    var badgeStatus=a.status==='active'?'badge badge-active':'badge badge-triggered';
+    var statusText=a.status==='active'?'Active':'Triggered';
+    var dirPhrase=isAbove?'rises above':'falls below';
+    var targetColor=isAbove?'var(--green)':'var(--red)';
+    var distHtml=dist?'&nbsp;&middot; <span style="color:var(--text3);">'+dist+'% away</span>':'';
+    var progressHtml=cur?'<div class="alert-progress"><div class="alert-progress-fill" style="width:'+pct+'%;background:'+progressColor+';"></div></div>':'';
+    var curHtml=cur?'<div class="alert-current">Now $'+(cur.toFixed?cur.toFixed(2):cur)+'</div>':'';
+    var actionHtml=a.status==='active'
+      ?'<button class="delete-btn" data-id="'+a.id+'" onclick="deleteAlert(this.dataset.id)">🗑 Remove</button>'
+      :'<span style="font-size:11px;color:var(--text3);">Fired '+(a.triggered_at?new Date(a.triggered_at).toLocaleDateString():'')+'</span>';
+    return '<div class="'+cardClass+'">'
+      +'<div class="'+iconClass2+'">'+icon+'</div>'
+      +'<div class="alert-info" style="flex:1;">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+          +'<span class="alert-ticker">'+a.ticker+'</span>'
+          +'<span class="'+badgeDir+'">'+dirText+'</span>'
+          +'<span class="'+badgeStatus+'">'+statusText+'</span>'
+        +'</div>'
+        +'<div class="alert-desc">Alert when '+a.ticker+' '+dirPhrase+' <strong>$'+a.target_price+'</strong>'+distHtml+'</div>'
+        +'<div class="alert-desc" style="margin-top:2px;">📧 '+a.email+'</div>'
+        +progressHtml
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">'
+        +'<div class="alert-target" style="color:'+targetColor+';">$'+a.target_price+'</div>'
+        +curHtml
+        +actionHtml
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+async function deleteAlert(id){
+  await sb.from('price_alerts').delete().eq('id',id);
+  loadAlerts();
+}
+
+// ── CHECK ALERTS ──
+async function checkAllAlerts(){
+  if(!currentUser) return;
+  const btn=document.querySelector('button[onclick="checkAllAlerts()"]');
+  if(btn){btn.textContent='⏳ Checking…';btn.disabled=true;}
+
+  const{data:alerts}=await sb.from('price_alerts').select('*').eq('user_id',currentUser.id).eq('status','active');
+  if(!alerts||!alerts.length){if(btn){btn.textContent='🔄 Check now';btn.disabled=false;}return;}
+
+  const tickers=[...new Set(alerts.map(a=>a.ticker))];
+  const prices={};
+  await Promise.all(tickers.map(async t=>{
+    const r=await fetch('https://finnhub.io/api/v1/quote?symbol='+t+'&token='+FINNHUB_KEY);
+    const d=await r.json();
+    if(d&&d.c>0){prices[t]=d.c;priceCache[t]=d.c;}
+  }));
+
+  let triggered=0;
+  for(const alert of alerts){
+    const price=prices[alert.ticker];
+    if(!price) continue;
+    const hit=(alert.alert_type==='above'&&price>=alert.target_price)||(alert.alert_type==='below'&&price<=alert.target_price);
+    if(hit){
+      triggered++;
+      await sb.from('price_alerts').update({status:'triggered',triggered_at:new Date().toISOString(),current_price:price}).eq('id',alert.id);
+      await sendAlertEmail(alert,price);
+    }else{
+      await sb.from('price_alerts').update({current_price:price}).eq('id',alert.id);
+    }
+  }
+
+  loadAlerts();
+  if(btn){btn.textContent=triggered > 0 ? ('✅ ' + triggered + ' alert' + (triggered > 1 ? 's' : '') + ' fired!') : '🔄 Check now';btn.disabled=false;setTimeout(()=>{if(btn)btn.textContent='🔄 Check now';},3000);}
+}
+
+async function sendAlertEmail(alert,currentPrice){
+  const isAbove = alert.alert_type === 'above';
+  const changeNum = ((currentPrice - alert.target_price) / alert.target_price * 100).toFixed(2);
+  const changeSign = parseFloat(changeNum) >= 0 ? '+' : '';
+  const dirWord = isAbove ? 'risen above' : 'fallen below';
+  const dirLabel = isAbove ? 'Above' : 'Below';
+  const accentColor = isAbove ? '#0D9B6B' : '#D13F30';
+  const targetStr = '$' + alert.target_price;
+  const currentStr = '$' + currentPrice.toFixed(2);
+  const changeStr = changeSign + changeNum + '% from target';
+
+  const bodyLines = [
+    '<!DOCTYPE html><html><body style="font-family:Helvetica Neue,sans-serif;background:#F7F8FA;padding:20px;">',
+    '<div style="max-width:500px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);">',
+    '<div style="background:' + accentColor + ';padding:24px 28px;color:white;">',
+    '<div style="font-size:13px;font-weight:600;opacity:.8;margin-bottom:4px;">PULSESTOCK PRICE ALERT</div>',
+    '<div style="font-size:28px;font-weight:700;letter-spacing:-1px;">' + alert.ticker + ' Alert Triggered</div>',
+    '</div>',
+    '<div style="padding:24px 28px;">',
+    '<div style="display:flex;justify-content:space-between;margin-bottom:20px;">',
+    '<div style="text-align:center;flex:1;padding:14px;background:#F7F8FA;border-radius:8px;margin-right:8px;">',
+    '<div style="font-size:11px;color:#8A95A3;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Your Target</div>',
+    '<div style="font-size:22px;font-weight:700;font-family:monospace;color:' + accentColor + ';">' + targetStr + '</div>',
+    '</div>',
+    '<div style="text-align:center;flex:1;padding:14px;background:#F7F8FA;border-radius:8px;margin-left:8px;">',
+    '<div style="font-size:11px;color:#8A95A3;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Current Price</div>',
+    '<div style="font-size:22px;font-weight:700;font-family:monospace;color:#0D1117;">' + currentStr + '</div>',
+    '</div></div>',
+    '<p style="font-size:14px;color:#4A5568;line-height:1.6;margin-bottom:20px;">',
+    '<strong>' + alert.ticker + '</strong> has ' + dirWord + ' your target of <strong>' + targetStr + '</strong>.',
+    ' Current price is <strong>' + currentStr + '</strong> (' + changeStr + ').',
+    '</p>',
+    '<a href="https://pulsestock-nu.vercel.app" style="display:block;background:#1A6BF5;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;text-align:center;margin-bottom:16px;">View ' + alert.ticker + ' Analysis</a>',
+    '<a href="https://pulsestock-nu.vercel.app/alerts.html" style="display:block;background:#F2F4F7;color:#4A5568;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:13px;text-align:center;">Manage Alerts</a>',
+    '</div>',
+    '<div style="padding:16px 28px;border-top:1px solid #E2E6ED;font-size:12px;color:#8A95A3;text-align:center;">PulseStock - AI-Powered Stock Analysis</div>',
+    '</div></body></html>'
+  ];
+
+  const html = bodyLines.join('\n');
+
+  try{
+    await fetch('/api/alerts',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to: alert.email,
+        subject: 'PulseStock Alert: ' + alert.ticker + ' ' + dirLabel + ' ' + targetStr,
+        html
+      })
+    });
+  }catch(e){console.error('Email send failed:',e);}
+}
+
+// ── AUTH ──
+function showAuth(mode){
+  isLogin=mode==='login';
+  const modal=document.getElementById('auth-modal');
+  modal.style.display='flex';
+  document.getElementById('auth-signup-fields').style.display=isLogin?'none':'block';
+  document.getElementById('auth-title').textContent=isLogin?'Welcome back':'Create account';
+  document.getElementById('auth-btn').textContent=isLogin?'Log in':'Create account';
+  document.getElementById('auth-toggle-text').textContent=isLogin?"Don't have an account?":"Already have an account?";
+  document.getElementById('auth-toggle-btn').textContent=isLogin?'Sign up':'Log in';
+  document.getElementById('auth-error').style.display='none';
+}
+function toggleAuth(){showAuth(isLogin?'signup':'login');}
+
+async function submitAuth(){
+  const email=document.getElementById('auth-email-modal').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const username=document.getElementById('auth-username').value.trim();
+  const errEl=document.getElementById('auth-error');
+  const btn=document.getElementById('auth-btn');
+  btn.textContent='Please wait...';btn.disabled=true;errEl.style.display='none';
+  try{
+    if(isLogin){
+      const{error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }else{
+      if(!username||username.length<3)throw new Error('Username must be at least 3 characters');
+      const{data,error}=await sb.auth.signUp({email,password});
+      if(error)throw error;
+      const colors=['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309'];
+      const color=colors[Math.floor(Math.random()*colors.length)];
+      await sb.from('profiles').insert({id:data.user.id,username,avatar_color:color});
+    }
+    document.getElementById('auth-modal').style.display='none';
+  }catch(err){errEl.textContent=err.message;errEl.style.display='block';}
+  btn.textContent=isLogin?'Log in':'Create account';btn.disabled=false;
+}
+async function signOut(){await sb.auth.signOut();currentUser=null;currentProfile=null;updateUI();}
+
+// Auto-check alerts every 5 minutes
+setInterval(()=>{if(currentUser)checkAllAlerts();},5*60*1000);
+
+init();
+</script>
+</body>
+</html>
