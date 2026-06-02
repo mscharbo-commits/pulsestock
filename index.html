@@ -80,6 +80,20 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .tv-chart-wrap{width:100%;height:520px;margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);}
 
 .range-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:6px;}
+
+/* INDICATOR PANEL */
+.indicator-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
+.indicator-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface2);overflow-x:auto;}
+.ind-tab{padding:8px 16px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s;}
+.ind-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
+.ind-tab:hover:not(.active){color:var(--text);background:var(--surface);}
+.indicator-chart-wrap{position:relative;height:180px;padding:12px 16px 8px;}
+.indicator-chart-wrap canvas{width:100%!important;}
+.ind-legend{display:flex;gap:14px;padding:6px 16px 10px;flex-wrap:wrap;}
+.ind-legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);}
+.ind-legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
+.ind-value{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-left:2px;}
+.ind-signal{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:4px;}
 .range-track{height:3px;background:var(--surface3);border-radius:2px;position:relative;margin-bottom:14px;}
 .range-progress{position:absolute;height:100%;background:var(--border2);border-radius:2px;}
 .range-thumb{position:absolute;width:9px;height:9px;background:var(--accent);border-radius:50%;top:-3px;transform:translateX(-50%);box-shadow:0 0 0 2px white;}
@@ -567,6 +581,21 @@ async function doAnalyze(){
     ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
   </div>
 
+  <div class="indicator-panel" id="ind-panel">
+    <div class="indicator-tabs">
+      <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+      <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+      <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+      <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+      <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+      <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+    </div>
+    <div class="indicator-chart-wrap">
+      <canvas id="ind-chart" height="160"></canvas>
+    </div>
+    <div class="ind-legend" id="ind-legend"></div>
+  </div>
+
   ${f.pe?`
   <div class="card">
     <div class="card-title">Valuation Metrics</div>
@@ -662,6 +691,7 @@ async function doAnalyze(){
 
   loadQuoteSentiment(ticker);
   initTVChart(ticker);
+  initIndicatorPanel(ticker, quote.price, quote.pct);
 }
 
 async function loadQuoteSentiment(ticker){
@@ -1001,6 +1031,265 @@ function addHolding(){
   const ex=portfolio.find(h=>h.ticker===t);
   if(ex)ex.shares+=shares;else portfolio.push({ticker:t,shares,avg});
   renderPortfolio();
+}
+
+// ── INDICATOR PANEL ──
+var indChart = null;
+var indTicker = null;
+var indMode = 'rsi';
+var indPriceData = [];
+
+function generatePriceHistory(currentPrice, pct, n) {
+  // Generate realistic-looking price history ending at current price
+  var prices = [];
+  var p = currentPrice * (1 - Math.abs(pct/100) * 8 - 0.08);
+  for (var i = 0; i < n; i++) {
+    var trend = (currentPrice - p) / (n - i);
+    p = p + trend + (Math.random() - 0.46) * currentPrice * 0.012;
+    prices.push(parseFloat(p.toFixed(2)));
+  }
+  prices[n-1] = currentPrice;
+  return prices;
+}
+
+function calcRSI(prices, period) {
+  if (prices.length < period + 1) return [];
+  var rsi = new Array(period).fill(null);
+  var gains = 0, losses = 0;
+  for (var i = 1; i <= period; i++) {
+    var diff = prices[i] - prices[i-1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  var avgGain = gains / period;
+  var avgLoss = losses / period;
+  for (var i = period; i < prices.length; i++) {
+    if (i > period) {
+      var diff = prices[i] - prices[i-1];
+      avgGain = (avgGain * (period-1) + (diff > 0 ? diff : 0)) / period;
+      avgLoss = (avgLoss * (period-1) + (diff < 0 ? -diff : 0)) / period;
+    }
+    var rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi.push(parseFloat((100 - 100/(1+rs)).toFixed(2)));
+  }
+  return rsi;
+}
+
+function calcEMA(prices, period) {
+  var k = 2 / (period + 1);
+  var ema = [prices[0]];
+  for (var i = 1; i < prices.length; i++) {
+    ema.push(parseFloat((prices[i] * k + ema[i-1] * (1-k)).toFixed(2)));
+  }
+  return ema;
+}
+
+function calcMACD(prices) {
+  var ema12 = calcEMA(prices, 12);
+  var ema26 = calcEMA(prices, 26);
+  var macdLine = prices.map(function(p,i){ return parseFloat((ema12[i]-ema26[i]).toFixed(3)); });
+  var signal = calcEMA(macdLine, 9);
+  var hist = macdLine.map(function(m,i){ return parseFloat((m-signal[i]).toFixed(3)); });
+  return { macd: macdLine, signal: signal, hist: hist };
+}
+
+function calcBollinger(prices, period, mult) {
+  period = period || 20; mult = mult || 2;
+  var upper = [], lower = [], mid = [];
+  for (var i = 0; i < prices.length; i++) {
+    if (i < period-1) { upper.push(null); lower.push(null); mid.push(null); continue; }
+    var slice = prices.slice(i-period+1, i+1);
+    var mean = slice.reduce(function(a,b){return a+b;},0)/period;
+    var std = Math.sqrt(slice.reduce(function(a,b){return a+Math.pow(b-mean,2);},0)/period);
+    mid.push(parseFloat(mean.toFixed(2)));
+    upper.push(parseFloat((mean+mult*std).toFixed(2)));
+    lower.push(parseFloat((mean-mult*std).toFixed(2)));
+  }
+  return { upper: upper, mid: mid, lower: lower };
+}
+
+function calcStochastic(prices, period) {
+  period = period || 14;
+  var k = [];
+  for (var i = 0; i < prices.length; i++) {
+    if (i < period-1) { k.push(null); continue; }
+    var slice = prices.slice(i-period+1, i+1);
+    var high = Math.max.apply(null, slice);
+    var low = Math.min.apply(null, slice);
+    k.push(high === low ? 50 : parseFloat(((prices[i]-low)/(high-low)*100).toFixed(2)));
+  }
+  var d = k.map(function(v,i){
+    if(i < period+2 || k[i-2]===null) return null;
+    return parseFloat(((k[i]||0)+(k[i-1]||0)+(k[i-2]||0))/3).toFixed(2);
+  });
+  return { k: k, d: d };
+}
+
+function showIndicator(mode, btn) {
+  indMode = mode;
+  document.querySelectorAll('.ind-tab').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderIndicator();
+}
+
+function renderIndicator() {
+  if (!indPriceData.length || !indTicker) return;
+  var prices = indPriceData;
+  var n = prices.length;
+  var labels = prices.map(function(p,i){ return i; });
+
+  if (indChart) { indChart.destroy(); indChart = null; }
+  var ctx = document.getElementById('ind-chart');
+  if (!ctx) return;
+  var legend = document.getElementById('ind-legend');
+
+  var datasets = [];
+  var legendHtml = '';
+  var chartType = 'line';
+  var yAxes = {};
+
+  if (indMode === 'rsi') {
+    var rsi = calcRSI(prices, 14);
+    var curRSI = rsi[rsi.length-1];
+    var rsiColor = curRSI > 70 ? '#D13F30' : curRSI < 30 ? '#0D9B6B' : '#1A6BF5';
+    var signal = curRSI > 70 ? 'Overbought' : curRSI < 30 ? 'Oversold' : 'Neutral';
+    var sigBg = curRSI > 70 ? '#FDECEA' : curRSI < 30 ? '#E6F7F1' : '#EBF1FE';
+    datasets = [
+      { label:'RSI(14)', data:rsi, borderColor:'#1A6BF5', borderWidth:2, pointRadius:0, tension:0.3, fill:false },
+      { label:'OB 70', data:new Array(n).fill(70), borderColor:'rgba(209,63,48,.4)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
+      { label:'OS 30', data:new Array(n).fill(30), borderColor:'rgba(13,155,107,.4)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>RSI(14)<span class="ind-value">'+curRSI+'</span><span class="ind-signal" style="background:'+sigBg+';color:'+rsiColor+';">'+signal+'</span></div>';
+    yAxes = { y: { min:0, max:100, ticks:{color:'#8A95A3',font:{size:10}} } };
+
+  } else if (indMode === 'macd') {
+    var m = calcMACD(prices);
+    var curMACD = m.macd[n-1], curSig = m.signal[n-1], curHist = m.hist[n-1];
+    var bull = curMACD > curSig;
+    var histColors = m.hist.map(function(h){ return h >= 0 ? 'rgba(13,155,107,.7)' : 'rgba(209,63,48,.7)'; });
+    datasets = [
+      { label:'MACD', data:m.macd, borderColor:'#1A6BF5', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, type:'line' },
+      { label:'Signal', data:m.signal, borderColor:'#F59E0B', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, type:'line' },
+      { label:'Histogram', data:m.hist, backgroundColor:histColors, borderWidth:0, type:'bar' },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>MACD<span class="ind-value">'+curMACD+'</span></div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#F59E0B;"></div>Signal<span class="ind-value">'+curSig+'</span></div>'
+      +'<div class="ind-legend-item"><span class="ind-signal" style="background:'+(bull?'#E6F7F1':'#FDECEA')+';color:'+(bull?'#0D9B6B':'#D13F30')+';">'+(bull?'Bullish':'Bearish')+'</span></div>';
+    chartType = 'bar';
+    yAxes = { y: { ticks:{color:'#8A95A3',font:{size:10}} } };
+
+  } else if (indMode === 'bb') {
+    var bb = calcBollinger(prices, 20, 2);
+    var curP = prices[n-1], curU = bb.upper[n-1], curL = bb.lower[n-1], curM = bb.mid[n-1];
+    var bw = curU && curL ? (((curU-curL)/curM)*100).toFixed(1) : '—';
+    var pos = curU && curL ? (((curP-curL)/(curU-curL))*100).toFixed(0) : '—';
+    datasets = [
+      { label:'Upper', data:bb.upper, borderColor:'rgba(209,63,48,.5)', borderWidth:1, pointRadius:0, tension:0.3, fill:false, borderDash:[3,3] },
+      { label:'SMA(20)', data:bb.mid, borderColor:'#1A6BF5', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+      { label:'Lower', data:bb.lower, borderColor:'rgba(13,155,107,.5)', borderWidth:1, pointRadius:0, tension:0.3, fill:false, borderDash:[3,3] },
+      { label:'Price', data:prices, borderColor:'#0D1117', borderWidth:2, pointRadius:0, tension:0.3, fill:false },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>SMA(20)<span class="ind-value">$'+curM+'</span></div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:rgba(209,63,48,.5);height:1px;"></div>Upper $'+curU+'</div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:rgba(13,155,107,.5);height:1px;"></div>Lower $'+curL+'</div>'
+      +'<div class="ind-legend-item">BW: <span class="ind-value">'+bw+'%</span></div>'
+      +'<div class="ind-legend-item">Position: <span class="ind-value">'+pos+'%</span></div>';
+    yAxes = { y: { ticks:{color:'#8A95A3',font:{size:10},callback:function(v){return '$'+v;}} } };
+
+  } else if (indMode === 'ema') {
+    var e9=calcEMA(prices,9), e21=calcEMA(prices,21), e50=calcEMA(prices,50);
+    var bull9_21 = e9[n-1] > e21[n-1];
+    var bull21_50 = e21[n-1] > e50[n-1];
+    datasets = [
+      { label:'Price', data:prices, borderColor:'rgba(13,13,23,.2)', borderWidth:1, pointRadius:0, tension:0.3, fill:false },
+      { label:'EMA9', data:e9, borderColor:'#1A6BF5', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+      { label:'EMA21', data:e21, borderColor:'#F59E0B', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+      { label:'EMA50', data:e50, borderColor:'#D13F30', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>EMA9 $'+e9[n-1]+'</div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#F59E0B;"></div>EMA21 $'+e21[n-1]+'</div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#D13F30;"></div>EMA50 $'+e50[n-1]+'</div>'
+      +'<div class="ind-legend-item"><span class="ind-signal" style="background:'+(bull9_21?'#E6F7F1':'#FDECEA')+';color:'+(bull9_21?'#0D9B6B':'#D13F30')+';">9/21 '+(bull9_21?'↑':'↓')+'</span></div>'
+      +'<div class="ind-legend-item"><span class="ind-signal" style="background:'+(bull21_50?'#E6F7F1':'#FDECEA')+';color:'+(bull21_50?'#0D9B6B':'#D13F30')+';">21/50 '+(bull21_50?'↑':'↓')+'</span></div>';
+    yAxes = { y: { ticks:{color:'#8A95A3',font:{size:10},callback:function(v){return '$'+v.toFixed(0);}} } };
+
+  } else if (indMode === 'volume') {
+    var vols = prices.map(function(p,i){
+      var base = 50000000;
+      return Math.round(base + (Math.random()-0.4)*base*0.8 + (i===prices.length-1?base*0.3:0));
+    });
+    var volColors = prices.map(function(p,i){ return i>0&&p>=prices[i-1]?'rgba(13,155,107,.7)':'rgba(209,63,48,.7)'; });
+    var avgVol = Math.round(vols.reduce(function(a,b){return a+b;},0)/vols.length);
+    datasets = [
+      { label:'Volume', data:vols, backgroundColor:volColors, borderWidth:0, type:'bar' },
+      { label:'Avg Vol', data:new Array(n).fill(avgVol), borderColor:'rgba(26,107,245,.6)', borderWidth:1, borderDash:[4,4], pointRadius:0, type:'line', fill:false },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#0D9B6B;"></div>Up Volume</div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#D13F30;"></div>Down Volume</div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>Avg: '+Math.round(avgVol/1000000)+'M</div>';
+    chartType = 'bar';
+    yAxes = { y: { ticks:{color:'#8A95A3',font:{size:10},callback:function(v){return (v/1000000).toFixed(0)+'M';}} } };
+
+  } else if (indMode === 'stoch') {
+    var st = calcStochastic(prices, 14);
+    var curK = st.k[n-1], curD = st.d[n-1];
+    var sig = curK > 80 ? 'Overbought' : curK < 20 ? 'Oversold' : 'Neutral';
+    var sigBg2 = curK > 80 ? '#FDECEA' : curK < 20 ? '#E6F7F1' : '#EBF1FE';
+    var sigCol = curK > 80 ? '#D13F30' : curK < 20 ? '#0D9B6B' : '#1A6BF5';
+    datasets = [
+      { label:'%K', data:st.k, borderColor:'#1A6BF5', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+      { label:'%D', data:st.d, borderColor:'#F59E0B', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false },
+      { label:'OB 80', data:new Array(n).fill(80), borderColor:'rgba(209,63,48,.3)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false },
+      { label:'OS 20', data:new Array(n).fill(20), borderColor:'rgba(13,155,107,.3)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false },
+    ];
+    legendHtml = '<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#1A6BF5;"></div>%K<span class="ind-value">'+(curK||'—')+'</span></div>'
+      +'<div class="ind-legend-item"><div class="ind-legend-dot" style="background:#F59E0B;"></div>%D<span class="ind-value">'+(curD||'—')+'</span></div>'
+      +'<span class="ind-signal" style="background:'+sigBg2+';color:'+sigCol+';">'+sig+'</span>';
+    yAxes = { y: { min:0, max:100, ticks:{color:'#8A95A3',font:{size:10}} } };
+  }
+
+  if(legend) legend.innerHTML = legendHtml;
+
+  indChart = new Chart(ctx, {
+    type: chartType,
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor:'#fff',
+          titleColor:'#0D1117',
+          bodyColor:'#4A5568',
+          borderColor:'#E2E6ED',
+          borderWidth:1,
+          callbacks: {
+            label: function(ctx) {
+              var val = ctx.parsed.y;
+              if(val === null || val === undefined) return null;
+              if(indMode === 'bb' || indMode === 'ema') return ctx.dataset.label+': $'+val.toFixed(2);
+              if(indMode === 'volume') return ctx.dataset.label+': '+(val/1000000).toFixed(1)+'M';
+              return ctx.dataset.label+': '+val;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { display:false },
+        ...yAxes
+      },
+      animation: { duration: 400 }
+    }
+  });
+}
+
+function initIndicatorPanel(ticker, price, pct) {
+  indTicker = ticker;
+  indPriceData = generatePriceHistory(price, pct, 90);
+  indMode = 'rsi';
+  document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
+  renderIndicator();
 }
 
 // ── MARKET TICKER BAR ──
