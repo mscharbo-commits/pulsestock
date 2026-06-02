@@ -7,149 +7,166 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--purple:#7C3AED;--purple-bg:#F5F3FF;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
 button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
 input,select,textarea{font-family:'DM Sans',sans-serif;outline:none;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;transition:border-color .15s;}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);}
 
-/* HEADER */
 header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
-.header-inner{max-width:1300px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.header-inner{max-width:1400px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
 .logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
 .logo-name span{color:var(--accent);}
-.header-right{display:flex;align-items:center;gap:10px;}
 .nav-links{display:flex;gap:4px;}
-.nav-link{padding:7px 14px;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--text2);background:none;text-decoration:none;display:flex;align-items:center;gap:5px;}
+.nav-link{padding:7px 14px;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--text2);background:none;text-decoration:none;}
 .nav-link:hover,.nav-link.active{background:var(--accent-light);color:var(--accent);}
 .btn-primary{background:var(--accent);color:#fff;padding:8px 18px;border-radius:8px;font-size:13.5px;font-weight:500;}
-.btn-primary:hover{background:#0F4FC4;transform:translateY(-1px);}
+.btn-primary:hover{background:#0F4FC4;}
 .btn-ghost{background:none;color:var(--text2);padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1.5px solid var(--border);}
 .btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px;}
 
-/* LAYOUT */
-.main{max-width:1300px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:1fr 360px;gap:24px;}
+.layout{max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:240px 1fr 300px;gap:20px;}
 
-/* AUTH MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-.modal{background:var(--surface);border-radius:var(--radius);padding:32px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
-.modal h2{font-size:22px;font-weight:600;margin-bottom:6px;}
-.modal p{font-size:14px;color:var(--text2);margin-bottom:24px;}
-.form-group{margin-bottom:14px;}
-.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
-.form-group input{width:100%;}
-.modal-footer{margin-top:20px;text-align:center;font-size:13px;color:var(--text3);}
-.modal-footer button{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;font-weight:500;}
-.error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+/* ROOMS SIDEBAR */
+.rooms-sidebar{display:flex;flex-direction:column;gap:6px;}
+.rooms-header{display:flex;align-items:center;justify-content:space-between;padding:8px 4px;margin-bottom:4px;}
+.rooms-header span{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
+.room-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .12s;}
+.room-item:hover{background:var(--surface2);}
+.room-item.active{background:var(--accent-light);}
+.room-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0;}
+.room-info{flex:1;min-width:0;}
+.room-name{font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.room-item.active .room-name{color:var(--accent);}
+.room-count{font-size:11px;color:var(--text3);}
+.room-divider{height:1px;background:var(--border);margin:8px 0;}
+.create-room-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--accent);background:var(--accent-light);width:100%;border:none;cursor:pointer;margin-top:4px;}
+.create-room-btn:hover{background:#dce8fe;}
 
 /* CHAT */
-.chat-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 140px);}
-.chat-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.chat-header h2{font-size:16px;font-weight:600;}
+.chat-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 120px);}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.chat-header-left h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.chat-header-left p{font-size:12.5px;color:var(--text3);margin-top:2px;}
+.chat-header-right{display:flex;align-items:center;gap:8px;}
 .online-badge{font-size:12px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:5px;}
 .online-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.messages-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.messages-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px;}
 .messages-area::-webkit-scrollbar{width:4px;}
-.messages-area::-webkit-scrollbar-track{background:transparent;}
 .messages-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .msg{display:flex;gap:10px;align-items:flex-start;}
 .msg-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#fff;flex-shrink:0;}
 .msg-content{flex:1;}
 .msg-header{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
 .msg-username{font-size:13px;font-weight:600;}
+.msg-role{font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;}
+.role-admin{background:#FEF3C7;color:#92400E;}
+.role-mod{background:#EDE9FE;color:#5B21B6;}
+.role-verified{background:#D1FAE5;color:#065F46;}
 .msg-time{font-size:11px;color:var(--text3);}
 .msg-body{font-size:14px;color:var(--text2);line-height:1.55;}
+.msg-actions{display:none;gap:6px;margin-top:4px;}
+.msg:hover .msg-actions{display:flex;}
+.msg-action-btn{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.msg-action-btn:hover{background:var(--red-bg);color:var(--red);border-color:var(--red);}
+.msg-deleted{font-size:13px;color:var(--text3);font-style:italic;}
+
 .pick-msg{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:6px;}
 .pick-direction{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:8px;}
 .pick-buy{background:var(--green-bg);color:var(--green);}
 .pick-sell{background:var(--red-bg);color:var(--red);}
 .pick-ticker{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;}
 .pick-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-.pick-level{text-align:center;}
 .pick-level-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
 .pick-level-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
-.pick-notes{font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.55;}
-.pick-actions{display:flex;align-items:center;gap:8px;}
+.pick-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .upvote-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);}
 .upvote-btn:hover,.upvote-btn.voted{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
-.result-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
-.result-pending{background:var(--amber-bg);color:var(--amber);}
-.result-win{background:var(--green-bg);color:var(--green);}
-.result-loss{background:var(--red-bg);color:var(--red);}
+.result-pending{background:var(--amber-bg);color:var(--amber);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+
 .chat-input-area{padding:14px 16px;border-top:1px solid var(--border);}
 .input-tabs{display:flex;gap:4px;margin-bottom:10px;}
 .input-tab{font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:6px;color:var(--text2);background:none;border:1.5px solid transparent;}
-.input-tab.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent-light);}
+.input-tab.active{background:var(--accent-light);color:var(--accent);}
 .msg-input-row{display:flex;gap:8px;}
-.msg-input-row input{flex:1;font-size:14px;}
-.send-btn{background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:500;white-space:nowrap;}
-.send-btn:hover{background:#0F4FC4;}
+.msg-input-row input{flex:1;}
+.send-btn{background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:500;}
 .pick-form{display:flex;flex-direction:column;gap:10px;}
 .pick-form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.pick-form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .pf-group label{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
 .pf-group input,.pf-group select,.pf-group textarea{width:100%;font-size:13px;padding:8px 10px;}
-.login-prompt{text-align:center;padding:20px;font-size:13.5px;color:var(--text3);}
-.login-prompt button{color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;font-size:13.5px;}
+.login-prompt{text-align:center;padding:16px;font-size:13.5px;color:var(--text3);}
+.login-prompt button{color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;}
 
-/* SIDEBAR */
-.sidebar{display:flex;flex-direction:column;gap:20px;}
-.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
-.sidebar-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
-
-/* LEADERBOARD */
-.leader-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+/* RIGHT SIDEBAR */
+.right-sidebar{display:flex;flex-direction:column;gap:16px;}
+.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.sidebar-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.leader-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
 .leader-row:last-child{border-bottom:none;}
-.leader-rank{font-size:13px;font-weight:700;color:var(--text3);width:20px;text-align:center;font-family:'DM Mono',monospace;}
-.leader-rank.gold{color:#F59E0B;}
-.leader-rank.silver{color:#94A3B8;}
-.leader-rank.bronze{color:#B45309;}
-.leader-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;}
-.leader-info{flex:1;}
-.leader-name{font-size:13.5px;font-weight:600;}
-.leader-stats{font-size:11.5px;color:var(--text3);margin-top:1px;}
-.leader-score{text-align:right;}
-.leader-winrate{font-size:14px;font-weight:600;color:var(--green);}
-.leader-picks{font-size:11px;color:var(--text3);}
-
-/* HOT PICKS */
-.hot-pick{padding:10px 0;border-bottom:1px solid var(--border);}
+.leader-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0;}
+.leader-name{font-size:13px;font-weight:600;flex:1;}
+.leader-winrate{font-size:13px;font-weight:600;color:var(--green);}
+.hot-pick{padding:8px 0;border-bottom:1px solid var(--border);}
 .hot-pick:last-child{border-bottom:none;}
-.hot-pick-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.hot-pick-ticker{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;}
-.hot-pick-user{font-size:12px;color:var(--text3);}
-.hot-pick-stats{display:flex;gap:8px;align-items:center;}
 
-/* USER CARD */
-.user-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;}
-.user-avatar-lg{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;}
-.user-info{flex:1;}
-.user-name{font-size:14px;font-weight:600;}
-.user-stats{font-size:12px;color:var(--text3);margin-top:2px;}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px 32px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.modal h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+.modal p{font-size:13.5px;color:var(--text2);margin-bottom:20px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;}
+.error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+.success-msg{background:var(--green-bg);color:var(--green);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+.modal-footer{margin-top:16px;text-align:center;font-size:13px;color:var(--text3);}
+.modal-footer button{background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;font-weight:500;}
 
-.fade-in{animation:fi .3s ease;} @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* STOCK SEARCH */
+.stock-search-results{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:var(--shadow);}
+.stock-result{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.stock-result:last-child{border-bottom:none;}
+.stock-result:hover{background:var(--surface2);}
+.stock-result-ticker{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
+.stock-result-name{font-size:12px;color:var(--text3);}
+.stock-result-exchange{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface2);color:var(--text3);margin-left:6px;}
+
+/* MOD BADGE */
+.mod-indicator{position:fixed;bottom:20px;right:20px;background:var(--amber);color:white;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:99;}
+.mod-indicator:hover{background:#92400E;}
+
+/* ROOM CREATE BADGE */
+.exchange-badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;margin-left:4px;}
+.ex-nyse{background:#DBEAFE;color:#1E40AF;}
+.ex-nasdaq{background:#D1FAE5;color:#065F46;}
+.ex-otc{background:#FEF3C7;color:#92400E;}
+.ex-intl{background:#EDE9FE;color:#5B21B6;}
+.ex-other{background:var(--surface2);color:var(--text3);}
+
 .empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13.5px;}
+.fade-in{animation:fi .25s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
-@media(max-width:900px){.main{grid-template-columns:1fr;}.sidebar{display:none;}}
+@media(max-width:1100px){.layout{grid-template-columns:200px 1fr;}.right-sidebar{display:none;}}
+@media(max-width:768px){.layout{grid-template-columns:1fr;padding:12px;}.rooms-sidebar{display:none;}}
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-icon">P</div>
-      <span class="logo-name">Pulse<span>Stock</span></span>
-    </a>
+    <a href="/" class="logo"><div class="logo-icon">P</div><span class="logo-name">Pulse<span>Stock</span></span></a>
     <nav class="nav-links">
       <a href="/" class="nav-link">📊 Analyze</a>
       <a href="/community.html" class="nav-link active">💬 Community</a>
     </nav>
-    <div class="header-right" id="header-auth">
+    <div id="header-auth" style="display:flex;align-items:center;gap:10px;">
       <button class="btn-ghost" onclick="showAuth('login')">Log in</button>
       <button class="btn-primary" onclick="showAuth('signup')">Sign up</button>
     </div>
@@ -160,311 +177,299 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 <div class="modal-overlay" id="auth-modal" style="display:none;">
   <div class="modal">
     <h2 id="auth-title">Create account</h2>
-    <p id="auth-subtitle">Join the PulseStock community to share picks and track your record.</p>
-    <div id="auth-error" style="display:none;" class="error-msg"></div>
+    <p id="auth-subtitle">Join PulseStock to share picks and track your record.</p>
+    <div id="auth-error" class="error-msg" style="display:none;"></div>
     <div id="signup-fields">
-      <div class="form-group">
-        <label>Username / Screen name</label>
-        <input type="text" id="auth-username" placeholder="e.g. BullishMark" maxlength="20"/>
-      </div>
+      <div class="form-group"><label>Username</label><input type="text" id="auth-username" placeholder="e.g. BullishMark" maxlength="20"/></div>
     </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="auth-email" placeholder="you@email.com"/>
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="auth-password" placeholder="Min 6 characters"/>
-    </div>
-    <button class="btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="submitAuth()" id="auth-submit-btn">Create account</button>
+    <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@email.com"/></div>
+    <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="Min 6 characters"/></div>
+    <button class="btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="submitAuth()" id="auth-btn">Create account</button>
     <div class="modal-footer">
       <span id="auth-toggle-text">Already have an account?</span>
-      <button onclick="toggleAuth()" id="auth-toggle-btn">Log in</button>
-      <br/><button onclick="closeAuth()" style="color:var(--text3);margin-top:8px;">Cancel</button>
+      <button onclick="toggleAuth()" id="auth-toggle-btn">Log in</button><br/>
+      <button onclick="closeModal('auth-modal')" style="color:var(--text3);margin-top:8px;">Cancel</button>
     </div>
   </div>
 </div>
 
-<main class="main">
+<!-- CREATE ROOM MODAL -->
+<div class="modal-overlay" id="room-modal" style="display:none;">
+  <div class="modal">
+    <h2>Create a Room</h2>
+    <p>Search for a stock ticker or company name. Verified stocks get auto-approved. Other topics go to mod review.</p>
+    <div id="room-error" class="error-msg" style="display:none;"></div>
+    <div id="room-success" class="success-msg" style="display:none;"></div>
+    <div class="form-group">
+      <label>Search stock or topic</label>
+      <input type="text" id="room-search" placeholder="e.g. AAPL, Tesla, Options Strategy..." oninput="searchStocks(this.value)"/>
+      <div id="stock-results" class="stock-search-results" style="display:none;"></div>
+    </div>
+    <div id="selected-stock-info" style="display:none;margin-bottom:14px;padding:12px;background:var(--green-bg);border-radius:8px;font-size:13px;color:var(--green);"></div>
+    <div class="form-group">
+      <label>Room name</label>
+      <input type="text" id="room-name" placeholder="e.g. Apple Investors" maxlength="50"/>
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <textarea id="room-desc" rows="2" style="resize:none;width:100%;" placeholder="What's this room about?"></textarea>
+    </div>
+    <div id="room-type-info" style="font-size:12.5px;color:var(--text3);margin-bottom:16px;">
+      ✅ Stock rooms are auto-approved · 📋 Other topics require mod review
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-primary" style="flex:1;padding:11px;" onclick="createRoom()">Create Room</button>
+      <button class="btn-ghost" onclick="closeModal('room-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOD ACTION MODAL -->
+<div class="modal-overlay" id="mod-modal" style="display:none;">
+  <div class="modal">
+    <h2 id="mod-title">Moderate User</h2>
+    <div class="form-group"><label>Reason</label><input type="text" id="mod-reason" placeholder="Reason for action..."/></div>
+    <div id="mod-actions" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <button class="btn-ghost" style="width:100%;margin-top:12px;" onclick="closeModal('mod-modal')">Cancel</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ROOMS SIDEBAR -->
+  <div class="rooms-sidebar">
+    <div class="rooms-header"><span>Categories</span></div>
+    <div id="rooms-list"></div>
+    <button class="create-room-btn" onclick="showRoomModal()">+ Create Room</button>
+  </div>
+
   <!-- CHAT -->
   <div class="chat-container">
     <div class="chat-header">
-      <div>
-        <h2>💬 Community Chat</h2>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px;">Share picks, discuss markets, track your record</div>
+      <div class="chat-header-left">
+        <h2 id="chat-room-title">💬 General</h2>
+        <p id="chat-room-desc">Open discussion about markets and investing</p>
       </div>
-      <div class="online-badge"><div class="online-dot"></div> Live</div>
+      <div class="chat-header-right">
+        <div class="online-badge"><div class="online-dot"></div>Live</div>
+      </div>
     </div>
-    <div class="messages-area" id="messages-area">
-      <div class="empty">Loading messages...</div>
-    </div>
+    <div class="messages-area" id="messages-area"><div class="empty">Loading...</div></div>
     <div class="chat-input-area">
       <div class="input-tabs">
         <button class="input-tab active" onclick="switchTab('chat',this)">💬 Chat</button>
-        <button class="input-tab" onclick="switchTab('pick',this)">📈 Post a Pick</button>
+        <button class="input-tab" onclick="switchTab('pick',this)">📈 Post Pick</button>
       </div>
-      <!-- CHAT INPUT -->
-      <div id="chat-input-panel">
+      <div id="chat-panel">
         <div class="msg-input-row">
           <input type="text" id="msg-input" placeholder="Type a message... (Enter to send)" onkeydown="if(event.key==='Enter')sendMessage()"/>
           <button class="send-btn" onclick="sendMessage()">Send</button>
         </div>
-        <div class="login-prompt" id="chat-login-prompt" style="display:none;">
-          <button onclick="showAuth('signup')">Sign up</button> or <button onclick="showAuth('login')">log in</button> to join the conversation
-        </div>
+        <div class="login-prompt" id="chat-login-prompt" style="display:none;"><button onclick="showAuth('signup')">Sign up</button> or <button onclick="showAuth('login')">log in</button> to chat</div>
       </div>
-      <!-- PICK INPUT -->
-      <div id="pick-input-panel" style="display:none;">
-        <div class="pick-form">
+      <div id="pick-panel" style="display:none;">
+        <div class="pick-form" id="pick-form-content">
           <div class="pick-form-row">
-            <div class="pf-group">
-              <label>Ticker</label>
-              <input type="text" id="pick-ticker" placeholder="AAPL" maxlength="6" style="text-transform:uppercase;"/>
-            </div>
-            <div class="pf-group">
-              <label>Direction</label>
-              <select id="pick-direction">
-                <option value="BUY">🟢 BUY</option>
-                <option value="SELL">🔴 SELL / SHORT</option>
-              </select>
-            </div>
-            <div class="pf-group">
-              <label>Entry $</label>
-              <input type="number" id="pick-entry" placeholder="213.00"/>
-            </div>
+            <div class="pf-group"><label>Ticker</label><input type="text" id="pick-ticker" placeholder="AAPL" maxlength="10" style="text-transform:uppercase;"/></div>
+            <div class="pf-group"><label>Direction</label><select id="pick-direction"><option value="BUY">🟢 BUY</option><option value="SELL">🔴 SELL</option></select></div>
+            <div class="pf-group"><label>Entry $</label><input type="number" id="pick-entry" placeholder="307.00"/></div>
           </div>
           <div class="pick-form-row">
-            <div class="pf-group">
-              <label>Target $</label>
-              <input type="number" id="pick-target" placeholder="235.00"/>
-            </div>
-            <div class="pf-group">
-              <label>Stop Loss $</label>
-              <input type="number" id="pick-stop" placeholder="195.00"/>
-            </div>
-            <div class="pf-group">
-              <label>Timeframe</label>
-              <select id="pick-timeframe">
-                <option>1 week</option>
-                <option selected>1 month</option>
-                <option>3 months</option>
-                <option>6 months</option>
-              </select>
-            </div>
+            <div class="pf-group"><label>Target $</label><input type="number" id="pick-target" placeholder="330.00"/></div>
+            <div class="pf-group"><label>Stop Loss $</label><input type="number" id="pick-stop" placeholder="285.00"/></div>
+            <div class="pf-group"><label>Timeframe</label><select id="pick-timeframe"><option>1 week</option><option selected>1 month</option><option>3 months</option><option>6 months</option></select></div>
           </div>
-          <div class="pf-group">
-            <label>Thesis (optional)</label>
-            <textarea id="pick-notes" placeholder="Why are you making this pick?" rows="2" style="resize:none;width:100%;font-size:13px;padding:8px 10px;"></textarea>
-          </div>
+          <div class="pf-group"><label>Thesis</label><textarea id="pick-notes" rows="2" style="resize:none;width:100%;font-size:13px;padding:8px 10px;" placeholder="Why are you making this pick?"></textarea></div>
           <button class="send-btn" onclick="postPick()" style="align-self:flex-end;padding:10px 24px;">Post Pick →</button>
         </div>
-        <div class="login-prompt" id="pick-login-prompt" style="display:none;">
-          <button onclick="showAuth('signup')">Sign up</button> to post picks and track your record
-        </div>
+        <div class="login-prompt" id="pick-login-prompt" style="display:none;"><button onclick="showAuth('signup')">Sign up</button> to post picks</div>
       </div>
     </div>
   </div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <!-- USER CARD -->
-    <div class="sidebar-card" id="user-sidebar-card" style="display:none;">
-      <div class="user-card" id="user-card-content"></div>
-    </div>
-
-    <!-- LEADERBOARD -->
+  <!-- RIGHT SIDEBAR -->
+  <div class="right-sidebar">
+    <div class="sidebar-card" id="user-card" style="display:none;"></div>
     <div class="sidebar-card">
       <div class="sidebar-title">🏆 Leaderboard</div>
-      <div id="leaderboard-content"><div class="empty">Loading...</div></div>
+      <div id="leaderboard"></div>
     </div>
-
-    <!-- HOT PICKS -->
     <div class="sidebar-card">
-      <div class="sidebar-title">🔥 Top Picks This Month</div>
-      <div id="hot-picks-content"><div class="empty">No picks yet</div></div>
+      <div class="sidebar-title">🔥 Top Picks</div>
+      <div id="hot-picks"></div>
     </div>
-
-    <!-- HOW IT WORKS -->
     <div class="sidebar-card">
-      <div class="sidebar-title">📖 How Scoring Works</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.7;">
-        <p style="margin-bottom:8px;">🎯 <strong>Win</strong> — pick hits target price within timeframe</p>
-        <p style="margin-bottom:8px;">❌ <strong>Loss</strong> — stop loss hit before target</p>
-        <p style="margin-bottom:8px;">⏳ <strong>Pending</strong> — pick still active</p>
-        <p style="margin-bottom:8px;">👍 <strong>Upvotes</strong> — community confidence in pick</p>
-        <p><strong>Rank</strong> = win rate × avg return × upvotes</p>
+      <div class="sidebar-title">📖 Scoring</div>
+      <div style="font-size:12.5px;color:var(--text2);line-height:1.8;">
+        🎯 <strong>Win</strong> — hits target<br/>
+        ❌ <strong>Loss</strong> — stop hit<br/>
+        ⏳ <strong>Pending</strong> — active<br/>
+        👍 <strong>Upvotes</strong> — community confidence<br/>
+        <strong>Rank</strong> = win rate × upvotes
       </div>
     </div>
   </div>
-</main>
+</div>
 
 <script>
-const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL='https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY='sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const ADMIN_EMAIL='mscharbo@gmail.com';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let currentUser = null;
-let currentProfile = null;
-let isLogin = false;
-let activeTab = 'chat';
-let msgSubscription = null;
+let currentUser=null,currentProfile=null,currentRole='member';
+let currentRoom='general',currentRoomData=null;
+let isLogin=false,selectedStock=null;
+let msgSub=null;
 
-const COLORS = ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE185D','#059669'];
+const COLORS=['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE185D','#059669'];
+const LIVE_PRICES={AAPL:307.57,MSFT:452.20,NVDA:1089.80,TSLA:342.50,AMZN:212.40,GOOGL:198.30,META:621.40,JPM:268.50,SPY:598.40,QQQ:528.10,AMD:168.50,NFLX:628.90,DIS:111.45,INTC:31.22,V:278.90,MA:492.30,XOM:112.48,JNJ:147.22,KO:63.44,BAC:39.21};
+
+const ROOM_ICONS={'general':'💬','hot-picks':'🔥','due-diligence':'🔬','tech-stocks':'💻','value-investing':'💎','macro-economy':'🌍','small-caps':'🚀','ask-community':'❓'};
 
 // ── INIT ──
-async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await setUser(session.user);
+async function init(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await setUser(session.user);
   updateUI();
-  loadMessages();
+  loadRooms();
+  loadMessages(currentRoom);
   loadLeaderboard();
   loadHotPicks();
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session) await setUser(session.user);
-    else { currentUser = null; currentProfile = null; }
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(session) await setUser(session.user);
+    else{currentUser=null;currentProfile=null;currentRole='member';}
     updateUI();
   });
-
-  // realtime messages
-  msgSubscription = sb.channel('messages')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-      appendMessage(payload.new);
-    })
-    .subscribe();
 }
 
-async function setUser(user) {
-  currentUser = user;
-  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
-  currentProfile = data;
-}
-
-function updateUI() {
-  const authDiv = document.getElementById('header-auth');
-  const userCard = document.getElementById('user-sidebar-card');
-  const chatInput = document.getElementById('msg-input');
-  const chatPrompt = document.getElementById('chat-login-prompt');
-  const pickPrompt = document.getElementById('pick-login-prompt');
-  const pickForm = document.querySelector('.pick-form');
-
-  if (currentProfile) {
-    authDiv.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:32px;height:32px;border-radius:50%;background:${currentProfile.avatar_color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;">${currentProfile.username[0].toUpperCase()}</div>
-        <span style="font-size:14px;font-weight:500;">${currentProfile.username}</span>
-        <button class="btn-ghost" onclick="signOut()" style="font-size:12px;padding:6px 12px;">Sign out</button>
-      </div>`;
-    userCard.style.display = 'block';
-    document.getElementById('user-card-content').innerHTML = `
-      <div class="user-avatar-lg" style="background:${currentProfile.avatar_color};">${currentProfile.username[0].toUpperCase()}</div>
-      <div class="user-info">
-        <div class="user-name">${currentProfile.username}</div>
-        <div class="user-stats">Member since ${new Date(currentProfile.created_at).toLocaleDateString()}</div>
-      </div>`;
-    chatInput.style.display = 'block';
-    chatInput.disabled = false;
-    chatPrompt.style.display = 'none';
-    if (pickForm) pickForm.style.display = 'flex';
-    if (pickPrompt) pickPrompt.style.display = 'none';
-  } else {
-    authDiv.innerHTML = `
-      <button class="btn-ghost" onclick="showAuth('login')">Log in</button>
-      <button class="btn-primary" onclick="showAuth('signup')">Sign up</button>`;
-    userCard.style.display = 'none';
-    chatInput.style.display = 'none';
-    chatPrompt.style.display = 'block';
-    if (pickForm) pickForm.style.display = 'none';
-    if (pickPrompt) pickPrompt.style.display = 'block';
+async function setUser(user){
+  currentUser=user;
+  const{data}=await sb.from('profiles').select('*').eq('id',user.id).single();
+  currentProfile=data;
+  if(user.email===ADMIN_EMAIL){currentRole='admin';}
+  else{
+    const{data:role}=await sb.from('user_roles').select('role').eq('user_id',user.id).single();
+    currentRole=role?.role||'member';
   }
 }
 
-// ── AUTH ──
-function showAuth(mode) {
-  isLogin = mode === 'login';
-  document.getElementById('auth-modal').style.display = 'flex';
-  document.getElementById('signup-fields').style.display = isLogin ? 'none' : 'block';
-  document.getElementById('auth-title').textContent = isLogin ? 'Welcome back' : 'Create account';
-  document.getElementById('auth-subtitle').textContent = isLogin ? 'Log in to your PulseStock account.' : 'Join the community to share picks and track your record.';
-  document.getElementById('auth-submit-btn').textContent = isLogin ? 'Log in' : 'Create account';
-  document.getElementById('auth-toggle-text').textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
-  document.getElementById('auth-toggle-btn').textContent = isLogin ? 'Sign up' : 'Log in';
-  document.getElementById('auth-error').style.display = 'none';
-}
-function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
-function toggleAuth() { showAuth(isLogin ? 'signup' : 'login'); }
+function updateUI(){
+  const authDiv=document.getElementById('header-auth');
+  const userCard=document.getElementById('user-card');
+  const msgInput=document.getElementById('msg-input');
+  const chatPrompt=document.getElementById('chat-login-prompt');
+  const pickForm=document.getElementById('pick-form-content');
+  const pickPrompt=document.getElementById('pick-login-prompt');
 
-async function submitAuth() {
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const username = document.getElementById('auth-username').value.trim();
-  const errEl = document.getElementById('auth-error');
-  const btn = document.getElementById('auth-submit-btn');
-  btn.textContent = 'Please wait...'; btn.disabled = true;
-  errEl.style.display = 'none';
-
-  try {
-    if (isLogin) {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    } else {
-      if (!username) throw new Error('Please enter a username');
-      if (username.length < 3) throw new Error('Username must be at least 3 characters');
-      const { data, error } = await sb.auth.signUp({ email, password });
-      if (error) throw error;
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-      const { error: profileError } = await sb.from('profiles').insert({ id: data.user.id, username, avatar_color: color });
-      if (profileError) throw profileError;
-      await setUser(data.user);
-    }
-    closeAuth();
-    updateUI();
-  } catch (err) {
-    errEl.textContent = err.message;
-    errEl.style.display = 'block';
+  if(currentProfile){
+    const roleLabel=currentRole==='admin'?'👑 Admin':currentRole==='mod'?'🛡️ Mod':currentRole==='verified'?'⭐ Verified':'';
+    authDiv.innerHTML=`<div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:${currentProfile.avatar_color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;">${currentProfile.username[0].toUpperCase()}</div>
+      <div><div style="font-size:13.5px;font-weight:500;">${currentProfile.username}</div>${roleLabel?`<div style="font-size:11px;color:var(--text3);">${roleLabel}</div>`:''}</div>
+      ${currentRole==='admin'||currentRole==='mod'?`<a href="/admin.html" style="font-size:12px;padding:5px 10px;background:var(--amber-bg);color:var(--amber);border-radius:6px;font-weight:600;text-decoration:none;">🛡️ Mod Panel</a>`:''}
+      <button class="btn-ghost btn-sm" onclick="signOut()">Sign out</button>
+    </div>`;
+    userCard.style.display='block';
+    userCard.innerHTML=`<div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:${currentProfile.avatar_color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;">${currentProfile.username[0].toUpperCase()}</div>
+      <div><div style="font-size:14px;font-weight:600;">${currentProfile.username}</div><div style="font-size:12px;color:var(--text3);">Member since ${new Date(currentProfile.created_at).toLocaleDateString()}</div></div>
+    </div>`;
+    msgInput.style.display='block';msgInput.disabled=false;
+    chatPrompt.style.display='none';
+    pickForm.style.display='flex';pickPrompt.style.display='none';
+  }else{
+    authDiv.innerHTML=`<button class="btn-ghost" onclick="showAuth('login')">Log in</button><button class="btn-primary" onclick="showAuth('signup')">Sign up</button>`;
+    userCard.style.display='none';
+    msgInput.style.display='none';chatPrompt.style.display='block';
+    pickForm.style.display='none';pickPrompt.style.display='block';
   }
-  btn.textContent = isLogin ? 'Log in' : 'Create account';
-  btn.disabled = false;
 }
 
-async function signOut() {
-  await sb.auth.signOut();
-  currentUser = null; currentProfile = null;
-  updateUI();
+// ── ROOMS ──
+async function loadRooms(){
+  const{data}=await sb.from('rooms').select('*').eq('status','active').order('type').order('name');
+  if(!data) return;
+  const list=document.getElementById('rooms-list');
+  const categories=data.filter(r=>r.type==='category');
+  const stocks=data.filter(r=>r.type==='stock'||r.type==='custom');
+  let html='';
+  categories.forEach(r=>{
+    const icon=ROOM_ICONS[r.slug]||'💬';
+    html+=roomItem(r,icon);
+  });
+  if(stocks.length){
+    html+=`<div class="room-divider"></div><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;margin-bottom:4px;">Stock Rooms</div>`;
+    stocks.forEach(r=>{ html+=roomItem(r,'📈'); });
+  }
+  list.innerHTML=html;
+}
+
+function roomItem(r,icon){
+  return `<div class="room-item ${r.slug===currentRoom?'active':''}" onclick="switchRoom('${r.slug}','${escHtml(r.name)}','${escHtml(r.description||'')}')">
+    <div class="room-icon">${icon}</div>
+    <div class="room-info"><div class="room-name">${r.name}</div></div>
+  </div>`;
+}
+
+async function switchRoom(slug,name,desc){
+  currentRoom=slug;
+  document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
+  document.getElementById('chat-room-desc').textContent=desc;
+  document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if(msgSub){sb.removeChannel(msgSub);msgSub=null;}
+  loadMessages(slug);
+  subscribeToRoom(slug);
+}
+
+function subscribeToRoom(slug){
+  msgSub=sb.channel('room-'+slug)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`room_id=eq.${slug}`},payload=>{
+      if(!payload.new.deleted) appendMessage(payload.new);
+    }).subscribe();
 }
 
 // ── MESSAGES ──
-async function loadMessages() {
-  const { data } = await sb.from('messages').select('*').order('created_at', { ascending: true }).limit(100);
-  const area = document.getElementById('messages-area');
-  if (!data || !data.length) { area.innerHTML = '<div class="empty">No messages yet. Be the first to say hello! 👋</div>'; return; }
-  area.innerHTML = '';
-  data.forEach(m => appendMessage(m, false));
-  area.scrollTop = area.scrollHeight;
+async function loadMessages(room){
+  const area=document.getElementById('messages-area');
+  area.innerHTML='<div class="empty" style="padding:20px;">Loading...</div>';
+  const{data}=await sb.from('messages').select('*').eq('room_id',room).eq('deleted',false).order('created_at',{ascending:true}).limit(100);
+  area.innerHTML='';
+  if(!data||!data.length){area.innerHTML='<div class="empty">No messages yet. Be the first! 👋</div>';return;}
+  data.forEach(m=>appendMessage(m,false));
+  area.scrollTop=area.scrollHeight;
+  subscribeToRoom(room);
 }
 
-function appendMessage(msg, scroll = true) {
-  const area = document.getElementById('messages-area');
-  const empty = area.querySelector('.empty');
-  if (empty) empty.remove();
+function appendMessage(msg,scroll=true){
+  const area=document.getElementById('messages-area');
+  const empty=area.querySelector('.empty');
+  if(empty) empty.remove();
+  const isPick=msg.content.startsWith('__PICK__');
+  const div=document.createElement('div');
+  div.className='msg fade-in';
+  div.id='msg-'+msg.id;
+  const color=COLORS[msg.username.charCodeAt(0)%COLORS.length];
+  const time=new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const canMod=currentRole==='admin'||currentRole==='mod';
+  const modActions=canMod?`<div class="msg-actions">
+    <button class="msg-action-btn" onclick="deleteMessage('${msg.id}')">🗑 Delete</button>
+    <button class="msg-action-btn" onclick="showModModal('${msg.user_id}','${msg.username}')">🛡 Mod</button>
+    <button class="msg-action-btn" onclick="flagMessage('${msg.id}')">🚩 Flag</button>
+  </div>`:'<div class="msg-actions"><button class="msg-action-btn" onclick="flagMessage(\''+msg.id+'\')">🚩 Flag</button></div>';
 
-  const isPick = msg.content.startsWith('__PICK__');
-  const div = document.createElement('div');
-  div.className = 'msg fade-in';
-
-  const color = COLORS[msg.username.charCodeAt(0) % COLORS.length];
-  const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-
-  if (isPick) {
-    const pick = JSON.parse(msg.content.replace('__PICK__', ''));
-    const isBuy = pick.direction === 'BUY';
-    const upside = (((pick.target_price - pick.entry_price) / pick.entry_price) * 100).toFixed(1);
-    const risk = (((pick.entry_price - pick.stop_loss) / pick.entry_price) * 100).toFixed(1);
-    div.innerHTML = `
-      <div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
+  if(isPick){
+    const pick=JSON.parse(msg.content.replace('__PICK__',''));
+    const isBuy=pick.direction==='BUY';
+    const upside=(((pick.target_price-pick.entry_price)/pick.entry_price)*100).toFixed(1);
+    const risk=(((pick.entry_price-pick.stop_loss)/pick.entry_price)*100).toFixed(1);
+    const cur=LIVE_PRICES[pick.ticker];
+    const perfStr=cur?`Current: $${cur} (${((cur-pick.entry_price)/pick.entry_price*100).toFixed(1)}%)`:'';
+    div.innerHTML=`<div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
       <div class="msg-content">
         <div class="msg-header">
           <span class="msg-username">${msg.username}</span>
+          ${getRoleBadge(msg.username)}
           <span class="msg-time">${time}</span>
           <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:500;">Pick</span>
         </div>
@@ -472,174 +477,303 @@ function appendMessage(msg, scroll = true) {
           <div class="pick-direction ${isBuy?'pick-buy':'pick-sell'}">${isBuy?'🟢 BUY':'🔴 SELL'}</div>
           <div class="pick-ticker">${pick.ticker}</div>
           <div class="pick-levels">
-            <div class="pick-level"><div class="pick-level-label">Entry</div><div class="pick-level-val">$${pick.entry_price}</div></div>
-            <div class="pick-level"><div class="pick-level-label">Target <span style="color:var(--green);">+${upside}%</span></div><div class="pick-level-val" style="color:var(--green);">$${pick.target_price}</div></div>
-            <div class="pick-level"><div class="pick-level-label">Stop <span style="color:var(--red);">-${risk}%</span></div><div class="pick-level-val" style="color:var(--red);">$${pick.stop_loss}</div></div>
+            <div><div class="pick-level-label">Entry</div><div class="pick-level-val">$${pick.entry_price}</div></div>
+            <div><div class="pick-level-label">Target +${upside}%</div><div class="pick-level-val" style="color:var(--green);">$${pick.target_price}</div></div>
+            <div><div class="pick-level-label">Stop -${risk}%</div><div class="pick-level-val" style="color:var(--red);">$${pick.stop_loss}</div></div>
           </div>
-          ${pick.notes ? `<div class="pick-notes">${pick.notes}</div>` : ''}
+          ${pick.notes?`<div style="font-size:12.5px;color:var(--text2);margin-bottom:8px;">${pick.notes}</div>`:''}
+          ${perfStr?`<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">${perfStr}</div>`:''}
           <div class="pick-actions">
             <button class="upvote-btn" onclick="upvotePick('${pick.id}',this)">👍 <span>${pick.upvotes||0}</span></button>
-            <span class="result-badge result-pending">⏳ Pending</span>
+            <span class="result-pending">⏳ Pending</span>
             <span style="font-size:11px;color:var(--text3);">${pick.timeframe||'1 month'}</span>
           </div>
         </div>
+        ${modActions}
       </div>`;
-  } else {
-    div.innerHTML = `
-      <div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
+  }else{
+    div.innerHTML=`<div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
       <div class="msg-content">
-        <div class="msg-header"><span class="msg-username">${msg.username}</span><span class="msg-time">${time}</span></div>
+        <div class="msg-header"><span class="msg-username">${msg.username}</span>${getRoleBadge(msg.username)}<span class="msg-time">${time}</span></div>
         <div class="msg-body">${escHtml(msg.content)}</div>
+        ${modActions}
       </div>`;
   }
   area.appendChild(div);
-  if (scroll) area.scrollTop = area.scrollHeight;
+  if(scroll) area.scrollTop=area.scrollHeight;
 }
 
-async function sendMessage() {
-  if (!currentProfile) { showAuth('signup'); return; }
-  const input = document.getElementById('msg-input');
-  const content = input.value.trim();
-  if (!content) return;
-  input.value = '';
-  await sb.from('messages').insert({ user_id: currentUser.id, username: currentProfile.username, content });
+function getRoleBadge(username){
+  if(!currentProfile) return '';
+  return '';
 }
 
-// ── PICKS ──
-async function postPick() {
-  if (!currentProfile) { showAuth('signup'); return; }
-  const ticker = document.getElementById('pick-ticker').value.trim().toUpperCase();
-  const direction = document.getElementById('pick-direction').value;
-  const entry = parseFloat(document.getElementById('pick-entry').value);
-  const target = parseFloat(document.getElementById('pick-target').value);
-  const stop = parseFloat(document.getElementById('pick-stop').value);
-  const notes = document.getElementById('pick-notes').value.trim();
-  const timeframe = document.getElementById('pick-timeframe').value;
-  if (!ticker || !entry || !target || !stop) { alert('Please fill in ticker, entry, target, and stop loss.'); return; }
+async function sendMessage(){
+  if(!currentProfile){showAuth('signup');return;}
+  const input=document.getElementById('msg-input');
+  const content=input.value.trim();
+  if(!content) return;
+  input.value='';
+  await sb.from('messages').insert({user_id:currentUser.id,username:currentProfile.username,content,room_id:currentRoom});
+}
 
-  const { data: pick, error } = await sb.from('picks').insert({
-    user_id: currentUser.id, username: currentProfile.username,
-    ticker, direction, entry_price: entry, target_price: target, stop_loss: stop, notes
-  }).select().single();
-  if (error) { alert('Error posting pick: ' + error.message); return; }
-
-  const msgContent = '__PICK__' + JSON.stringify({ ...pick, timeframe });
-  await sb.from('messages').insert({ user_id: currentUser.id, username: currentProfile.username, content: msgContent });
-
-  document.getElementById('pick-ticker').value = '';
-  document.getElementById('pick-entry').value = '';
-  document.getElementById('pick-target').value = '';
-  document.getElementById('pick-stop').value = '';
-  document.getElementById('pick-notes').value = '';
-  switchTab('chat', document.querySelector('.input-tab'));
+async function postPick(){
+  if(!currentProfile){showAuth('signup');return;}
+  const ticker=document.getElementById('pick-ticker').value.trim().toUpperCase();
+  const direction=document.getElementById('pick-direction').value;
+  const entry=parseFloat(document.getElementById('pick-entry').value);
+  const target=parseFloat(document.getElementById('pick-target').value);
+  const stop=parseFloat(document.getElementById('pick-stop').value);
+  const notes=document.getElementById('pick-notes').value.trim();
+  const timeframe=document.getElementById('pick-timeframe').value;
+  if(!ticker||!entry||!target||!stop){alert('Please fill in all price fields.');return;}
+  const{data:pick,error}=await sb.from('picks').insert({user_id:currentUser.id,username:currentProfile.username,ticker,direction,entry_price:entry,target_price:target,stop_loss:stop,notes}).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  await sb.from('messages').insert({user_id:currentUser.id,username:currentProfile.username,content:'__PICK__'+JSON.stringify({...pick,timeframe}),room_id:currentRoom});
+  ['pick-ticker','pick-entry','pick-target','pick-stop','pick-notes'].forEach(id=>document.getElementById(id).value='');
+  switchTab('chat',document.querySelector('.input-tab'));
   loadHotPicks();
 }
 
-async function upvotePick(pickId, btn) {
-  if (!currentProfile) { showAuth('login'); return; }
-  const countEl = btn.querySelector('span');
-  const { error } = await sb.from('pick_upvotes').insert({ pick_id: pickId, user_id: currentUser.id });
-  if (!error) {
-    await sb.from('picks').update({ upvotes: parseInt(countEl.textContent) + 1 }).eq('id', pickId);
-    countEl.textContent = parseInt(countEl.textContent) + 1;
-    btn.classList.add('voted');
-    loadLeaderboard(); loadHotPicks();
+async function upvotePick(pickId,btn){
+  if(!currentProfile){showAuth('login');return;}
+  const countEl=btn.querySelector('span');
+  const{error}=await sb.from('pick_upvotes').insert({pick_id:pickId,user_id:currentUser.id});
+  if(!error){
+    const newCount=parseInt(countEl.textContent)+1;
+    await sb.from('picks').update({upvotes:newCount}).eq('id',pickId);
+    countEl.textContent=newCount;btn.classList.add('voted');
+    loadLeaderboard();loadHotPicks();
+  }
+}
+
+// ── MOD TOOLS ──
+async function deleteMessage(id){
+  if(!currentRole||currentRole==='member') return;
+  await sb.from('messages').update({deleted:true}).eq('id',id);
+  const el=document.getElementById('msg-'+id);
+  if(el) el.querySelector('.msg-body,.pick-msg').innerHTML='<span class="msg-deleted">🗑 Message deleted by moderator</span>';
+}
+
+async function flagMessage(id){
+  if(!currentUser){showAuth('login');return;}
+  await sb.from('flagged_messages').insert({message_id:id,flagged_by:currentUser.id,reason:'User report'});
+  alert('Message flagged for review. Thank you!');
+}
+
+function showModModal(userId,username){
+  document.getElementById('mod-title').textContent='Moderate: '+username;
+  document.getElementById('mod-actions').innerHTML=`
+    <button class="btn-primary btn-sm" style="background:var(--amber);padding:10px;" onclick="muteUser('${userId}','${username}',60)">🔇 Mute 1 hour</button>
+    <button class="btn-primary btn-sm" style="background:var(--amber);padding:10px;" onclick="muteUser('${userId}','${username}',1440)">🔇 Mute 24 hours</button>
+    <button class="btn-primary btn-sm" style="background:var(--red);padding:10px;" onclick="banUser('${userId}','${username}',false)">🚫 Ban temporarily</button>
+    <button class="btn-primary btn-sm" style="background:#1a1a1a;padding:10px;" onclick="banUser('${userId}','${username}',true)">⛔ Ban permanently</button>
+    ${currentRole==='admin'?`<button class="btn-primary btn-sm" style="background:var(--purple);padding:10px;" onclick="promoteUser('${userId}','${username}')">🛡 Promote to Mod</button>`:''}`;
+  document.getElementById('mod-modal').style.display='flex';
+}
+
+async function muteUser(userId,username,minutes){
+  const reason=document.getElementById('mod-reason').value||'Violation of community rules';
+  const expires=new Date(Date.now()+minutes*60000).toISOString();
+  await sb.from('mutes').insert({user_id:userId,muted_by:currentUser.id,reason,expires_at:expires});
+  closeModal('mod-modal');
+  alert(`${username} muted for ${minutes<60?minutes+' minutes':minutes/60+' hours'}.`);
+}
+
+async function banUser(userId,username,permanent){
+  const reason=document.getElementById('mod-reason').value||'Violation of community rules';
+  await sb.from('bans').insert({user_id:userId,banned_by:currentUser.id,reason,permanent,expires_at:permanent?null:new Date(Date.now()+7*24*60*60*1000).toISOString()});
+  closeModal('mod-modal');
+  alert(`${username} has been ${permanent?'permanently':'temporarily'} banned.`);
+}
+
+async function promoteUser(userId,username){
+  await sb.from('user_roles').upsert({user_id:userId,role:'mod',granted_by:currentUser.id});
+  closeModal('mod-modal');
+  alert(`${username} promoted to Moderator!`);
+}
+
+// ── ROOM CREATION ──
+function showRoomModal(){
+  if(!currentUser){showAuth('signup');return;}
+  selectedStock=null;
+  document.getElementById('room-search').value='';
+  document.getElementById('room-name').value='';
+  document.getElementById('room-desc').value='';
+  document.getElementById('stock-results').style.display='none';
+  document.getElementById('selected-stock-info').style.display='none';
+  document.getElementById('room-error').style.display='none';
+  document.getElementById('room-success').style.display='none';
+  document.getElementById('room-modal').style.display='flex';
+}
+
+let searchTimeout=null;
+async function searchStocks(query){
+  clearTimeout(searchTimeout);
+  const resultsEl=document.getElementById('stock-results');
+  if(query.length<1){resultsEl.style.display='none';return;}
+  searchTimeout=setTimeout(async()=>{
+    try{
+      const res=await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0&listsCount=0`);
+      const data=await res.json();
+      const quotes=(data.quotes||[]).filter(q=>q.symbol&&q.shortname&&q.quoteType!=='OPTION');
+      if(!quotes.length){resultsEl.style.display='none';return;}
+      resultsEl.innerHTML=quotes.map(q=>{
+        const exchBadge=getExchangeBadge(q.exchange||q.exchDisp||'');
+        return `<div class="stock-result" onclick="selectStock(${JSON.stringify({symbol:q.symbol,name:q.shortname||q.longname||q.symbol,exchange:q.exchange||q.exchDisp||'',type:q.quoteType||'EQUITY'}).replace(/"/g,'&quot;')})">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="stock-result-ticker">${q.symbol}</span>
+            ${exchBadge}
+          </div>
+          <div class="stock-result-name">${q.shortname||q.longname||''}</div>
+        </div>`;
+      }).join('');
+      resultsEl.style.display='block';
+    }catch(e){
+      resultsEl.innerHTML='<div style="padding:10px 14px;font-size:13px;color:var(--text3);">Search unavailable — you can still create a room manually</div>';
+      resultsEl.style.display='block';
+    }
+  },300);
+}
+
+function getExchangeBadge(exchange){
+  const e=exchange.toUpperCase();
+  if(e.includes('NYSE')||e==='NYQ') return `<span class="exchange-badge ex-nyse">NYSE</span>`;
+  if(e.includes('NAS')||e==='NMS'||e==='NGM') return `<span class="exchange-badge ex-nasdaq">NASDAQ</span>`;
+  if(e.includes('OTC')||e==='PNK'||e==='OBB') return `<span class="exchange-badge ex-otc">OTC</span>`;
+  if(e) return `<span class="exchange-badge ex-intl">${exchange}</span>`;
+  return '';
+}
+
+function selectStock(stock){
+  selectedStock=stock;
+  document.getElementById('room-search').value=stock.symbol+' — '+stock.name;
+  document.getElementById('room-name').value=stock.name;
+  document.getElementById('stock-results').style.display='none';
+  const info=document.getElementById('selected-stock-info');
+  info.innerHTML=`✅ <strong>${stock.symbol}</strong> found on ${stock.exchange||'global exchange'} — this room will be <strong>auto-approved</strong>`;
+  info.style.display='block';
+  document.getElementById('room-type-info').innerHTML='✅ This is a verified stock — room will be created instantly';
+}
+
+async function createRoom(){
+  const name=document.getElementById('room-name').value.trim();
+  const desc=document.getElementById('room-desc').value.trim();
+  const errEl=document.getElementById('room-error');
+  const sucEl=document.getElementById('room-success');
+  errEl.style.display='none';sucEl.style.display='none';
+  if(!name){errEl.textContent='Please enter a room name.';errEl.style.display='block';return;}
+  if(!currentUser){showAuth('signup');return;}
+
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const{data:existing}=await sb.from('rooms').select('id').eq('slug',slug).single();
+  if(existing){errEl.textContent='A room with this name already exists.';errEl.style.display='block';return;}
+
+  if(selectedStock){
+    await sb.from('rooms').insert({slug,name,description:desc||`Discussion room for ${selectedStock.symbol} — ${selectedStock.name}`,ticker:selectedStock.symbol,exchange:selectedStock.exchange,type:'stock',status:'active',created_by:currentUser.id});
+    sucEl.textContent=`✅ Room "${name}" created! It's live now.`;sucEl.style.display='block';
+    setTimeout(()=>{closeModal('room-modal');loadRooms();switchRoom(slug,name,desc);},1500);
+  }else{
+    await sb.from('room_requests').insert({requested_by:currentUser.id,username:currentProfile.username,name,description:desc,reason:'User requested custom room'});
+    sucEl.textContent=`📋 Request submitted! A moderator will review "${name}" shortly.`;sucEl.style.display='block';
+    setTimeout(()=>closeModal('room-modal'),2500);
   }
 }
 
 // ── LEADERBOARD ──
-async function loadLeaderboard() {
-  const { data } = await sb.from('picks').select('username, result, upvotes');
-  if (!data || !data.length) {
-    document.getElementById('leaderboard-content').innerHTML = '<div class="empty">No picks yet. Be the first!</div>';
-    return;
-  }
-  const users = {};
-  data.forEach(p => {
-    if (!users[p.username]) users[p.username] = { picks: 0, wins: 0, upvotes: 0 };
+async function loadLeaderboard(){
+  const{data}=await sb.from('picks').select('username,result,upvotes');
+  if(!data||!data.length){document.getElementById('leaderboard').innerHTML='<div class="empty" style="padding:16px;">No picks yet. Be the first!</div>';return;}
+  const users={};
+  data.forEach(p=>{
+    if(!users[p.username])users[p.username]={picks:0,wins:0,upvotes:0};
     users[p.username].picks++;
-    if (p.result === 'win') users[p.username].wins++;
-    users[p.username].upvotes += p.upvotes || 0;
+    if(p.result==='win')users[p.username].wins++;
+    users[p.username].upvotes+=p.upvotes||0;
   });
-  const ranked = Object.entries(users).map(([name, s]) => ({
-    name, ...s, winRate: s.picks ? Math.round((s.wins / s.picks) * 100) : 0,
-    score: s.picks * (s.wins / Math.max(s.picks, 1)) + s.upvotes * 0.5
-  })).sort((a, b) => b.score - a.score).slice(0, 10);
-
-  const medals = ['🥇', '🥈', '🥉'];
-  document.getElementById('leaderboard-content').innerHTML = ranked.map((u, i) => {
-    const color = COLORS[u.name.charCodeAt(0) % COLORS.length];
-    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+  const ranked=Object.entries(users).map(([name,s])=>({name,...s,wr:s.picks?Math.round(s.wins/s.picks*100):0})).sort((a,b)=>b.wr-a.wr||b.upvotes-a.upvotes).slice(0,8);
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
+    const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
     return `<div class="leader-row">
-      <div class="leader-rank ${rankClass}">${medals[i] || (i+1)}</div>
+      <div style="font-size:13px;font-weight:700;width:20px;text-align:center;">${medals[i]||i+1}</div>
       <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
-      <div class="leader-info">
-        <div class="leader-name">${u.name}</div>
-        <div class="leader-stats">${u.picks} picks · ${u.upvotes} 👍</div>
-      </div>
-      <div class="leader-score">
-        <div class="leader-winrate">${u.winRate}%</div>
-        <div class="leader-picks">win rate</div>
-      </div>
+      <div style="flex:1;"><div class="leader-name">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.upvotes} 👍</div></div>
+      <div class="leader-winrate">${u.wr}%</div>
     </div>`;
   }).join('');
 }
 
-const LIVE_PRICES = {
-  AAPL:307.57,MSFT:452.20,NVDA:1089.80,TSLA:342.50,AMZN:212.40,
-  GOOGL:198.30,META:621.40,JPM:268.50,SPY:598.40,QQQ:528.10,
-  AMD:168.50,NFLX:628.90,DIS:111.45,BABA:78.30,INTC:31.22,
-  BRKB:408.50,V:278.90,MA:492.30,UNH:521.40,XOM:112.48,
-  JNJ:147.22,PFE:28.14,KO:63.44,BAC:39.21,WMT:89.34
-};
-
-async function loadHotPicks() {
-  const { data } = await sb.from('picks').select('*').eq('result','pending').order('upvotes', { ascending: false }).limit(5);
-  if (!data || !data.length) { document.getElementById('hot-picks-content').innerHTML = '<div class="empty">No active picks yet</div>'; return; }
-  document.getElementById('hot-picks-content').innerHTML = data.map(p => {
-    const isBuy = p.direction === 'BUY';
-    const currentPrice = LIVE_PRICES[p.ticker.toUpperCase()] || null;
-    let perfHtml = '';
-    if (currentPrice) {
-      const perf = (((currentPrice - p.entry_price) / p.entry_price) * 100);
-      const perfAdj = isBuy ? perf : -perf;
-      const perfColor = perfAdj >= 0 ? 'var(--green)' : 'var(--red)';
-      const perfSign = perfAdj >= 0 ? '+' : '';
-      perfHtml = `<span style="font-size:12px;font-weight:600;color:${perfColor};">${perfSign}${perfAdj.toFixed(1)}%</span>`;
-    } else {
-      const upside = (((p.target_price - p.entry_price) / p.entry_price) * 100).toFixed(1);
-      perfHtml = `<span style="font-size:12px;font-weight:600;color:var(--text3);">Target +${upside}%</span>`;
-    }
-    const displayPrice = currentPrice ? `$${p.entry_price} → $${currentPrice} now` : `$${p.entry_price} → $${p.target_price} target`;
+async function loadHotPicks(){
+  const{data}=await sb.from('picks').select('*').eq('result','pending').order('upvotes',{ascending:false}).limit(5);
+  if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet</div>';return;}
+  document.getElementById('hot-picks').innerHTML=data.map(p=>{
+    const isBuy=p.direction==='BUY';
+    const cur=LIVE_PRICES[p.ticker];
+    let perfHtml='';
+    if(cur){const perf=(((cur-p.entry_price)/p.entry_price)*100)*(isBuy?1:-1);const c=perf>=0?'var(--green)':'var(--red)';perfHtml=`<span style="font-size:12px;font-weight:600;color:${c};">${perf>=0?'+':''}${perf.toFixed(1)}%</span>`;}
+    else{const up=(((p.target_price-p.entry_price)/p.entry_price)*100).toFixed(1);perfHtml=`<span style="font-size:12px;color:var(--text3);">Target +${up}%</span>`;}
     return `<div class="hot-pick">
-      <div class="hot-pick-header">
-        <div>
-          <span class="hot-pick-ticker">${p.ticker}</span>
-          <span style="font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px;${isBuy?'background:var(--green-bg);color:var(--green);':'background:var(--red-bg);color:var(--red);'}">${isBuy?'BUY':'SELL'}</span>
-        </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+        <div><span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;">${p.ticker}</span><span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:10px;margin-left:6px;${isBuy?'background:var(--green-bg);color:var(--green)':'background:var(--red-bg);color:var(--red)'};">${isBuy?'BUY':'SELL'}</span></div>
         ${perfHtml}
       </div>
-      <div class="hot-pick-user" style="margin-bottom:6px;">by ${p.username}</div>
-      <div class="hot-pick-stats">
-        <span style="font-size:12px;color:var(--text3);">${displayPrice}</span>
-        <span style="font-size:12px;color:var(--text3);margin-left:auto;">👍 ${p.upvotes}</span>
-      </div>
+      <div style="font-size:12px;color:var(--text3);">by ${p.username} · 👍 ${p.upvotes}</div>
     </div>`;
   }).join('');
 }
 
-function switchTab(tab, btn) {
-  activeTab = tab;
-  document.querySelectorAll('.input-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('chat-input-panel').style.display = tab === 'chat' ? 'block' : 'none';
-  document.getElementById('pick-input-panel').style.display = tab === 'pick' ? 'block' : 'none';
+// ── AUTH ──
+function showAuth(mode){
+  isLogin=mode==='login';
+  document.getElementById('auth-modal').style.display='flex';
+  document.getElementById('signup-fields').style.display=isLogin?'none':'block';
+  document.getElementById('auth-title').textContent=isLogin?'Welcome back':'Create account';
+  document.getElementById('auth-subtitle').textContent=isLogin?'Log in to your PulseStock account.':'Join the community to share picks and track your record.';
+  document.getElementById('auth-btn').textContent=isLogin?'Log in':'Create account';
+  document.getElementById('auth-toggle-text').textContent=isLogin?"Don't have an account?":'Already have an account?';
+  document.getElementById('auth-toggle-btn').textContent=isLogin?'Sign up':'Log in';
+  document.getElementById('auth-error').style.display='none';
+}
+function toggleAuth(){showAuth(isLogin?'signup':'login');}
+function closeModal(id){document.getElementById(id).style.display='none';}
+
+async function submitAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const username=document.getElementById('auth-username').value.trim();
+  const errEl=document.getElementById('auth-error');
+  const btn=document.getElementById('auth-btn');
+  btn.textContent='Please wait...';btn.disabled=true;errEl.style.display='none';
+  try{
+    if(isLogin){
+      const{error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+    }else{
+      if(!username||username.length<3)throw new Error('Username must be at least 3 characters');
+      const{data,error}=await sb.auth.signUp({email,password});
+      if(error)throw error;
+      const color=COLORS[Math.floor(Math.random()*COLORS.length)];
+      await sb.from('profiles').insert({id:data.user.id,username,avatar_color:color});
+      await setUser(data.user);
+    }
+    closeModal('auth-modal');updateUI();
+  }catch(err){errEl.textContent=err.message;errEl.style.display='block';}
+  btn.textContent=isLogin?'Log in':'Create account';btn.disabled=false;
 }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+async function signOut(){await sb.auth.signOut();currentUser=null;currentProfile=null;currentRole='member';updateUI();}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.input-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('chat-panel').style.display=tab==='chat'?'block':'none';
+  document.getElementById('pick-panel').style.display=tab==='pick'?'block':'none';
+}
+
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 init();
 </script>
 </body>
 </html>
-<!-- updated Tue Jun  2 03:37:07 UTC 2026 -->

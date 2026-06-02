@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Mod Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--amber);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
+.logo-name{font-size:17px;font-weight:600;}
+.main{max-width:1200px;margin:0 auto;padding:28px 24px;}
+.page-title{font-size:24px;font-weight:600;margin-bottom:6px;}
+.page-sub{font-size:14px;color:var(--text2);margin-bottom:28px;}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.stat-label{font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.stat-val{font-size:24px;font-weight:600;font-family:'DM Mono',monospace;}
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{padding:10px 18px;font-size:14px;font-weight:500;color:var(--text2);background:none;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;}
+.table-header{display:grid;padding:10px 20px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.table-row{display:grid;padding:12px 20px;border-bottom:1px solid var(--border);font-size:13.5px;align-items:center;}
+.table-row:last-child{border-bottom:none;}
+.table-row:hover{background:var(--surface2);}
+.btn-sm{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;}
+.btn-green{background:var(--green-bg);color:var(--green);}
+.btn-green:hover{background:#C6F0E2;}
+.btn-red{background:var(--red-bg);color:var(--red);}
+.btn-red:hover{background:#FACBC5;}
+.btn-amber{background:var(--amber-bg);color:var(--amber);}
+.btn-amber:hover{background:#FDE8A0;}
+.btn-blue{background:var(--accent-light);color:var(--accent);}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.badge-pending{background:var(--amber-bg);color:var(--amber);}
+.badge-approved{background:var(--green-bg);color:var(--green);}
+.badge-rejected{background:var(--red-bg);color:var(--red);}
+.badge-stock{background:var(--accent-light);color:var(--accent);}
+.badge-custom{background:var(--amber-bg);color:var(--amber);}
+.empty{text-align:center;padding:40px;color:var(--text3);}
+.access-denied{text-align:center;padding:80px 24px;}
+.access-denied h2{font-size:24px;font-weight:600;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<header>
+  <a href="/community.html" class="logo">
+    <div class="logo-icon">🛡️</div>
+    <span class="logo-name">PulseStock — Mod Panel</span>
+  </a>
+  <div id="admin-user"></div>
+</header>
+
+<main class="main">
+  <div id="access-denied" class="access-denied" style="display:none;">
+    <h2>🔒 Access Denied</h2>
+    <p style="color:var(--text2);margin-bottom:20px;">You need admin or moderator access to view this page.</p>
+    <a href="/community.html" style="color:var(--accent);font-weight:500;">← Back to Community</a>
+  </div>
+
+  <div id="admin-content" style="display:none;">
+    <div class="page-title">🛡️ Moderation Dashboard</div>
+    <div class="page-sub">Manage rooms, review requests, moderate users, and handle flagged content.</div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total members</div><div class="stat-val" id="stat-members">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total messages</div><div class="stat-val" id="stat-messages">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total picks</div><div class="stat-val" id="stat-picks">—</div></div>
+      <div class="stat-card"><div class="stat-label">Pending requests</div><div class="stat-val" id="stat-requests" style="color:var(--amber);">—</div></div>
+      <div class="stat-card"><div class="stat-label">Flagged messages</div><div class="stat-val" id="stat-flags" style="color:var(--red);">—</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('requests',this)">📋 Room Requests</button>
+      <button class="tab" onclick="showTab('rooms',this)">🏠 All Rooms</button>
+      <button class="tab" onclick="showTab('flags',this)">🚩 Flagged Messages</button>
+      <button class="tab" onclick="showTab('users',this)">👥 Users</button>
+      <button class="tab" onclick="showTab('mods',this)">🛡️ Moderators</button>
+    </div>
+
+    <!-- ROOM REQUESTS -->
+    <div class="tab-panel active" id="tab-requests">
+      <div class="card">
+        <div class="card-header">Pending Room Requests <span id="requests-count" class="badge badge-pending">0</span></div>
+        <div id="requests-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- ALL ROOMS -->
+    <div class="tab-panel" id="tab-rooms">
+      <div class="card">
+        <div class="card-header">Active Rooms</div>
+        <div class="table-header" style="grid-template-columns:2fr 1fr 1fr 1fr 120px;">
+          <span>Room</span><span>Type</span><span>Created by</span><span>Status</span><span>Actions</span>
+        </div>
+        <div id="rooms-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- FLAGGED -->
+    <div class="tab-panel" id="tab-flags">
+      <div class="card">
+        <div class="card-header">Flagged Messages</div>
+        <div id="flags-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="tab-panel" id="tab-users">
+      <div class="card">
+        <div class="card-header">Recent Members</div>
+        <div class="table-header" style="grid-template-columns:2fr 2fr 1fr 1fr 150px;">
+          <span>Username</span><span>Joined</span><span>Picks</span><span>Role</span><span>Actions</span>
+        </div>
+        <div id="users-list"><div class="empty">Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- MODS -->
+    <div class="tab-panel" id="tab-mods">
+      <div class="card">
+        <div class="card-header">Moderator Team</div>
+        <div id="mods-list"><div class="empty">Loading...</div></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">Add Moderator by Username</div>
+        <div style="padding:16px 20px;display:flex;gap:10px;">
+          <input type="text" id="mod-username-input" placeholder="Enter username..." style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-size:14px;font-family:'DM Sans',sans-serif;"/>
+          <button class="btn-sm btn-blue" style="padding:10px 20px;font-size:13px;" onclick="addModByUsername()">Add Moderator</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL='https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY='sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const ADMIN_EMAIL='mscharbo@gmail.com';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null,currentRole='member';
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){document.getElementById('access-denied').style.display='block';return;}
+  currentUser=session.user;
+  if(currentUser.email===ADMIN_EMAIL) currentRole='admin';
+  else{
+    const{data}=await sb.from('user_roles').select('role').eq('user_id',currentUser.id).single();
+    currentRole=data?.role||'member';
+  }
+  if(currentRole!=='admin'&&currentRole!=='mod'){document.getElementById('access-denied').style.display='block';return;}
+  document.getElementById('admin-content').style.display='block';
+  document.getElementById('admin-user').innerHTML=`<span style="font-size:13.5px;font-weight:500;">${currentUser.email} · <strong style="color:var(--amber);">${currentRole==='admin'?'👑 Admin':'🛡️ Mod'}</strong></span>`;
+  loadStats();loadRequests();loadRooms();loadFlags();loadUsers();loadMods();
+}
+
+async function loadStats(){
+  const[members,messages,picks,requests,flags]=await Promise.all([
+    sb.from('profiles').select('id',{count:'exact',head:true}),
+    sb.from('messages').select('id',{count:'exact',head:true}),
+    sb.from('picks').select('id',{count:'exact',head:true}),
+    sb.from('room_requests').select('id',{count:'exact',head:true}).eq('status','pending'),
+    sb.from('flagged_messages').select('id',{count:'exact',head:true}).eq('status','pending'),
+  ]);
+  document.getElementById('stat-members').textContent=members.count||0;
+  document.getElementById('stat-messages').textContent=messages.count||0;
+  document.getElementById('stat-picks').textContent=picks.count||0;
+  document.getElementById('stat-requests').textContent=requests.count||0;
+  document.getElementById('stat-flags').textContent=flags.count||0;
+  document.getElementById('requests-count').textContent=requests.count||0;
+}
+
+async function loadRequests(){
+  const{data}=await sb.from('room_requests').select('*').eq('status','pending').order('created_at',{ascending:false});
+  const el=document.getElementById('requests-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty">No pending requests 🎉</div>';return;}
+  el.innerHTML=data.map(r=>`
+    <div class="table-row" style="grid-template-columns:2fr 1fr 2fr 180px;">
+      <div><div style="font-weight:600;">${r.name}</div><div style="font-size:12px;color:var(--text3);">${r.description||'No description'}</div></div>
+      <div style="font-size:13px;color:var(--text2);">${r.username}</div>
+      <div style="font-size:12px;color:var(--text3);">${new Date(r.created_at).toLocaleDateString()}</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-sm btn-green" onclick="approveRequest('${r.id}','${r.name}','${r.description||''}','${r.requested_by}')">✅ Approve</button>
+        <button class="btn-sm btn-red" onclick="rejectRequest('${r.id}')">❌ Reject</button>
+      </div>
+    </div>`).join('');
+}
+
+async function approveRequest(id,name,desc,userId){
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  await sb.from('rooms').insert({slug,name,description:desc,type:'custom',status:'active',created_by:userId});
+  await sb.from('room_requests').update({status:'approved',reviewed_by:currentUser.id}).eq('id',id);
+  loadRequests();loadRooms();loadStats();
+  alert(`Room "${name}" approved and live!`);
+}
+
+async function rejectRequest(id){
+  const reason=prompt('Reason for rejection (optional):');
+  await sb.from('room_requests').update({status:'rejected',reviewed_by:currentUser.id}).eq('id',id);
+  loadRequests();loadStats();
+}
+
+async function loadRooms(){
+  const{data}=await sb.from('rooms').select('*').order('created_at',{ascending:false});
+  const el=document.getElementById('rooms-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty">No rooms</div>';return;}
+  el.innerHTML=data.map(r=>`
+    <div class="table-row" style="grid-template-columns:2fr 1fr 1fr 1fr 120px;">
+      <div><div style="font-weight:600;">${r.name}</div>${r.ticker?`<div style="font-size:12px;color:var(--text3);">$${r.ticker} · ${r.exchange||''}</div>`:''}</div>
+      <div><span class="badge ${r.type==='stock'?'badge-stock':'badge-custom'}">${r.type}</span></div>
+      <div style="font-size:13px;color:var(--text2);">${r.created_by?'User':'System'}</div>
+      <div><span class="badge ${r.status==='active'?'badge-approved':'badge-rejected'}">${r.status}</span></div>
+      <div style="display:flex;gap:6px;">
+        ${r.status==='active'?`<button class="btn-sm btn-red" onclick="archiveRoom('${r.id}','${r.name}')">Archive</button>`:`<button class="btn-sm btn-green" onclick="restoreRoom('${r.id}')">Restore</button>`}
+      </div>
+    </div>`).join('');
+}
+
+async function archiveRoom(id,name){
+  if(!confirm(`Archive room "${name}"? Users won't be able to access it.`)) return;
+  await sb.from('rooms').update({status:'archived'}).eq('id',id);
+  loadRooms();
+}
+
+async function restoreRoom(id){
+  await sb.from('rooms').update({status:'active'}).eq('id',id);
+  loadRooms();
+}
+
+async function loadFlags(){
+  const{data}=await sb.from('flagged_messages').select('*,messages(content,username)').eq('status','pending').order('created_at',{ascending:false});
+  const el=document.getElementById('flags-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty">No flagged messages 🎉</div>';return;}
+  el.innerHTML=data.map(f=>{
+    const content=f.messages?.content?.startsWith('__PICK__')?'[Stock Pick]':f.messages?.content||'Message not found';
+    return `<div class="table-row" style="grid-template-columns:3fr 1fr 1fr 160px;">
+      <div><div style="font-size:13px;">${content.substring(0,120)}${content.length>120?'...':''}</div><div style="font-size:12px;color:var(--text3);">by ${f.messages?.username||'unknown'}</div></div>
+      <div style="font-size:12px;color:var(--text3);">${new Date(f.created_at).toLocaleDateString()}</div>
+      <div><span class="badge badge-pending">Pending</span></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-sm btn-red" onclick="deleteMessage('${f.message_id}','${f.id}')">🗑 Delete</button>
+        <button class="btn-sm btn-green" onclick="dismissFlag('${f.id}')">✅ Dismiss</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteMessage(msgId,flagId){
+  await sb.from('messages').update({deleted:true}).eq('id',msgId);
+  await sb.from('flagged_messages').update({status:'actioned'}).eq('id',flagId);
+  loadFlags();loadStats();
+}
+
+async function dismissFlag(flagId){
+  await sb.from('flagged_messages').update({status:'dismissed'}).eq('id',flagId);
+  loadFlags();loadStats();
+}
+
+async function loadUsers(){
+  const{data}=await sb.from('profiles').select('*').order('created_at',{ascending:false}).limit(50);
+  const{data:roles}=await sb.from('user_roles').select('*');
+  const roleMap={};
+  (roles||[]).forEach(r=>roleMap[r.user_id]=r.role);
+  const el=document.getElementById('users-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty">No users yet</div>';return;}
+  el.innerHTML=data.map(u=>{
+    const role=u.id===currentUser?.id&&currentUser?.email===ADMIN_EMAIL?'admin':(roleMap[u.id]||'member');
+    const roleLabel=role==='admin'?'👑 Admin':role==='mod'?'🛡️ Mod':role==='verified'?'⭐ Verified':'Member';
+    return `<div class="table-row" style="grid-template-columns:2fr 2fr 1fr 1fr 150px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:${u.avatar_color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;">${u.username[0].toUpperCase()}</div>
+        <span style="font-weight:500;">${u.username}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2);">${new Date(u.created_at).toLocaleDateString()}</div>
+      <div style="font-size:13px;">—</div>
+      <div style="font-size:13px;">${roleLabel}</div>
+      <div style="display:flex;gap:5px;">
+        ${role==='member'?`<button class="btn-sm btn-blue" onclick="promoteUser('${u.id}','${u.username}','mod')">🛡 Mod</button>`:''}
+        ${role!=='admin'?`<button class="btn-sm btn-red" onclick="banUserAdmin('${u.id}','${u.username}')">🚫 Ban</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadMods(){
+  const{data}=await sb.from('user_roles').select('*,profiles(username,avatar_color)').eq('role','mod');
+  const el=document.getElementById('mods-list');
+  if(!data||!data.length){el.innerHTML='<div class="empty" style="padding:20px;">No moderators yet. Add one above.</div>';return;}
+  el.innerHTML=`<div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">`+data.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:8px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:${m.profiles?.avatar_color||'#1A6BF5'};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;">${(m.profiles?.username||'?')[0].toUpperCase()}</div>
+        <div><div style="font-weight:600;">${m.profiles?.username||'Unknown'}</div><div style="font-size:12px;color:var(--text3);">🛡️ Moderator · Added ${new Date(m.created_at).toLocaleDateString()}</div></div>
+      </div>
+      ${currentRole==='admin'?`<button class="btn-sm btn-red" onclick="removeMod('${m.user_id}','${m.profiles?.username}')">Remove</button>`:''}
+    </div>`).join('')+'</div>';
+}
+
+async function promoteUser(userId,username,role){
+  if(!confirm(`Promote ${username} to ${role}?`)) return;
+  await sb.from('user_roles').upsert({user_id:userId,role,granted_by:currentUser.id});
+  loadUsers();loadMods();loadStats();
+  alert(`${username} is now a ${role}!`);
+}
+
+async function addModByUsername(){
+  const username=document.getElementById('mod-username-input').value.trim();
+  if(!username) return;
+  const{data}=await sb.from('profiles').select('id').eq('username',username).single();
+  if(!data){alert(`User "${username}" not found.`);return;}
+  await sb.from('user_roles').upsert({user_id:data.id,role:'mod',granted_by:currentUser.id});
+  document.getElementById('mod-username-input').value='';
+  loadMods();loadUsers();
+  alert(`${username} is now a Moderator!`);
+}
+
+async function removeMod(userId,username){
+  if(!confirm(`Remove ${username} as moderator?`)) return;
+  await sb.from('user_roles').delete().eq('user_id',userId);
+  loadMods();loadUsers();
+}
+
+async function banUserAdmin(userId,username){
+  const reason=prompt(`Reason for banning ${username}:`);
+  if(!reason) return;
+  const permanent=confirm('Permanent ban? Click OK for permanent, Cancel for 7-day ban.');
+  await sb.from('bans').insert({user_id:userId,banned_by:currentUser.id,reason,permanent,expires_at:permanent?null:new Date(Date.now()+7*24*60*60*1000).toISOString()});
+  alert(`${username} has been ${permanent?'permanently':'temporarily'} banned.`);
+  loadUsers();
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
