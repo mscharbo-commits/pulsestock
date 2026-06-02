@@ -134,6 +134,25 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .btn-community{background:var(--accent);color:#fff;padding:10px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:none;cursor:pointer;margin-top:auto;}
 .btn-community:hover{background:var(--accent2);}
 
+/* NEWS */
+.news-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
+.news-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.news-header h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.news-item{display:flex;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;text-decoration:none;}
+.news-item:last-child{border-bottom:none;}
+.news-item:hover{background:var(--surface2);}
+.news-thumb{width:72px;height:54px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface2);}
+.news-thumb-placeholder{width:72px;height:54px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.news-content{flex:1;min-width:0;}
+.news-headline{font-size:13.5px;font-weight:500;color:var(--text);line-height:1.5;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.news-meta{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text3);}
+.news-source{font-weight:600;color:var(--text2);}
+.news-sentiment{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;}
+.news-pos{background:var(--green-bg);color:var(--green);}
+.news-neg{background:var(--red-bg);color:var(--red);}
+.news-neu{background:var(--surface2);color:var(--text3);}
+.news-loading{padding:24px;text-align:center;color:var(--text3);font-size:13.5px;}
+
 /* AI ANALYSIS */
 .ai-analysis-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;box-shadow:var(--shadow);}
 .ai-analysis-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
@@ -523,6 +542,61 @@ async function fetchProfile(ticker){
   }catch(e){return null;}
 }
 
+async function fetchNews(ticker){
+  try{
+    var r = await fetch('/api/news?ticker=' + encodeURIComponent(ticker));
+    if(!r.ok) return [];
+    return await r.json();
+  }catch(e){ return []; }
+}
+
+function timeAgo(ts){
+  var diff = Math.floor((Date.now() - ts*1000)/1000);
+  if(diff < 60) return 'Just now';
+  if(diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if(diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function renderNews(ticker, articles){
+  var el = document.getElementById('news-list-' + ticker);
+  if(!el) return;
+  if(!articles || !articles.length){
+    el.innerHTML = '<div class="news-loading">No recent news found for ' + ticker + '</div>';
+    return;
+  }
+  el.innerHTML = articles.map(function(a){
+    var ago = timeAgo(a.datetime);
+    var sentClass = 'news-neu';
+    var sentLabel = '';
+    // Simple sentiment based on headline keywords
+    var h = (a.headline||'').toLowerCase();
+    var posWords = ['surge','soar','gain','beat','profit','record','high','rise','upgrade','buy','bull','strong','growth'];
+    var negWords = ['fall','drop','loss','miss','cut','downgrade','sell','bear','weak','decline','crash','warn','risk'];
+    var posScore = posWords.filter(function(w){return h.indexOf(w)!==-1;}).length;
+    var negScore = negWords.filter(function(w){return h.indexOf(w)!==-1;}).length;
+    if(posScore > negScore){sentClass='news-pos';sentLabel='Positive';}
+    else if(negScore > posScore){sentClass='news-neg';sentLabel='Negative';}
+
+    var thumb = a.image
+      ? '<img class="news-thumb" src="'+a.image+'" alt=""/>'
+      : '<div class="news-thumb-placeholder">📰</div>';
+
+    return '<a class="news-item" href="'+a.url+'" target="_blank" rel="noopener">'
+      + thumb
+      + '<div class="news-content">'
+        + '<div class="news-headline">'+a.headline+'</div>'
+        + '<div class="news-meta">'
+          + '<span class="news-source">'+a.source+'</span>'
+          + '<span>·</span>'
+          + '<span>'+ago+'</span>'
+          + (sentLabel ? '<span class="news-sentiment '+sentClass+'">'+sentLabel+'</span>' : '')
+        + '</div>'
+      + '</div>'
+    + '</a>';
+  }).join('');
+}
+
 async function fetchAnalyst(ticker){
   try{
     const r = await fetch('/api/analyst?ticker='+encodeURIComponent(ticker));
@@ -539,7 +613,7 @@ async function doAnalyze(){
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile,analyst]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker)]);
+  const[quote,profile,analyst,newsData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker)]);
 
   if(!quote||quote.price===0){
     el.innerHTML=`<div class="card" style="border-color:var(--red);background:var(--red-bg);"><p style="color:var(--red);font-size:14px;font-weight:500;">⚠ Could not find "${ticker}"</p><p style="color:#9B2C1F;font-size:13px;margin-top:4px;">Check the ticker symbol and try again.</p></div>`;
@@ -694,6 +768,14 @@ async function doAnalyze(){
     <div class="tech-signal"><span class="sig-label">Beta</span><span class="sig-value">${f.beta||'—'}</span></div>
   </div>`:''}
 
+  <div class="news-card" id="news-card-${ticker}">
+    <div class="news-header">
+      <h3>📰 Latest News — ${ticker}</h3>
+      <span style="font-size:11.5px;color:var(--text3);">Last 7 days</span>
+    </div>
+    <div id="news-list-${ticker}"><div class="news-loading">Loading news...</div></div>
+  </div>
+
   <div class="cta-grid">
     <div class="ai-cta" id="ai-cta-card">
       <div style="font-size:24px;margin-bottom:8px;">🧠</div>
@@ -723,6 +805,7 @@ async function doAnalyze(){
   </div>`;
 
   loadQuoteSentiment(ticker);
+  renderNews(ticker, newsData);
   initTVChart(ticker);
   initIndicatorPanel(ticker, quote.price, quote.pct);
 }
