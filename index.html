@@ -333,7 +333,7 @@ function showPage(id,btn){
 function qs(t){document.getElementById('ticker-input').value=t;doAnalyze();}
 
 async function fetchQuote(ticker){
-  if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<30000) return quoteCache[ticker].data;
+  if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<10000) return quoteCache[ticker].data;
   try{
     const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
     const d=await r.json();
@@ -580,7 +580,11 @@ async function runAIAnalysis(ticker, name, sector){
 
   if(btn){ btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
 
-  var curPrice = (quoteCache[ticker]||{}).price||'N/A';
+  // Fetch fresh quote at analysis time
+  var liveQuote = await fetchQuote(ticker);
+  var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A');
+  var curChange = liveQuote ? (liveQuote.pct >= 0 ? '+' : '') + liveQuote.pct.toFixed(2) + '%' : '';
+  var h52live = liveQuote ? null : null;
   var prompt = 'You are an institutional stock analyst. Analyze ' + ticker + ' (' + name + '). Output ONLY plain text, NO markdown, NO ##, NO **bold**.' +
     '\n\nUse these EXACT headers on their own line with nothing else on that line:' +
     '\n\nVERDICT: BUY | Target: $245 | Confidence: High' +
@@ -605,7 +609,7 @@ async function runAIAnalysis(ticker, name, sector){
     '\nTarget 2: $X — reason' +
     '\nPosition Size: X-X% — reason' +
     '\nTime Horizon: X months — reason' +
-    '\n\nStock data: Price $' + curPrice + ', P/E ' + (f.pe||'N/A') + 'x, FwdPE ' + (f.fwdPe||'N/A') + 'x, PEG ' + (f.peg||'N/A') +
+    '\n\nCurrent live price: $' + curPrice + ' (' + curChange + ' today). Fundamentals: P/E ' + (f.pe||'N/A') + 'x, FwdPE ' + (f.fwdPe||'N/A') + 'x, PEG ' + (f.peg||'N/A') +
     ', Rev ' + (f.rev||'N/A') + ' growing ' + (f.rg||'N/A') + ', EPS ' + (f.eg||'N/A') + ', FCF ' + (f.fcf||'N/A') +
     ', GM ' + (f.gm||'N/A') + ', OpM ' + (f.om||'N/A') + ', Cash ' + (f.cash||'N/A') + ', Debt ' + (f.debt||'N/A') +
     ', RSI ' + (f.rsi||'N/A') + ', MACD ' + (f.macd||'N/A') + '/' + (f.msig||'N/A') +
