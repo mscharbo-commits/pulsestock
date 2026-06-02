@@ -96,6 +96,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ind-legend-dot{width:10px;height:3px;border-radius:2px;flex-shrink:0;}
 .ind-value{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-left:2px;}
 .ind-signal{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:4px;}
+.ind-period-btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;}
+.ind-period-btn:hover,.ind-period-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+.indicator-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
 .range-track{height:3px;background:var(--surface3);border-radius:2px;position:relative;margin-bottom:14px;}
 .range-progress{position:absolute;height:100%;background:var(--border2);border-radius:2px;}
 .range-thumb{position:absolute;width:9px;height:9px;background:var(--accent);border-radius:50%;top:-3px;transform:translateX(-50%);box-shadow:0 0 0 2px white;}
@@ -589,6 +592,35 @@ async function doAnalyze(){
       <div class="tradingview-widget-container" id="tv-widget-${ticker}" style="height:100%;width:100%;"></div>
     </div>
 
+    <!-- TIME PERIOD SELECTOR synced with indicator panel -->
+    <div style="display:flex;gap:4px;margin-bottom:10px;margin-top:-6px;align-items:center;">
+      <span style="font-size:11px;color:var(--text3);font-weight:500;margin-right:4px;">Indicators:</span>
+      <button class="ind-period-btn" onclick="setIndPeriod(1,this)">1D</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(5,this)">5D</button>
+      <button class="ind-period-btn active" onclick="setIndPeriod(30,this)">1M</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(90,this)">3M</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(180,this)">6M</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(252,this)">YTD</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(365,this)">1Y</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(1825,this)">5Y</button>
+      <button class="ind-period-btn" onclick="setIndPeriod(3650,this)">All</button>
+    </div>
+
+    <div class="indicator-panel" id="ind-panel">
+      <div class="indicator-tabs">
+        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      </div>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
+      </div>
+      <div class="ind-legend" id="ind-legend"></div>
+    </div>
+
     <div class="range-row">
       <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
       <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
@@ -1041,15 +1073,17 @@ var indMode = 'rsi';
 var indPriceData = [];
 
 function generatePriceHistory(currentPrice, pct, n) {
-  // Generate realistic-looking price history ending at current price
+  var points = Math.max(n, 10); // minimum 10 data points
   var prices = [];
-  var p = currentPrice * (1 - Math.abs(pct/100) * 8 - 0.08);
-  for (var i = 0; i < n; i++) {
-    var trend = (currentPrice - p) / (n - i);
-    p = p + trend + (Math.random() - 0.46) * currentPrice * 0.012;
+  // Volatility scales with period - shorter = less noise
+  var volatility = n <= 5 ? 0.003 : n <= 30 ? 0.008 : n <= 90 ? 0.012 : 0.015;
+  var p = currentPrice * (1 - Math.abs(pct/100) * Math.min(n/30, 8) - volatility * 5);
+  for (var i = 0; i < points; i++) {
+    var trend = (currentPrice - p) / (points - i);
+    p = p + trend + (Math.random() - 0.47) * currentPrice * volatility;
     prices.push(parseFloat(p.toFixed(2)));
   }
-  prices[n-1] = currentPrice;
+  prices[points-1] = currentPrice;
   return prices;
 }
 
@@ -1295,14 +1329,29 @@ function renderIndicator() {
   });
 }
 
+var indPeriod = 30;
+
+function setIndPeriod(days, btn) {
+  indPeriod = days;
+  document.querySelectorAll('.ind-period-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(indTicker && indCurrentPrice) {
+    indPriceData = generatePriceHistory(indCurrentPrice, indCurrentPct, days);
+    renderIndicator();
+  }
+}
+
+var indCurrentPrice = 0;
+var indCurrentPct = 0;
+
 function initIndicatorPanel(ticker, price, pct) {
   indTicker = ticker;
-  indPriceData = generatePriceHistory(price, pct, 90);
+  indCurrentPrice = price;
+  indCurrentPct = pct;
+  indPriceData = generatePriceHistory(price, pct, indPeriod);
   indMode = 'rsi';
-  var panel = document.getElementById('ind-panel');
-  if (panel) panel.style.display = 'block';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  setTimeout(function(){ renderIndicator(); }, 200);
+  setTimeout(function(){ renderIndicator(); }, 300);
 }
 
 // ── MARKET TICKER BAR ──
