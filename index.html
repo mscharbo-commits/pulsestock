@@ -291,6 +291,20 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
     </div>
     <div id="analyze-result"></div>
+  <div class="indicator-panel" id="ind-panel" style="display:none;">
+    <div class="indicator-tabs">
+      <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+      <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+      <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+      <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+      <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+      <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+    </div>
+    <div class="indicator-chart-wrap">
+      <canvas id="ind-chart" style="display:block;"></canvas>
+    </div>
+    <div class="ind-legend" id="ind-legend"></div>
+  </div>
   </div>
 
   <!-- SCREENER -->
@@ -579,21 +593,6 @@ async function doAnalyze(){
       <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
     </div>
     ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
-  </div>
-
-  <div class="indicator-panel" id="ind-panel">
-    <div class="indicator-tabs">
-      <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-      <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-      <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-      <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-      <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-      <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
-    </div>
-    <div class="indicator-chart-wrap">
-      <canvas id="ind-chart-${ticker}" style="width:100%;height:160px;display:block;"></canvas>
-    </div>
-    <div class="ind-legend" id="ind-legend"></div>
   </div>
 
   ${f.pe?`
@@ -1138,8 +1137,8 @@ function renderIndicator() {
   var labels = prices.map(function(p,i){ return i; });
 
   if (indChart) { try { indChart.destroy(); } catch(e){} indChart = null; }
-  var ctx = document.getElementById('ind-chart-'+indTicker);
-  if (!ctx) { console.warn('ind-chart not found for', indTicker); return; }
+  var ctx = document.getElementById('ind-chart');
+  if (!ctx) return;
   ctx.style.width = '100%';
   ctx.style.height = '160px';
   var legend = document.getElementById('ind-legend');
@@ -1290,8 +1289,10 @@ function initIndicatorPanel(ticker, price, pct) {
   indTicker = ticker;
   indPriceData = generatePriceHistory(price, pct, 90);
   indMode = 'rsi';
+  var panel = document.getElementById('ind-panel');
+  if (panel) panel.style.display = 'block';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  setTimeout(function(){ renderIndicator(); }, 300);
+  setTimeout(function(){ renderIndicator(); }, 200);
 }
 
 // ── MARKET TICKER BAR ──
