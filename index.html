@@ -42,6 +42,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .btn-primary{background:var(--accent);color:#fff;padding:12px 22px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;white-space:nowrap;}
 .btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,107,245,.3);}
 .quick-picks{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;}
+.search-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--radius-sm);box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:200;overflow:hidden;max-height:320px;overflow-y:auto;}
+.search-result{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border);}
+.search-result:last-child{border-bottom:none;}
+.search-result:hover,.search-result.active{background:var(--accent-light);}
+.sr-ticker{font-size:14px;font-weight:700;font-family:"DM Mono",monospace;color:var(--accent);min-width:60px;}
+.sr-name{font-size:13px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sr-exchange{font-size:11px;font-weight:500;padding:2px 7px;border-radius:4px;background:var(--surface2);color:var(--text3);flex-shrink:0;}
+.sr-type{font-size:11px;color:var(--text3);flex-shrink:0;}
+.search-loading{padding:12px 16px;font-size:13px;color:var(--text3);text-align:center;}
 .quick-picks span{font-size:13px;color:var(--text3);align-self:center;}
 .chip{font-size:12.5px;font-weight:500;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-family:'DM Mono',monospace;}
 .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
@@ -243,7 +253,14 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <h1>Institutional-grade<br/><span>stock analysis</span>, instantly.</h1>
       <p>Real-time quotes, professional charts &amp; AI-driven insights for smarter investing.</p>
       <div class="search-bar">
-        <input type="text" id="ticker-input" placeholder="Enter ticker symbol e.g. AAPL" maxlength="10" onkeydown="if(event.key==='Enter')doAnalyze()"/>
+        <div class="search-wrap">
+          <input type="text" id="ticker-input" placeholder="Search ticker or company name..." maxlength="50"
+            oninput="onTickerInput(this.value)"
+            onkeydown="onTickerKeydown(event)"
+            autocomplete="off"
+            style="width:100%;text-transform:none;"/>
+          <div id="search-dropdown" class="search-dropdown" style="display:none;"></div>
+        </div>
         <button class="btn-primary" onclick="doAnalyze()">Analyze</button>
       </div>
       <div class="quick-picks">
@@ -330,7 +347,94 @@ function showPage(id,btn){
   btn.classList.add('active');
   if(id==='portfolio') renderPortfolio();
 }
-function qs(t){document.getElementById('ticker-input').value=t;doAnalyze();}
+function qs(t){
+  document.getElementById('ticker-input').value=t;
+  closeDropdown();
+  doAnalyze();
+}
+
+// ── TICKER AUTOCOMPLETE ──
+var searchTimer=null;
+var selectedIndex=-1;
+var searchResults=[];
+
+function onTickerInput(val){
+  clearTimeout(searchTimer);
+  selectedIndex=-1;
+  if(!val||val.trim().length<1){closeDropdown();return;}
+  var dd=document.getElementById('search-dropdown');
+  dd.innerHTML='<div class="search-loading">Searching...</div>';
+  dd.style.display='block';
+  searchTimer=setTimeout(function(){searchTickers(val.trim());},250);
+}
+
+async function searchTickers(query){
+  var dd=document.getElementById('search-dropdown');
+  try{
+    var url='https://query1.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(query)+'&quotesCount=8&newsCount=0&listsCount=0&enableFuzzyQuery=true';
+    var r=await fetch(url);
+    var d=await r.json();
+    var quotes=(d.quotes||[]).filter(function(q){
+      return q.symbol&&(q.shortname||q.longname)&&q.quoteType!=='OPTION'&&q.quoteType!=='FUTURE';
+    }).slice(0,8);
+    searchResults=quotes;
+    if(!quotes.length){dd.innerHTML='<div class="search-loading">No results found</div>';return;}
+    dd.innerHTML=quotes.map(function(q,i){
+      var exch=q.exchange||q.exchDisp||'';
+      var exchColor=exch.indexOf('NAS')!==-1?'#065F46':exch.indexOf('NYS')!==-1?'#1E40AF':exch.indexOf('OTC')!==-1?'#78350F':'';
+      var exchBg=exch.indexOf('NAS')!==-1?'#D1FAE5':exch.indexOf('NYS')!==-1?'#DBEAFE':exch.indexOf('OTC')!==-1?'#FEF3C7':'#F2F4F7';
+      var name=q.shortname||q.longname||q.symbol;
+      return '<div class="search-result" data-sym="'+q.symbol+'" data-idx="'+i+'" onclick="selectResult(this.dataset.sym)">'
+        +'<span class="sr-ticker">'+q.symbol+'</span>'
+        +'<span class="sr-name">'+name+'</span>'
+        +(exch?'<span class="sr-exchange" style="background:'+exchBg+';color:'+exchColor+';">'+exch+'</span>':'')
+        +'</div>';
+    }).join('');
+    dd.style.display='block';
+  }catch(e){
+    dd.innerHTML='<div class="search-loading">Search unavailable — type ticker directly</div>';
+  }
+}
+
+function selectResult(symbol){
+  document.getElementById('ticker-input').value=symbol;
+  closeDropdown();
+  doAnalyze();
+}
+
+function onTickerKeydown(e){
+  var dd=document.getElementById('search-dropdown');
+  var items=dd.querySelectorAll('.search-result');
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    selectedIndex=Math.min(selectedIndex+1,items.length-1);
+    items.forEach(function(el,i){el.classList.toggle('active',i===selectedIndex);});
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    selectedIndex=Math.max(selectedIndex-1,0);
+    items.forEach(function(el,i){el.classList.toggle('active',i===selectedIndex);});
+  }else if(e.key==='Enter'){
+    if(selectedIndex>=0&&items[selectedIndex]){
+      var sym=searchResults[selectedIndex]&&searchResults[selectedIndex].symbol;
+      if(sym){selectResult(sym);return;}
+    }
+    closeDropdown();
+    doAnalyze();
+  }else if(e.key==='Escape'){
+    closeDropdown();
+  }
+}
+
+function closeDropdown(){
+  var dd=document.getElementById('search-dropdown');
+  if(dd) dd.style.display='none';
+  selectedIndex=-1;
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.search-wrap')) closeDropdown();
+});
 
 async function fetchQuote(ticker){
   if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<10000) return quoteCache[ticker].data;
@@ -361,7 +465,9 @@ async function fetchAnalyst(ticker){
 }
 
 async function doAnalyze(){
-  const ticker=document.getElementById('ticker-input').value.trim().toUpperCase();
+  var rawInput=document.getElementById('ticker-input').value.trim();
+  // If user typed a full name, try to extract just the ticker symbol
+  const ticker=rawInput.toUpperCase().split(' ')[0].replace(/[^A-Z0-9.\-]/g,'');
   if(!ticker) return;
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
