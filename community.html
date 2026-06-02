@@ -46,6 +46,25 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .room-divider{height:1px;background:var(--border);margin:8px 0;}
 .create-room-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;color:var(--accent);background:var(--accent-light);width:100%;border:none;cursor:pointer;margin-top:4px;}
 .create-room-btn:hover{background:#dce8fe;}
+.room-search-wrap{padding:0 0 8px;}
+.room-search-wrap input{width:100%;font-size:13px;padding:7px 12px;border-radius:8px;}
+.sentiment-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;}
+.sentiment-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.sentiment-votes{font-size:11px;color:var(--text3);}
+.sentiment-btns{display:flex;gap:6px;margin-bottom:8px;}
+.sent-btn{flex:1;padding:6px 4px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid transparent;transition:all .15s;}
+.sent-buy{background:var(--green-bg);color:var(--green);border-color:#9EE0C8;}
+.sent-buy:hover,.sent-buy.active{background:var(--green);color:#fff;}
+.sent-hold{background:var(--amber-bg);color:var(--amber);border-color:#FBBF24;}
+.sent-hold:hover,.sent-hold.active{background:var(--amber);color:#fff;}
+.sent-sell{background:var(--red-bg);color:var(--red);border-color:#F9BFBA;}
+.sent-sell:hover,.sent-sell.active{background:var(--red);color:#fff;}
+.sentiment-track{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;}
+.sentiment-track-buy{background:var(--green);border-radius:3px 0 0 3px;transition:flex .4s;}
+.sentiment-track-hold{background:var(--amber);transition:flex .4s;}
+.sentiment-track-sell{background:var(--red);border-radius:0 3px 3px 0;transition:flex .4s;}
+.sentiment-labels{display:flex;justify-content:space-between;margin-top:5px;}
+.sentiment-label{font-size:11px;font-weight:500;}
 
 /* CHAT */
 .chat-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;height:calc(100vh - 120px);}
@@ -237,7 +256,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 <div class="layout">
   <!-- ROOMS SIDEBAR -->
   <div class="rooms-sidebar">
-    <div class="rooms-header"><span>Categories</span></div>
+    <div class="rooms-header"><span>Rooms</span></div>
+    <div class="room-search-wrap">
+      <input type="text" id="room-search-filter" placeholder="🔍 Search rooms..." oninput="filterRooms(this.value)"/>
+    </div>
     <div id="rooms-list"></div>
     <button class="create-room-btn" onclick="showRoomModal()">+ Create Room</button>
   </div>
@@ -254,6 +276,27 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
       </div>
     </div>
     <div class="messages-area" id="messages-area"><div class="empty">Loading...</div></div>
+    <div class="sentiment-bar" id="sentiment-bar">
+      <div class="sentiment-title">
+        <span>📊 Community Sentiment</span>
+        <span class="sentiment-votes" id="sentiment-vote-count">0 votes</span>
+      </div>
+      <div class="sentiment-btns">
+        <button class="sent-btn sent-buy" id="vote-buy" onclick="castVote('buy')">🟢 Buy</button>
+        <button class="sent-btn sent-hold" id="vote-hold" onclick="castVote('hold')">🟡 Hold</button>
+        <button class="sent-btn sent-sell" id="vote-sell" onclick="castVote('sell')">🔴 Sell</button>
+      </div>
+      <div class="sentiment-track">
+        <div class="sentiment-track-buy" id="track-buy" style="flex:33"></div>
+        <div class="sentiment-track-hold" id="track-hold" style="flex:34"></div>
+        <div class="sentiment-track-sell" id="track-sell" style="flex:33"></div>
+      </div>
+      <div class="sentiment-labels">
+        <span class="sentiment-label" style="color:var(--green);" id="label-buy">33% Buy</span>
+        <span class="sentiment-label" style="color:var(--amber);" id="label-hold">34% Hold</span>
+        <span class="sentiment-label" style="color:var(--red);" id="label-sell">33% Sell</span>
+      </div>
+    </div>
     <div class="chat-input-area">
       <div class="input-tabs">
         <button class="input-tab active" onclick="switchTab('chat',this)">💬 Chat</button>
@@ -333,6 +376,7 @@ async function init(){
   updateUI();
   loadRooms();
   loadMessages(currentRoom);
+  loadSentiment(currentRoom);
   loadLeaderboard();
   loadHotPicks();
   sb.auth.onAuthStateChange(async(event,session)=>{
@@ -389,19 +433,9 @@ function updateUI(){
 async function loadRooms(){
   const{data}=await sb.from('rooms').select('*').eq('status','active').order('type').order('name');
   if(!data) return;
-  const list=document.getElementById('rooms-list');
-  const categories=data.filter(r=>r.type==='category');
-  const stocks=data.filter(r=>r.type==='stock'||r.type==='custom');
-  let html='';
-  categories.forEach(r=>{
-    const icon=ROOM_ICONS[r.slug]||'💬';
-    html+=roomItem(r,icon);
-  });
-  if(stocks.length){
-    html+=`<div class="room-divider"></div><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;margin-bottom:4px;">Stock Rooms</div>`;
-    stocks.forEach(r=>{ html+=roomItem(r,'📈'); });
-  }
-  list.innerHTML=html;
+  allRoomsData=data;
+  renderRoomList(data);
+  checkUrlRoom();
 }
 
 function roomItem(r,icon){
@@ -411,15 +445,17 @@ function roomItem(r,icon){
   </div>`;
 }
 
-async function switchRoom(slug,name,desc){
+async function switchRoom(slug,name,desc,skipEvent=false){
   currentRoom=slug;
   document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
   document.getElementById('chat-room-desc').textContent=desc;
   document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if(!skipEvent&&event&&event.currentTarget) event.currentTarget.classList.add('active');
   if(msgSub){sb.removeChannel(msgSub);msgSub=null;}
   loadMessages(slug);
+  loadSentiment(slug);
   subscribeToRoom(slug);
+  history.pushState(null,'','/community.html?room='+slug);
 }
 
 function subscribeToRoom(slug){
@@ -769,6 +805,100 @@ function switchTab(tab,btn){
   btn.classList.add('active');
   document.getElementById('chat-panel').style.display=tab==='chat'?'block':'none';
   document.getElementById('pick-panel').style.display=tab==='pick'?'block':'none';
+}
+
+
+// ── ROOM SEARCH FILTER ──
+let allRoomsData=[];
+function filterRooms(query){
+  const q=query.toLowerCase().trim();
+  const list=document.getElementById('rooms-list');
+  if(!q){renderRoomList(allRoomsData);return;}
+  const filtered=allRoomsData.filter(r=>r.name.toLowerCase().includes(q)||(r.ticker&&r.ticker.toLowerCase().includes(q))||(r.description&&r.description.toLowerCase().includes(q)));
+  renderRoomList(filtered,true);
+}
+
+function renderRoomList(rooms,filtered=false){
+  const categories=rooms.filter(r=>r.type==='category');
+  const stocks=rooms.filter(r=>r.type==='stock'||r.type==='custom');
+  let html='';
+  if(!filtered){
+    categories.forEach(r=>{const icon=ROOM_ICONS[r.slug]||'💬';html+=roomItem(r,icon);});
+    if(stocks.length){html+=`<div class="room-divider"></div><div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;margin-bottom:4px;">Stock Rooms</div>`;stocks.forEach(r=>{html+=roomItem(r,'📈');});}
+  }else{
+    if(!rooms.length){html='<div style="font-size:13px;color:var(--text3);padding:12px 8px;">No rooms found</div>';}
+    else rooms.forEach(r=>{const icon=r.type==='category'?(ROOM_ICONS[r.slug]||'💬'):'📈';html+=roomItem(r,icon);});
+  }
+  document.getElementById('rooms-list').innerHTML=html;
+}
+
+// ── SENTIMENT VOTING ──
+let userVote=null;
+async function loadSentiment(roomSlug){
+  const{data}=await sb.from('sentiment_votes').select('vote').eq('room_slug',roomSlug);
+  if(!data) return;
+  const counts={buy:0,hold:0,sell:0};
+  data.forEach(v=>counts[v.vote]=(counts[v.vote]||0)+1);
+  const total=data.length||1;
+  renderSentiment(counts,total);
+  if(currentUser){
+    const{data:myVote}=await sb.from('sentiment_votes').select('vote').eq('room_slug',roomSlug).eq('user_id',currentUser.id).single();
+    userVote=myVote?.vote||null;
+    ['buy','hold','sell'].forEach(v=>{
+      const btn=document.getElementById('vote-'+v);
+      if(btn) btn.classList.toggle('active',v===userVote);
+    });
+  }
+}
+
+function renderSentiment(counts,total){
+  const buy=counts.buy||0,hold=counts.hold||0,sell=counts.sell||0;
+  const t=buy+hold+sell||1;
+  const bp=Math.round(buy/t*100),hp=Math.round(hold/t*100),sp=100-bp-hp;
+  document.getElementById('track-buy').style.flex=bp||1;
+  document.getElementById('track-hold').style.flex=hp||1;
+  document.getElementById('track-sell').style.flex=sp||1;
+  document.getElementById('label-buy').textContent=bp+'% Buy';
+  document.getElementById('label-hold').textContent=hp+'% Hold';
+  document.getElementById('label-sell').textContent=sp+'% Sell';
+  document.getElementById('sentiment-vote-count').textContent=(buy+hold+sell)+' vote'+((buy+hold+sell)===1?'':'s');
+}
+
+async function castVote(vote){
+  if(!currentUser){showAuth('login');return;}
+  if(userVote===vote){
+    await sb.from('sentiment_votes').delete().eq('room_slug',currentRoom).eq('user_id',currentUser.id);
+    userVote=null;
+  }else{
+    await sb.from('sentiment_votes').upsert({room_slug:currentRoom,user_id:currentUser.id,vote},{onConflict:'room_slug,user_id'});
+    userVote=vote;
+  }
+  ['buy','hold','sell'].forEach(v=>{const btn=document.getElementById('vote-'+v);if(btn)btn.classList.toggle('active',v===userVote);});
+  loadSentiment(currentRoom);
+}
+
+// ── DEEP LINK: open room for a ticker ──
+async function openTickerRoom(ticker){
+  const slug=ticker.toLowerCase();
+  const{data:existing}=await sb.from('rooms').select('*').eq('slug',slug).single();
+  if(existing){
+    window.location.href='/community.html?room='+slug;
+  }else{
+    const name=ticker.toUpperCase()+' Community';
+    await sb.from('rooms').insert({slug,name,description:'Community room for '+ticker.toUpperCase(),ticker:ticker.toUpperCase(),type:'stock',status:'active'});
+    window.location.href='/community.html?room='+slug;
+  }
+}
+
+// ── URL PARAM: auto-switch to room on load ──
+function checkUrlRoom(){
+  const params=new URLSearchParams(window.location.search);
+  const room=params.get('room');
+  if(room&&room!==currentRoom){
+    currentRoom=room;
+    loadMessages(room);
+    loadSentiment(room);
+  }
 }
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

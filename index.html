@@ -337,19 +337,28 @@ function doAnalyze(){
     <div class="tech-signal"><span class="sig-label">ATR (Daily Range)</span><span class="sig-value">$${s.atr}</span></div>
   </div>
 
-  <div class="ai-cta">
-    <div class="ai-cta-left">
-      <h3>🧠 Get Deep AI Analysis for ${s.ticker}</h3>
-      <p>Get a full institutional-grade breakdown — fundamental analysis, technical interpretation, valuation model, bull/bear thesis, and a specific entry/exit strategy with price targets and stop loss.</p>
-    </div>
-    <div class="ai-cta-right">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    <div class="ai-cta" style="flex-direction:column;text-align:center;padding:20px 16px;">
+      <div style="font-size:22px;margin-bottom:8px;">🧠</div>
+      <h3 style="font-size:16px;margin-bottom:6px;">Deep AI Analysis</h3>
+      <p style="font-size:13px;margin-bottom:14px;">Institutional-grade fundamental, technical &amp; valuation breakdown with entry/exit strategy.</p>
       <button class="btn-white" onclick="openAIAnalysis('${s.ticker}')">Analyze with Claude AI →</button>
+    </div>
+    <div style="background:linear-gradient(135deg,#0D9B6B 0%,#065F46 100%);border-radius:var(--radius);padding:20px 16px;color:white;text-align:center;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:22px;margin-bottom:8px;">💬</div>
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;">Community Chat</h3>
+      <p style="font-size:13px;opacity:.85;margin-bottom:14px;">See what the PulseStock community thinks. Share picks and discuss ${s.ticker}.</p>
+      <button style="background:white;color:var(--green);padding:10px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;border:none;cursor:pointer;" onclick="openCommunityRoom('${s.ticker}')">Join ${s.ticker} Room →</button>
     </div>
   </div>
   </div>`;
 
   drawChart(s);
   window.scrollTo({top:200,behavior:'smooth'});
+}
+
+function openCommunityRoom(ticker){
+  window.open('/community.html?room='+ticker.toLowerCase(),'_blank');
 }
 
 function openAIAnalysis(ticker){
