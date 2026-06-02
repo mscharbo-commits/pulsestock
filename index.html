@@ -153,9 +153,36 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
   .header-badge{display:none;}
   .tv-chart-wrap{height:300px;}
 }
+
+/* MARKET TICKER BAR */
+.ticker-bar{background:#0D1117;color:#fff;padding:0;overflow:hidden;height:34px;display:flex;align-items:center;border-bottom:1px solid #1E2530;}
+.ticker-scroll{display:flex;gap:0;animation:scroll 60s linear infinite;white-space:nowrap;align-items:center;}
+.ticker-scroll:hover{animation-play-state:paused;}
+.ticker-item{display:flex;align-items:center;gap:8px;padding:0 20px;height:34px;border-right:1px solid #1E2530;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.ticker-item:hover{background:#1E2530;}
+.ticker-sym{font-size:12px;font-weight:600;font-family:"DM Mono",monospace;color:#E5E9F0;}
+.ticker-price{font-size:12px;font-family:"DM Mono",monospace;color:#E5E9F0;}
+.ticker-chg{font-size:11px;font-family:"DM Mono",monospace;font-weight:500;}
+.ticker-up{color:#22D3A5;}.ticker-down{color:#F87171;}
+.ticker-label{font-size:10px;padding:1px 5px;border-radius:3px;font-weight:500;margin-right:2px;}
+.ticker-idx{background:#1E2530;color:#8A95A3;}
+.ticker-loading{font-size:12px;color:#8A95A3;padding:0 20px;}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 </style>
 </head>
 <body>
+<!-- MARKET TICKER BAR -->
+<div class="ticker-bar" id="ticker-bar">
+  <div style="background:#1A6BF5;padding:0 14px;height:34px;display:flex;align-items:center;flex-shrink:0;border-right:1px solid #0F4FC4;">
+    <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;">MARKETS</span>
+  </div>
+  <div style="overflow:hidden;flex:1;display:flex;align-items:center;">
+    <div class="ticker-scroll" id="ticker-scroll">
+      <span class="ticker-loading">Loading market data…</span>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="logo">
@@ -587,6 +614,68 @@ function addHolding(){
   if(ex)ex.shares+=shares;else portfolio.push({ticker:t,shares,avg});
   renderPortfolio();
 }
+
+// ── MARKET TICKER BAR ──
+const TICKER_SYMBOLS = [
+  {sym:'SPY',   label:'S&P 500', idx:true},
+  {sym:'QQQ',   label:'NASDAQ',  idx:true},
+  {sym:'DIA',   label:'DOW',     idx:true},
+  {sym:'IWM',   label:'R2000',   idx:true},
+  {sym:'VIX',   label:'VIX',     idx:true},
+  {sym:'GLD',   label:'Gold',    idx:true},
+  {sym:'USO',   label:'Oil',     idx:true},
+  {sym:'TLT',   label:'10Y',     idx:true},
+  {sym:'UUP',   label:'USD',     idx:true},
+  {sym:'BTC-USD',label:'BTC',    idx:true},
+  {sym:'ETH-USD',label:'ETH',    idx:true},
+  {sym:'AAPL',  label:'',        idx:false},
+  {sym:'NVDA',  label:'',        idx:false},
+  {sym:'MSFT',  label:'',        idx:false},
+  {sym:'TSLA',  label:'',        idx:false},
+  {sym:'AMZN',  label:'',        idx:false},
+  {sym:'META',  label:'',        idx:false},
+  {sym:'GOOGL', label:'',        idx:false},
+  {sym:'JPM',   label:'',        idx:false},
+];
+
+async function loadTickerBar(){
+  const results = await Promise.all(TICKER_SYMBOLS.map(async t => {
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t.sym}&token=${FINNHUB_KEY}`);
+      const d = await r.json();
+      if (!d || !d.c) return null;
+      return {...t, price: d.c, change: d.d, pct: d.dp};
+    } catch(e){ return null; }
+  }));
+
+  const valid = results.filter(Boolean);
+  if (!valid.length) return;
+
+  // Build items HTML (duplicate for seamless loop)
+  const makeItems = () => valid.map(t => {
+    const up = t.pct >= 0;
+    const sign = up ? '+' : '';
+    const label = t.label ? `<span class="ticker-label ticker-idx">${t.label}</span>` : '';
+    return `<div class="ticker-item" onclick="qs('${t.sym.replace('-USD','')}');document.querySelectorAll('.nav-tab')[0].click();">
+      ${label}<span class="ticker-sym">${t.sym.replace('-USD','')}</span>
+      <span class="ticker-price">$${t.price.toFixed(t.price > 100 ? 2 : t.price > 10 ? 2 : 4)}</span>
+      <span class="ticker-chg ${up ? 'ticker-up' : 'ticker-down'}">${sign}${t.pct.toFixed(2)}%</span>
+    </div>`;
+  }).join('');
+
+  const scroll = document.getElementById('ticker-scroll');
+  if (scroll) {
+    const html = makeItems() + makeItems(); // duplicate for seamless loop
+    scroll.innerHTML = html;
+    // Adjust animation speed based on count
+    scroll.style.animationDuration = (valid.length * 4) + 's';
+  }
+}
+
+loadTickerBar();
+// Refresh every 60 seconds
+setInterval(loadTickerBar, 60000);
+
 </script>
 </body>
 </html>
