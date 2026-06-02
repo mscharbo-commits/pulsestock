@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#F7F8FA;--surface:#FFFFFF;--surface2:#F2F4F7;--surface3:#E9ECF2;--border:#E2E6ED;--border2:#D0D6E0;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--accent2:#0F4FC4;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -247,6 +248,45 @@ const DB={
   JPM:{ticker:"JPM",name:"JPMorgan Chase & Co.",price:196.45,change:0.55,pct:0.28,cap:"$562B",pe:"11.2",fwdPe:"12.8",peg:"1.4",ps:"3.4",pb:"1.9",evEbitda:"—",roe:"17%",roa:"1.3%",gm:"—",om:"35.4%",nm:"28.1%",rev:"$165B",rg:"21.5%",eg:"9.4%",fcf:"$48B",cash:"$312B",debt:"$400B",deq:"1.28",beta:"1.12",div:"2.35%",bb:"$12B/yr",h52:"211.40",l52:"135.19",vol:"8.9M",avol:"9.7M",atp:"$225",abuy:16,ahold:10,asell:3,rsi:"55",macd:"1.4",msig:"0.9",ma50:"194.22",ma200:"178.44",atr:"3.1",s1:"190",s2:"180",r1:"210",r2:"220",sector:"Finance",capR:"mega",peR:"low",divR:"med",score:79},
 };
 
+const SUPABASE_URL='https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY='sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const sbClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+async function loadQuoteSentiment(ticker){
+  const slug=ticker.toLowerCase();
+  // Try ticker-specific room first, fallback to general
+  const{data}=await sbClient.from('sentiment_votes').select('vote').eq('room_slug',slug);
+  const votes=data||[];
+  const buy=votes.filter(v=>v.vote==='buy').length;
+  const hold=votes.filter(v=>v.vote==='hold').length;
+  const sell=votes.filter(v=>v.vote==='sell').length;
+  const total=buy+hold+sell;
+  const voteEl=document.getElementById('quote-vote-count');
+  if(voteEl) voteEl.textContent=total+(total===1?' vote':' votes')+' in community';
+  if(total===0){
+    ['buy','hold','sell'].forEach(v=>{
+      const el=document.getElementById('quote-'+v+'-pct');
+      if(el) el.textContent='—';
+      const tr=document.getElementById('quote-track-'+v);
+      if(tr){tr.style.flex=1;tr.style.background='var(--surface3)';}
+    });
+    return;
+  }
+  const bp=Math.round(buy/total*100),hp=Math.round(hold/total*100),sp=100-bp-hp;
+  const buyEl=document.getElementById('quote-buy-pct');
+  const holdEl=document.getElementById('quote-hold-pct');
+  const sellEl=document.getElementById('quote-sell-pct');
+  if(buyEl) buyEl.textContent=bp+'%';
+  if(holdEl) holdEl.textContent=hp+'%';
+  if(sellEl) sellEl.textContent=sp+'%';
+  const tb=document.getElementById('quote-track-buy');
+  const th=document.getElementById('quote-track-hold');
+  const ts=document.getElementById('quote-track-sell');
+  if(tb){tb.style.flex=bp||0.5;tb.style.background='var(--green)';}
+  if(th){th.style.flex=hp||0.5;th.style.background='var(--amber)';}
+  if(ts){ts.style.flex=sp||0.5;ts.style.background='var(--red)';}
+}
+
 let portfolio=[{ticker:"AAPL",shares:10,avg:165},{ticker:"NVDA",shares:5,avg:480},{ticker:"MSFT",shares:8,avg:310},{ticker:"AMZN",shares:12,avg:135}];
 let chartInst=null;
 
@@ -344,16 +384,37 @@ function doAnalyze(){
       <p style="font-size:13px;margin-bottom:14px;">Institutional-grade fundamental, technical &amp; valuation breakdown with entry/exit strategy.</p>
       <button class="btn-white" onclick="openAIAnalysis('${s.ticker}')">Analyze with Claude AI →</button>
     </div>
-    <div style="background:linear-gradient(135deg,#0D9B6B 0%,#065F46 100%);border-radius:var(--radius);padding:20px 16px;color:white;text-align:center;display:flex;flex-direction:column;align-items:center;">
-      <div style="font-size:22px;margin-bottom:8px;">💬</div>
-      <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;">Community Chat</h3>
-      <p style="font-size:13px;opacity:.85;margin-bottom:14px;">See what the PulseStock community thinks. Share picks and discuss ${s.ticker}.</p>
-      <button style="background:white;color:var(--green);padding:10px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;border:none;cursor:pointer;" onclick="openCommunityRoom('${s.ticker}')">Join ${s.ticker} Room →</button>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;display:flex;flex-direction:column;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+        <span>💬 Community Sentiment</span>
+        <span style="font-size:11px;color:var(--text3);" id="quote-vote-count">Loading...</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:var(--green-bg);">
+          <div style="font-size:18px;font-weight:700;color:var(--green);" id="quote-buy-pct">—</div>
+          <div style="font-size:11px;color:var(--green);font-weight:500;">Buy</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:var(--amber-bg);">
+          <div style="font-size:18px;font-weight:700;color:var(--amber);" id="quote-hold-pct">—</div>
+          <div style="font-size:11px;color:var(--amber);font-weight:500;">Hold</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:var(--red-bg);">
+          <div style="font-size:18px;font-weight:700;color:var(--red);" id="quote-sell-pct">—</div>
+          <div style="font-size:11px;color:var(--red);font-weight:500;">Sell</div>
+        </div>
+      </div>
+      <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;gap:2px;margin-bottom:12px;">
+        <div id="quote-track-buy" style="flex:1;background:var(--surface3);border-radius:3px 0 0 3px;transition:flex .4s;"></div>
+        <div id="quote-track-hold" style="flex:1;background:var(--surface3);transition:flex .4s;"></div>
+        <div id="quote-track-sell" style="flex:1;background:var(--surface3);border-radius:0 3px 3px 0;transition:flex .4s;"></div>
+      </div>
+      <button onclick="openCommunityRoom('${s.ticker}')" style="background:var(--accent);color:#fff;padding:10px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:none;cursor:pointer;margin-top:auto;">Join ${s.ticker} Community →</button>
     </div>
   </div>
   </div>`;
 
   drawChart(s);
+  loadQuoteSentiment(s.ticker);
   window.scrollTo({top:200,behavior:'smooth'});
 }
 
