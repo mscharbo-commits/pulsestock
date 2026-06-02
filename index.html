@@ -87,7 +87,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ind-tab{padding:8px 16px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:none;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s;}
 .ind-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
 .ind-tab:hover:not(.active){color:var(--text);background:var(--surface);}
-.indicator-chart-wrap{position:relative;height:180px;padding:12px 16px 8px;}
+.indicator-chart-wrap{position:relative;height:200px;padding:12px 16px 8px;display:block;}
 .indicator-chart-wrap canvas{width:100%!important;}
 .ind-legend{display:flex;gap:14px;padding:6px 16px 10px;flex-wrap:wrap;}
 .ind-legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);}
@@ -591,7 +591,7 @@ async function doAnalyze(){
       <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
     </div>
     <div class="indicator-chart-wrap">
-      <canvas id="ind-chart" height="160"></canvas>
+      <canvas id="ind-chart" style="width:100%;height:100%;display:block;"></canvas>
     </div>
     <div class="ind-legend" id="ind-legend"></div>
   </div>
@@ -1137,9 +1137,12 @@ function renderIndicator() {
   var n = prices.length;
   var labels = prices.map(function(p,i){ return i; });
 
-  if (indChart) { indChart.destroy(); indChart = null; }
+  if (indChart) { try { indChart.destroy(); } catch(e){} indChart = null; }
   var ctx = document.getElementById('ind-chart');
   if (!ctx) return;
+  // Make sure canvas has proper dimensions
+  var wrap = ctx.parentElement;
+  if (wrap) { ctx.style.width = '100%'; ctx.style.height = (wrap.clientHeight - 20) + 'px'; }
   var legend = document.getElementById('ind-legend');
 
   var datasets = [];
@@ -1289,7 +1292,8 @@ function initIndicatorPanel(ticker, price, pct) {
   indPriceData = generatePriceHistory(price, pct, 90);
   indMode = 'rsi';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  renderIndicator();
+  // Small delay to ensure canvas is in DOM
+  setTimeout(function(){ renderIndicator(); }, 150);
 }
 
 // ── MARKET TICKER BAR ──
