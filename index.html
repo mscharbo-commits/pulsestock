@@ -104,6 +104,40 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .btn-community{background:var(--accent);color:#fff;padding:10px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:none;cursor:pointer;margin-top:auto;}
 .btn-community:hover{background:var(--accent2);}
 
+/* AI ANALYSIS */
+.ai-analysis-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;box-shadow:var(--shadow);}
+.ai-analysis-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.ai-analysis-header h3{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.ai-streaming{font-size:14px;color:var(--text2);line-height:1.8;}
+.ai-section{margin-bottom:18px;}
+.ai-section-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:6px 12px;border-radius:6px;display:flex;align-items:center;gap:6px;}
+.ai-section-body{font-size:13.5px;color:var(--text2);line-height:1.75;padding:0 4px;}
+.ai-section-fundamental .ai-section-title{background:#EBF1FE;color:#1A6BF5;}
+.ai-section-technical .ai-section-title{background:var(--green-bg);color:var(--green);}
+.ai-section-valuation .ai-section-title{background:var(--amber-bg);color:var(--amber);}
+.ai-section-bull .ai-section-title{background:var(--green-bg);color:var(--green);}
+.ai-section-bear .ai-section-title{background:var(--red-bg);color:var(--red);}
+.ai-section-strategy .ai-section-title{background:#F5F3FF;color:#7C3AED;}
+.verdict-banner{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-radius:10px;margin-bottom:18px;}
+.verdict-buy{background:var(--green-bg);border:1.5px solid #9EE0C8;}
+.verdict-hold{background:var(--amber-bg);border:1.5px solid #FBBF24;}
+.verdict-sell{background:var(--red-bg);border:1.5px solid #F9BFBA;}
+.verdict-word{font-size:28px;font-weight:700;letter-spacing:-1px;}
+.verdict-buy .verdict-word{color:var(--green);}
+.verdict-hold .verdict-word{color:var(--amber);}
+.verdict-sell .verdict-word{color:var(--red);}
+.verdict-target{font-size:24px;font-weight:600;font-family:"DM Mono",monospace;text-align:right;}
+.verdict-conf{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-block;margin-top:4px;}
+.verdict-buy .verdict-conf{background:#9EE0C8;color:#04342C;}
+.verdict-hold .verdict-conf{background:#FBBF24;color:#412402;}
+.verdict-sell .verdict-conf{background:#F9BFBA;color:#501313;}
+.strategy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.strategy-item{background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border);}
+.strategy-label{font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.strategy-value{font-size:13px;font-weight:500;color:var(--text);line-height:1.5;}
+.ai-cursor{display:inline-block;width:2px;height:14px;background:var(--accent);animation:blink .7s infinite;vertical-align:middle;margin-left:2px;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
 /* Screener */
 .screener-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);}
 .fg label{display:block;font-size:11.5px;font-weight:600;color:var(--text3);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase;}
@@ -464,12 +498,13 @@ async function doAnalyze(){
   </div>`:''}
 
   <div class="cta-grid">
-    <div class="ai-cta">
+    <div class="ai-cta" id="ai-cta-card">
       <div style="font-size:24px;margin-bottom:8px;">🧠</div>
       <h3>Deep AI Analysis</h3>
-      <p>Institutional-grade breakdown with entry/exit strategy, price targets, and stop loss.</p>
-      <button class="btn-white" onclick="openAIAnalysis('${ticker}','${name}')">Analyze with Claude AI →</button>
+      <p>Institutional-grade fundamental, technical &amp; valuation breakdown with entry/exit strategy — powered by Claude AI.</p>
+      <button class="btn-white" id="ai-analyze-btn" onclick="runAIAnalysis('${ticker}','${name}','${sector}')">Get Deep Analysis →</button>
     </div>
+    <div id="ai-analysis-output" style="display:none;"></div>
     <div class="community-cta">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
         <span>💬 Community Sentiment</span>
@@ -535,22 +570,164 @@ function openCommunityRoom(ticker){
   window.open('/community.html?room='+ticker.toLowerCase(),'_blank');
 }
 
-function openAIAnalysis(ticker,name){
-  const f=FUNDAMENTALS[ticker]||{};
-  const msg=`Please give me a deep institutional-grade stock analysis for ${ticker} (${name}).
+async function runAIAnalysis(ticker, name, sector){
+  const f = FUNDAMENTALS[ticker] || {};
+  const btn = document.getElementById('ai-analyze-btn');
+  const ctaCard = document.getElementById('ai-cta-card');
+  const output = document.getElementById('ai-analysis-output');
 
-Key data:
-- P/E: ${f.pe||'N/A'}x | Fwd P/E: ${f.fwdPe||'N/A'}x | PEG: ${f.peg||'N/A'}
-- Revenue: ${f.rev||'N/A'} (${f.rg||'N/A'} growth) | EPS growth: ${f.eg||'N/A'} | FCF: ${f.fcf||'N/A'}
-- Gross margin: ${f.gm||'N/A'} | Op margin: ${f.om||'N/A'} | Net margin: ${f.nm||'N/A'}
-- Cash: ${f.cash||'N/A'} | Debt: ${f.debt||'N/A'} | Buybacks: ${f.bb||'N/A'}
-- RSI: ${f.rsi||'N/A'} | MACD: ${f.macd||'N/A'}/${f.msig||'N/A'} | 50MA: $${f.ma50||'N/A'} | 200MA: $${f.ma200||'N/A'}
-- Support: $${f.s1||'N/A'}/$${f.s2||'N/A'} | Resistance: $${f.r1||'N/A'}/$${f.r2||'N/A'}
-- Analyst target: ${f.atp||'N/A'} | ${f.abuy||0} buys / ${f.ahold||0} holds / ${f.asell||0} sells
-- Beta: ${f.beta||'N/A'} | Sector: ${f.sector||'N/A'}
+  if(btn){ btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
 
-Please cover: 1) Fundamental Analysis 2) Technical Analysis 3) Valuation Assessment 4) Bull Thesis 5) Bear Thesis & Risks 6) Entry/Exit Strategy with specific price levels, stop loss, targets, and position sizing.`;
-  window.open('https://claude.ai/new?q='+encodeURIComponent(msg),'_blank');
+  const prompt = `You are an institutional stock analyst. Provide a deep, specific analysis of ${ticker} (${name}, ${sector} sector).
+
+Use EXACTLY these section headers on their own line:
+VERDICT: [BUY or HOLD or SELL] | Target: $[number] | Confidence: [High/Medium/Low]
+FUNDAMENTAL ANALYSIS
+TECHNICAL ANALYSIS
+VALUATION ASSESSMENT
+BULL THESIS
+BEAR THESIS & RISKS
+ENTRY/EXIT STRATEGY
+
+For ENTRY/EXIT STRATEGY use these exact labels each on their own line:
+Entry Zone: $X-$X — reason
+Stop Loss: $X — reason (X% downside)
+Target 1: $X — reason (+X%)
+Target 2: $X — reason (+X%)
+Position Size: X-X% — reason
+Time Horizon: X months — reason
+
+Key data: Price $${(quoteCache[ticker]||{}).price||'N/A'}, P/E ${f.pe||'N/A'}x, Fwd P/E ${f.fwdPe||'N/A'}x, PEG ${f.peg||'N/A'}, Rev ${f.rev||'N/A'} (${f.rg||'N/A'}), EPS growth ${f.eg||'N/A'}, FCF ${f.fcf||'N/A'}, Gross margin ${f.gm||'N/A'}, Op margin ${f.om||'N/A'}, Cash ${f.cash||'N/A'}, Debt ${f.debt||'N/A'}, RSI ${f.rsi||'N/A'}, MACD ${f.macd||'N/A'}/${f.msig||'N/A'}, 50MA $${f.ma50||'N/A'}, 200MA $${f.ma200||'N/A'}, Support $${f.s1||'N/A'}/$${f.s2||'N/A'}, Resistance $${f.r1||'N/A'}/$${f.r2||'N/A'}, Beta ${f.beta||'N/A'}, Buybacks ${f.bb||'N/A'}.
+
+Be specific with numbers. 4-5 sentences per section. No generic statements.`;
+
+  output.style.display = 'block';
+  output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+    });
+
+    if(!resp.ok){
+      const err = await resp.text();
+      throw new Error(err || 'API error ' + resp.status);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while(true){
+      const { done, value } = await reader.read();
+      if(done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
+        if(data === '[DONE]') continue;
+        try{
+          const parsed = JSON.parse(data);
+          if(parsed.type === 'content_block_delta' && parsed.delta?.text){
+            fullText += parsed.delta.text;
+            document.getElementById('ai-stream-body').innerHTML = formatAIResponse(fullText) + '<span class="ai-cursor"></span>';
+          }
+        }catch(e){}
+      }
+    }
+
+    // Final render without cursor
+    document.getElementById('ai-stream-body').innerHTML = formatAIResponse(fullText);
+    if(btn){ btn.textContent = '↑ Refresh Analysis'; btn.disabled = false; }
+    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    output.innerHTML = '<div class="card" style="border-color:var(--red);background:var(--red-bg);"><p style="color:var(--red);font-weight:500;">⚠ Analysis failed: ' + err.message + '</p></div>';
+    if(btn){ btn.textContent = 'Try Again'; btn.disabled = false; }
+  }
+}
+
+function formatAIResponse(raw){
+  const sectionMap = {
+    'FUNDAMENTAL ANALYSIS':   { cls: 'fundamental', icon: '📊', title: 'Fundamental Analysis' },
+    'TECHNICAL ANALYSIS':     { cls: 'technical',   icon: '📈', title: 'Technical Analysis' },
+    'VALUATION ASSESSMENT':   { cls: 'valuation',   icon: '⚖️',  title: 'Valuation Assessment' },
+    'BULL THESIS':            { cls: 'bull',        icon: '🐂', title: 'Bull Thesis' },
+    'BEAR THESIS & RISKS':    { cls: 'bear',        icon: '🐻', title: 'Bear Thesis & Risks' },
+    'ENTRY/EXIT STRATEGY':    { cls: 'strategy',    icon: '🎯', title: 'Entry / Exit Strategy' },
+  };
+
+  let html = '';
+  const lines = raw.split('\n');
+  let currentSection = null;
+  let sectionLines = [];
+
+  function flushSection(){
+    if(!currentSection || !sectionLines.length) return;
+    const s = sectionMap[currentSection];
+    let body = sectionLines.join('\n').trim();
+
+    if(currentSection === 'ENTRY/EXIT STRATEGY'){
+      const strategyItems = [
+        { key: 'Entry Zone', icon: '🟢' },
+        { key: 'Stop Loss',  icon: '🔴' },
+        { key: 'Target 1',   icon: '📍' },
+        { key: 'Target 2',   icon: '🎯' },
+        { key: 'Position Size', icon: '📐' },
+        { key: 'Time Horizon',  icon: '⏱' },
+      ];
+      let stratHtml = '<div class="strategy-grid">';
+      strategyItems.forEach(function(item){
+        const regex = new RegExp(item.key + ':([^\n]+)', 'i');
+        const match = body.match(regex);
+        if(match){
+          stratHtml += '<div class="strategy-item"><div class="strategy-label">' + item.icon + ' ' + item.key + '</div><div class="strategy-value">' + match[1].trim() + '</div></div>';
+        }
+      });
+      stratHtml += '</div>';
+      html += '<div class="ai-section ai-section-' + s.cls + '"><div class="ai-section-title">' + s.icon + ' ' + s.title + '</div>' + stratHtml + '</div>';
+    } else {
+      body = body.replace(/^[•\-\*] /gm, '').replace(/\n/g, '<br/>');
+      html += '<div class="ai-section ai-section-' + s.cls + '"><div class="ai-section-title">' + s.icon + ' ' + s.title + '</div><div class="ai-section-body">' + body + '</div></div>';
+    }
+    sectionLines = [];
+  }
+
+  for(const line of lines){
+    // Verdict line
+    if(line.startsWith('VERDICT:')){
+      const verdictMatch = line.match(/VERDICT:\s*(BUY|HOLD|SELL)/i);
+      const targetMatch = line.match(/Target:\s*\$?([\d,.]+)/i);
+      const confMatch = line.match(/Confidence:\s*(\w+)/i);
+      const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : 'HOLD';
+      const target = targetMatch ? targetMatch[1] : '—';
+      const conf = confMatch ? confMatch[1] : '';
+      const vc = verdict === 'BUY' ? 'buy' : verdict === 'SELL' ? 'sell' : 'hold';
+      html += '<div class="verdict-banner verdict-' + vc + '">'
+        + '<div><div style="font-size:11px;font-weight:600;opacity:.6;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Recommendation</div>'
+        + '<div class="verdict-word">' + verdict + '</div></div>'
+        + '<div style="text-align:right;"><div style="font-size:11px;font-weight:600;opacity:.6;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">12-Month Target</div>'
+        + '<div class="verdict-target">$' + target + '</div>'
+        + (conf ? '<div class="verdict-conf">' + conf + ' Confidence</div>' : '')
+        + '</div></div>';
+      continue;
+    }
+
+    // Section headers
+    const sectionKey = Object.keys(sectionMap).find(k => line.trim().toUpperCase() === k);
+    if(sectionKey){
+      flushSection();
+      currentSection = sectionKey;
+      continue;
+    }
+
+    if(currentSection) sectionLines.push(line);
+  }
+  flushSection();
+  return html || '<span style="color:var(--text3);">' + raw + '</span>';
 }
 
 // ── SCREENER ──
