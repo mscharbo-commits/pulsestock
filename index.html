@@ -591,7 +591,7 @@ async function doAnalyze(){
       <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
     </div>
     <div class="indicator-chart-wrap">
-      <canvas id="ind-chart" style="width:100%;height:100%;display:block;"></canvas>
+      <canvas id="ind-chart-${ticker}" style="width:100%;height:160px;display:block;"></canvas>
     </div>
     <div class="ind-legend" id="ind-legend"></div>
   </div>
@@ -1138,11 +1138,10 @@ function renderIndicator() {
   var labels = prices.map(function(p,i){ return i; });
 
   if (indChart) { try { indChart.destroy(); } catch(e){} indChart = null; }
-  var ctx = document.getElementById('ind-chart');
-  if (!ctx) return;
-  // Make sure canvas has proper dimensions
-  var wrap = ctx.parentElement;
-  if (wrap) { ctx.style.width = '100%'; ctx.style.height = (wrap.clientHeight - 20) + 'px'; }
+  var ctx = document.getElementById('ind-chart-'+indTicker);
+  if (!ctx) { console.warn('ind-chart not found for', indTicker); return; }
+  ctx.style.width = '100%';
+  ctx.style.height = '160px';
   var legend = document.getElementById('ind-legend');
 
   var datasets = [];
@@ -1292,8 +1291,7 @@ function initIndicatorPanel(ticker, price, pct) {
   indPriceData = generatePriceHistory(price, pct, 90);
   indMode = 'rsi';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  // Small delay to ensure canvas is in DOM
-  setTimeout(function(){ renderIndicator(); }, 150);
+  setTimeout(function(){ renderIndicator(); }, 300);
 }
 
 // ── MARKET TICKER BAR ──
