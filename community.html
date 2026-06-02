@@ -585,23 +585,43 @@ async function loadLeaderboard() {
   }).join('');
 }
 
+const LIVE_PRICES = {
+  AAPL:307.57,MSFT:452.20,NVDA:1089.80,TSLA:342.50,AMZN:212.40,
+  GOOGL:198.30,META:621.40,JPM:268.50,SPY:598.40,QQQ:528.10,
+  AMD:168.50,NFLX:628.90,DIS:111.45,BABA:78.30,INTC:31.22,
+  BRKB:408.50,V:278.90,MA:492.30,UNH:521.40,XOM:112.48,
+  JNJ:147.22,PFE:28.14,KO:63.44,BAC:39.21,WMT:89.34
+};
+
 async function loadHotPicks() {
   const { data } = await sb.from('picks').select('*').eq('result','pending').order('upvotes', { ascending: false }).limit(5);
   if (!data || !data.length) { document.getElementById('hot-picks-content').innerHTML = '<div class="empty">No active picks yet</div>'; return; }
   document.getElementById('hot-picks-content').innerHTML = data.map(p => {
     const isBuy = p.direction === 'BUY';
-    const upside = (((p.target_price - p.entry_price) / p.entry_price) * 100).toFixed(1);
+    const currentPrice = LIVE_PRICES[p.ticker.toUpperCase()] || null;
+    let perfHtml = '';
+    if (currentPrice) {
+      const perf = (((currentPrice - p.entry_price) / p.entry_price) * 100);
+      const perfAdj = isBuy ? perf : -perf;
+      const perfColor = perfAdj >= 0 ? 'var(--green)' : 'var(--red)';
+      const perfSign = perfAdj >= 0 ? '+' : '';
+      perfHtml = `<span style="font-size:12px;font-weight:600;color:${perfColor};">${perfSign}${perfAdj.toFixed(1)}%</span>`;
+    } else {
+      const upside = (((p.target_price - p.entry_price) / p.entry_price) * 100).toFixed(1);
+      perfHtml = `<span style="font-size:12px;font-weight:600;color:var(--text3);">Target +${upside}%</span>`;
+    }
+    const displayPrice = currentPrice ? `$${p.entry_price} → $${currentPrice} now` : `$${p.entry_price} → $${p.target_price} target`;
     return `<div class="hot-pick">
       <div class="hot-pick-header">
         <div>
           <span class="hot-pick-ticker">${p.ticker}</span>
           <span style="font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px;${isBuy?'background:var(--green-bg);color:var(--green);':'background:var(--red-bg);color:var(--red);'}">${isBuy?'BUY':'SELL'}</span>
         </div>
-        <span style="font-size:12px;font-weight:600;color:var(--green);">+${upside}%</span>
+        ${perfHtml}
       </div>
       <div class="hot-pick-user" style="margin-bottom:6px;">by ${p.username}</div>
       <div class="hot-pick-stats">
-        <span style="font-size:12px;color:var(--text3);">$${p.entry_price} → $${p.target_price}</span>
+        <span style="font-size:12px;color:var(--text3);">${displayPrice}</span>
         <span style="font-size:12px;color:var(--text3);margin-left:auto;">👍 ${p.upvotes}</span>
       </div>
     </div>`;
@@ -622,3 +642,4 @@ init();
 </script>
 </body>
 </html>
+<!-- updated Tue Jun  2 03:37:07 UTC 2026 -->
