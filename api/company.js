@@ -12,22 +12,68 @@ export default async function handler(req) {
   const ticker = url.searchParams.get('ticker');
   if (!ticker) return new Response(JSON.stringify({}), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Origin': 'https://finance.yahoo.com',
+    'Referer': 'https://finance.yahoo.com/quote/' + ticker,
+    'Cache-Control': 'no-cache',
+  };
+
   try {
-    const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'application/json',
-      'Referer': 'https://finance.yahoo.com',
-    };
+    // Try v10 first, then v11 as fallback
+    const modules = 'assetProfile,summaryDetail,financialData,defaultKeyStatistics,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,recommendationTrend,upgradeDowngradeHistory';
+    
+    let result = null;
 
-    const modules = 'assetProfile,summaryDetail,financialData,defaultKeyStatistics,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,earningsHistory,recommendationTrend,upgradeDowngradeHistory';
-    const yahooUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}`;
+    // Try query1 first
+    const urls = [
+      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}&crumb=`,
+      `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}`,
+      `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}`,
+    ];
 
-    const res = await fetch(yahooUrl, { headers });
-    if (!res.ok) throw new Error('Yahoo returned ' + res.status);
+    for (const u of urls) {
+      try {
+        const r = await fetch(u, { headers });
+        if (r.ok) {
+          const data = await r.json();
+          result = data?.quoteSummary?.result?.[0];
+          if (result) break;
+        }
+      } catch(e) { continue; }
+    }
 
-    const data = await res.json();
-    const result = data?.quoteSummary?.result?.[0];
-    if (!result) throw new Error('No data');
+    if (!result) {
+      // Fallback: try Finnhub for basic profile
+      const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+      const fhRes = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`);
+      if (fhRes.ok) {
+        const fh = await fhRes.json();
+        if (fh.name) {
+          return new Response(JSON.stringify({
+            name: fh.name,
+            description: null,
+            sector: fh.finnhubIndustry,
+            industry: fh.finnhubIndustry,
+            website: fh.weburl,
+            phone: fh.phone,
+            employees: fh.employeeTotal,
+            address: fh.address || null,
+            exchange: fh.exchange,
+            marketCap: fh.marketCapitalization ? '$' + (fh.marketCapitalization/1000).toFixed(2) + 'T' : null,
+            currency: fh.currency,
+            logo: fh.logo,
+            ipo: fh.ipo,
+            _source: 'finnhub',
+          }), {
+            headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' }
+          });
+        }
+      }
+      throw new Error('No data available from any source');
+    }
 
     const profile = result.assetProfile || {};
     const summary = result.summaryDetail || {};
@@ -39,13 +85,9 @@ export default async function handler(req) {
     const recTrend = result.recommendationTrend?.trend?.[0] || {};
     const upgrades = result.upgradeDowngradeHistory?.history?.slice(0, 10) || [];
 
-    const fmt = (v) => {
-      if (!v?.raw && v?.raw !== 0) return null;
-      return v.fmt || v.raw;
-    };
+    const fmt = (v) => (!v?.raw && v?.raw !== 0) ? null : (v.fmt || v.raw);
 
-    const out = {
-      // Company Profile
+    return new Response(JSON.stringify({
       name: profile.longName || ticker,
       description: profile.longBusinessSummary || null,
       sector: profile.sector || null,
@@ -54,13 +96,9 @@ export default async function handler(req) {
       phone: profile.phone || null,
       address: [profile.address1, profile.city, profile.state, profile.zip, profile.country].filter(Boolean).join(', '),
       employees: profile.fullTimeEmployees || null,
-      founded: null,
       exchange: summary.exchange || null,
       currency: summary.currency || 'USD',
-
-      // Key Stats
       marketCap: fmt(summary.marketCap),
-      enterpriseValue: fmt(stats.enterpriseValue),
       beta: fmt(summary.beta),
       pe: fmt(summary.trailingPE),
       forwardPE: fmt(summary.forwardPE),
@@ -71,26 +109,19 @@ export default async function handler(req) {
       pb: fmt(stats.priceToBook),
       evEbitda: fmt(stats.enterpriseToEbitda),
       evRevenue: fmt(stats.enterpriseToRevenue),
-
-      // Dividends
       dividendYield: fmt(summary.dividendYield),
       dividendRate: fmt(summary.dividendRate),
       exDivDate: summary.exDividendDate?.fmt || null,
       payoutRatio: fmt(summary.payoutRatio),
-
-      // 52 Week
       week52High: fmt(summary.fiftyTwoWeekHigh),
       week52Low: fmt(summary.fiftyTwoWeekLow),
       fiftyDayAvg: fmt(summary.fiftyDayAverage),
       twoHundredDayAvg: fmt(summary.twoHundredDayAverage),
       avgVolume: fmt(summary.averageVolume),
-      avgVolume10Day: fmt(summary.averageVolume10days),
       sharesOutstanding: fmt(stats.sharesOutstanding),
       float: fmt(stats.floatShares),
       shortRatio: fmt(stats.shortRatio),
       shortPercent: fmt(stats.shortPercentOfFloat),
-
-      // Financials - Income Statement
       revenue: fmt(income.totalRevenue),
       grossProfit: fmt(income.grossProfit),
       operatingIncome: fmt(income.operatingIncome),
@@ -101,8 +132,6 @@ export default async function handler(req) {
       profitMargin: fmt(fin.profitMargins),
       revenueGrowth: fmt(fin.revenueGrowth),
       earningsGrowth: fmt(fin.earningsGrowth),
-
-      // Balance Sheet
       totalAssets: fmt(balance.totalAssets),
       totalDebt: fmt(balance.totalDebt || balance.longTermDebt),
       cash: fmt(balance.cash),
@@ -111,27 +140,19 @@ export default async function handler(req) {
       debtToEquity: fmt(fin.debtToEquity),
       currentRatio: fmt(fin.currentRatio),
       quickRatio: fmt(fin.quickRatio),
-
-      // Cash Flow
       operatingCashflow: fmt(cashflow.totalCashFromOperatingActivities),
-      capex: fmt(cashflow.capitalExpenditures),
       freeCashflow: fmt(fin.freeCashflow),
       roe: fmt(fin.returnOnEquity),
       roa: fmt(fin.returnOnAssets),
-
-      // Analyst
       targetHigh: fmt(fin.targetHighPrice),
       targetLow: fmt(fin.targetLowPrice),
       targetMean: fmt(fin.targetMeanPrice),
       recommendation: fin.recommendationKey || null,
-      analystCount: fin.numberOfAnalystOpinions?.raw || null,
       strongBuy: recTrend.strongBuy || 0,
       buy: recTrend.buy || 0,
       hold: recTrend.hold || 0,
       sell: recTrend.sell || 0,
       strongSell: recTrend.strongSell || 0,
-
-      // Recent upgrades/downgrades
       upgrades: upgrades.map(u => ({
         firm: u.firm,
         action: u.action,
@@ -139,9 +160,8 @@ export default async function handler(req) {
         toGrade: u.toGrade,
         date: u.epochGradeDate ? new Date(u.epochGradeDate * 1000).toLocaleDateString() : null,
       })),
-    };
-
-    return new Response(JSON.stringify(out), {
+      _source: 'yahoo',
+    }), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' }
     });
   } catch (err) {
