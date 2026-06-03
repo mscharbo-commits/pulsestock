@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Daily Market Briefing</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--purple:#7C3AED;--purple-bg:#F5F3FF;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
+input{font-family:'DM Sans',sans-serif;outline:none;}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.header-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
+.logo-name span{color:var(--accent);}
+.nav-links{display:flex;gap:4px;}
+.nav-link{padding:7px 14px;border-radius:6px;font-size:13.5px;font-weight:500;color:var(--text2);text-decoration:none;}
+.nav-link:hover,.nav-link.active{background:var(--accent-light);color:var(--accent);}
+
+.main{max-width:1200px;margin:0 auto;padding:28px 24px;}
+
+/* PAGE HERO */
+.briefing-hero{background:linear-gradient(135deg,#1A6BF5 0%,#7C3AED 100%);border-radius:var(--radius);padding:28px 32px;color:white;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.hero-left h1{font-size:26px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;}
+.hero-left p{font-size:14px;opacity:.8;}
+.hero-time{font-size:13px;opacity:.7;margin-top:6px;}
+.market-status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:6px 14px;background:rgba(255,255,255,.15);border-radius:20px;margin-top:8px;}
+.status-dot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite;}
+.dot-open{background:#22D3A5;}
+.dot-closed{background:#F87171;}
+.dot-pre{background:#FCD34D;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* SUBSCRIBE */
+.subscribe-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.subscribe-left h3{font-size:15px;font-weight:600;margin-bottom:4px;}
+.subscribe-left p{font-size:13px;color:var(--text2);}
+.subscribe-form{display:flex;gap:8px;flex-wrap:wrap;}
+.subscribe-form input{border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-size:14px;min-width:240px;}
+.subscribe-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);}
+.btn-subscribe{background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:14px;font-weight:500;}
+.btn-subscribe:hover{background:#0F4FC4;}
+
+/* TABS */
+.briefing-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.briefing-tab{padding:9px 20px;border-radius:8px;font-size:14px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);}
+.briefing-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.briefing-tab:hover:not(.active){background:var(--surface2);}
+
+/* GRID */
+.briefing-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.briefing-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.card-title{font-size:11.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+
+/* INDEX TILES */
+.index-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;}
+.index-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;box-shadow:var(--shadow);}
+.index-sym{font-size:11.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.index-price{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-.5px;}
+.index-chg{font-size:12.5px;font-weight:600;margin-top:4px;font-family:'DM Mono',monospace;}
+.up{color:var(--green);}.down{color:var(--red);}
+
+/* MOVERS */
+.mover-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.mover-row:last-child{border-bottom:none;}
+.mover-ticker{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;cursor:pointer;color:var(--accent);}
+.mover-ticker:hover{text-decoration:underline;}
+.mover-price{font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;}
+.mover-chg{font-size:13.5px;font-weight:600;font-family:'DM Mono',monospace;}
+
+/* SECTOR */
+.sector-row{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.sector-row:last-child{border-bottom:none;}
+.sector-name{font-size:13px;color:var(--text2);flex:1;}
+.sector-bar-wrap{width:100px;height:5px;background:var(--surface2);border-radius:3px;margin:0 10px;}
+.sector-bar{height:100%;border-radius:3px;transition:width .5s;}
+.sector-pct{font-size:12.5px;font-weight:600;width:52px;text-align:right;font-family:'DM Mono',monospace;}
+
+/* EARNINGS */
+.earnings-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.earnings-row:last-child{border-bottom:none;}
+.earnings-ticker{font-size:13.5px;font-weight:600;font-family:'DM Mono',monospace;}
+.earnings-meta{font-size:12px;color:var(--text3);}
+.timing-badge{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;}
+.bmo{background:var(--amber-bg);color:var(--amber);}
+.amc{background:var(--purple-bg);color:var(--purple);}
+
+/* ECON */
+.econ-row{padding:9px 0;border-bottom:1px solid var(--border);}
+.econ-row:last-child{border-bottom:none;}
+.econ-event{font-size:13.5px;font-weight:500;margin-bottom:3px;}
+.econ-meta{font-size:12px;color:var(--text3);}
+.impact-high{color:var(--red);font-weight:600;}
+.impact-med{color:var(--amber);font-weight:600;}
+
+/* NEWS */
+.news-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;text-decoration:none;}
+.news-row:last-child{border-bottom:none;}
+.news-row:hover .news-hl{color:var(--accent);}
+.news-hl{font-size:13.5px;font-weight:500;color:var(--text);line-height:1.5;margin-bottom:4px;}
+.news-src{font-size:11.5px;color:var(--text3);}
+
+/* AI BRIEF */
+.ai-brief{background:linear-gradient(135deg,var(--accent-light) 0%,var(--purple-bg) 100%);border:1px solid #C5D4FB;border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;}
+.ai-brief-title{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.ai-brief-body{font-size:14px;color:#111827;line-height:1.8;}
+
+.loading{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13.5px;padding:20px 0;}
+.dots{display:flex;gap:4px;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:dp 1.4s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+.empty{text-align:center;padding:30px;color:var(--text3);font-size:13.5px;}
+.success-msg{background:var(--green-bg);color:var(--green);padding:10px 14px;border-radius:8px;font-size:13px;}
+.error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;}
+
+@media(max-width:900px){.briefing-grid{grid-template-columns:1fr 1fr;}.index-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.briefing-grid{grid-template-columns:1fr;}.briefing-grid-2{grid-template-columns:1fr;}.index-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo"><div class="logo-icon">P</div><span class="logo-name">Pulse<span>Stock</span></span></a>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">📊 Analyze</a>
+      <a href="/community.html" class="nav-link">💬 Community</a>
+      <a href="/alerts.html" class="nav-link">🔔 Alerts</a>
+      <a href="/briefing.html" class="nav-link active">📰 Briefing</a>
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+  <!-- HERO -->
+  <div class="briefing-hero">
+    <div class="hero-left">
+      <h1 id="briefing-title">📈 Daily Market Briefing</h1>
+      <p>Pre-market analysis, movers, earnings & economic calendar</p>
+      <div class="hero-time" id="briefing-time"></div>
+      <div class="market-status" id="market-status"><div class="status-dot dot-pre"></div> Loading...</div>
+    </div>
+    <div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px;">Last updated</div>
+      <div id="last-updated" style="font-size:20px;font-weight:600;font-family:'DM Mono',monospace;">—</div>
+    </div>
+  </div>
+
+  <!-- SUBSCRIBE -->
+  <div class="subscribe-card">
+    <div class="subscribe-left">
+      <h3>📧 Get the Daily Briefing in Your Inbox</h3>
+      <p>Pre-market at 8:30 AM ET · Post-market wrap at 5:00 PM ET · Monday–Friday</p>
+    </div>
+    <div>
+      <div id="subscribe-msg" style="display:none;margin-bottom:10px;"></div>
+      <div class="subscribe-form">
+        <input type="email" id="sub-email" placeholder="your@email.com"/>
+        <button class="btn-subscribe" onclick="subscribe()">Subscribe Free →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="briefing-tabs">
+    <button class="briefing-tab active" onclick="switchBriefing('pre',this)">🌅 Pre-Market</button>
+    <button class="briefing-tab" onclick="switchBriefing('post',this)">🌆 Post-Market</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="briefing-content">
+    <div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading market data...</span></div>
+  </div>
+</main>
+
+<script>
+const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentType = 'pre';
+let briefingData = null;
+
+async function init() {
+  updateTimeDisplay();
+  setInterval(updateTimeDisplay, 60000);
+  await loadBriefing('pre');
+}
+
+function updateTimeDisplay() {
+  const now = new Date();
+  const etTime = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  const h = etTime.getHours(), m = etTime.getMinutes();
+  const timeStr = (h > 12 ? h-12 : h||12) + ':' + (m<10?'0'+m:m) + ' ' + (h>=12?'PM':'AM') + ' ET';
+  document.getElementById('briefing-time').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + ' · ' + timeStr;
+
+  const isWeekend = etTime.getDay() === 0 || etTime.getDay() === 6;
+  const totalMins = h * 60 + m;
+  const statusEl = document.getElementById('market-status');
+
+  if(isWeekend) {
+    statusEl.innerHTML = '<div class="status-dot dot-closed"></div> Market Closed (Weekend)';
+  } else if(totalMins >= 570 && totalMins < 960) { // 9:30-16:00
+    statusEl.innerHTML = '<div class="status-dot dot-open"></div> Market Open';
+  } else if(totalMins >= 240 && totalMins < 570) { // 4:00-9:30
+    statusEl.innerHTML = '<div class="status-dot dot-pre"></div> Pre-Market Trading';
+  } else if(totalMins >= 960 && totalMins < 1200) { // 16:00-20:00
+    statusEl.innerHTML = '<div class="status-dot dot-pre"></div> After-Hours Trading';
+  } else {
+    statusEl.innerHTML = '<div class="status-dot dot-closed"></div> Market Closed';
+  }
+}
+
+async function switchBriefing(type, btn) {
+  currentType = type;
+  document.querySelectorAll('.briefing-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('briefing-title').textContent = type === 'pre' ? '🌅 Pre-Market Briefing' : '🌆 Post-Market Wrap';
+  await loadBriefing(type);
+}
+
+async function loadBriefing(type) {
+  const el = document.getElementById('briefing-content');
+  el.innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading market data...</span></div>';
+
+  try {
+    const r = await fetch('/api/briefing?type=' + type);
+    briefingData = await r.json();
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    renderBriefing(briefingData, type);
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Failed to load market data. Please try again.</div>';
+  }
+}
+
+function fmt(val, digits) {
+  if(!val && val !== 0) return '—';
+  const n = parseFloat(val);
+  const d = digits !== undefined ? digits : 2;
+  return (n >= 0 ? '+' : '') + n.toFixed(d) + '%';
+}
+
+function renderBriefing(data, type) {
+  const isPre = type === 'pre';
+  const el = document.getElementById('briefing-content');
+
+  // Indices
+  const indicesHTML = (data.indices || []).map(i => {
+    const up = i.pct >= 0;
+    return '<div class="index-tile">'
+      + '<div class="index-sym">' + i.symbol + '</div>'
+      + '<div class="index-price ' + (up?'up':'down') + '">$' + (i.price||0).toFixed(2) + '</div>'
+      + '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>'
+      + '</div>';
+  }).join('');
+
+  // Gainers
+  const gainersHTML = (data.gainers || []).map(s =>
+    '<div class="mover-row">'
+    + '<div><div class="mover-ticker" onclick="goAnalyze(\'' + s.symbol + '\')">' + s.symbol + '</div>'
+    + '<div class="mover-price">$' + (s.price||0).toFixed(2) + '</div></div>'
+    + '<div class="mover-chg up">▲ ' + fmt(s.pct) + '</div>'
+    + '</div>'
+  ).join('') || '<div class="empty">No data</div>';
+
+  // Losers
+  const losersHTML = (data.losers || []).map(s =>
+    '<div class="mover-row">'
+    + '<div><div class="mover-ticker" onclick="goAnalyze(\'' + s.symbol + '\')">' + s.symbol + '</div>'
+    + '<div class="mover-price">$' + (s.price||0).toFixed(2) + '</div></div>'
+    + '<div class="mover-chg down">▼ ' + fmt(s.pct) + '</div>'
+    + '</div>'
+  ).join('') || '<div class="empty">No data</div>';
+
+  // Sectors
+  const maxAbsPct = Math.max(...(data.sectors||[]).map(s => Math.abs(s.pct||0)), 1);
+  const sectorsHTML = (data.sectors || []).map(s => {
+    const up = s.pct >= 0;
+    const barWidth = Math.abs(s.pct / maxAbsPct * 100).toFixed(0);
+    return '<div class="sector-row">'
+      + '<div class="sector-name">' + (s.name||s.symbol) + '</div>'
+      + '<div class="sector-bar-wrap"><div class="sector-bar" style="width:' + barWidth + '%;background:' + (up?'var(--green)':'var(--red)') + ';"></div></div>'
+      + '<div class="sector-pct ' + (up?'up':'down') + '">' + fmt(s.pct) + '</div>'
+      + '</div>';
+  }).join('') || '<div class="empty">No sector data</div>';
+
+  // Earnings
+  const earningsHTML = (data.earnings || []).length
+    ? data.earnings.slice(0,8).map(e =>
+        '<div class="earnings-row">'
+        + '<div><div class="earnings-ticker">' + e.symbol + '</div>'
+        + '<div class="earnings-meta">' + (e.epsEstimate ? 'Est EPS $' + e.epsEstimate : '') + (e.revenueEstimate ? ' · Rev $' + (e.revenueEstimate/1e9).toFixed(2) + 'B' : '') + '</div></div>'
+        + '<span class="timing-badge ' + (e.hour==='bmo'?'bmo':'amc') + '">' + (e.hour==='bmo'?'Pre-Mkt':'After') + '</span>'
+        + '</div>'
+      ).join('')
+    : '<div class="empty">No earnings today</div>';
+
+  // Economic calendar
+  const econHTML = (data.economic || []).length
+    ? data.economic.slice(0,6).map(e =>
+        '<div class="econ-row">'
+        + '<div class="econ-event">' + e.event + '</div>'
+        + '<div class="econ-meta">' + (e.time||'') + (e.country?' · '+e.country:'') + (e.actual?' · Actual: '+e.actual:'') + (e.estimate?' · Est: '+e.estimate:'') + '</div>'
+        + '</div>'
+      ).join('')
+    : '<div class="empty">No major economic events today</div>';
+
+  // News
+  const newsHTML = (data.news || []).slice(0,6).map(n =>
+    '<a class="news-row" href="' + n.url + '" target="_blank" rel="noopener">'
+    + '<div><div class="news-hl">' + n.headline + '</div>'
+    + '<div class="news-src">' + n.source + '</div></div>'
+    + '</a>'
+  ).join('') || '<div class="empty">No news available</div>';
+
+  el.innerHTML =
+    // Index tiles
+    '<div class="index-grid">' + indicesHTML + '</div>'
+
+    // Main grid
+    + '<div class="briefing-grid">'
+    + '<div class="card"><div class="card-title">🚀 Top Gainers</div>' + gainersHTML + '</div>'
+    + '<div class="card"><div class="card-title">📉 Top Losers</div>' + losersHTML + '</div>'
+    + '<div class="card"><div class="card-title">🏭 Sector Performance</div>' + sectorsHTML + '</div>'
+    + '</div>'
+
+    // Earnings + Econ
+    + '<div class="briefing-grid-2">'
+    + '<div class="card"><div class="card-title">📋 Earnings ' + (isPre?'Today':'Today') + '</div>' + earningsHTML + '</div>'
+    + '<div class="card"><div class="card-title">🏛️ Economic Calendar</div>' + econHTML + '</div>'
+    + '</div>'
+
+    // News
+    + '<div class="card" style="margin-bottom:16px;"><div class="card-title">📰 Market News</div>' + newsHTML + '</div>'
+
+    // AI Analysis button
+    + '<div class="ai-brief" id="ai-brief-section">'
+    + '<div class="ai-brief-title">🧠 AI Market Analysis</div>'
+    + '<div id="ai-brief-body" style="font-size:14px;color:var(--text3);">Click below to get an AI-powered ' + (isPre?'pre-market outlook':'post-market wrap-up') + ' for today.</div>'
+    + '<button onclick="loadAIBriefing()" id="ai-brief-btn" style="margin-top:12px;background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:500;">Generate AI Analysis →</button>'
+    + '</div>';
+}
+
+async function loadAIBriefing() {
+  const btn = document.getElementById('ai-brief-btn');
+  const body = document.getElementById('ai-brief-body');
+  if(btn) { btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
+
+  try {
+    const d = briefingData;
+    const indSummary = (d.indices||[]).map(i => i.symbol + ' ' + fmt(i.pct)).join(', ');
+    const gainers = (d.gainers||[]).map(s => s.symbol + ' ' + fmt(s.pct)).join(', ');
+    const losers = (d.losers||[]).map(s => s.symbol + ' ' + fmt(s.pct)).join(', ');
+    const earnings = (d.earnings||[]).slice(0,5).map(e => e.symbol).join(', ');
+    const econ = (d.economic||[]).slice(0,4).map(e => e.event).join(', ');
+    const isPre = currentType === 'pre';
+
+    const prompt = isPre
+      ? 'Write a concise pre-market briefing for US stock traders. 3 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup and key levels to watch today.\nParagraph 2: Notable movers and catalysts to watch.\nParagraph 3: Key risks and trading opportunities.\n\nData: Indices: ' + indSummary + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings today: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with price levels and percentages. 200 words max.'
+      : 'Write a concise post-market wrap-up for US stock traders. 3 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the market performed today and the main drivers.\nParagraph 2: Notable stock moves and sector rotation.\nParagraph 3: What to watch for tomorrow.\n\nData: Indices: ' + indSummary + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 200 words max.';
+
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
+
+    while(true) {
+      const { done, value } = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines) {
+        if(!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if(!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if(parsed.type === 'content_block_delta' && parsed.delta?.text) fullText += parsed.delta.text;
+          else if(parsed.delta?.type === 'text_delta' && parsed.delta?.text) fullText += parsed.delta.text;
+          if(body && fullText) body.innerHTML = '<div class="ai-brief-body">' + fullText.replace(/\n\n/g,'</p><p style="margin:10px 0 0;">').replace(/\n/g,' ') + '</div>';
+        } catch(e) {}
+      }
+    }
+
+    if(btn) btn.style.display = 'none';
+  } catch(e) {
+    if(body) body.innerHTML = 'Analysis failed. Please try again.';
+    if(btn) { btn.textContent = 'Try Again'; btn.disabled = false; }
+  }
+}
+
+function goAnalyze(ticker) {
+  window.open('/?ticker=' + ticker, '_blank');
+}
+
+async function subscribe() {
+  const email = document.getElementById('sub-email').value.trim();
+  const msgEl = document.getElementById('subscribe-msg');
+  if(!email || !email.includes('@')) {
+    msgEl.className = 'error-msg';
+    msgEl.textContent = 'Please enter a valid email address.';
+    msgEl.style.display = 'block';
+    return;
+  }
+  try {
+    const { error } = await sb.from('briefing_subscribers').insert({ email, status: 'active' });
+    if(error && error.code !== '23505') throw error; // 23505 = duplicate, that's ok
+    msgEl.className = 'success-msg';
+    msgEl.textContent = '✅ Subscribed! You will receive pre-market at 8:30 AM ET and post-market at 5:00 PM ET.';
+    msgEl.style.display = 'block';
+    document.getElementById('sub-email').value = '';
+  } catch(e) {
+    msgEl.className = 'error-msg';
+    msgEl.textContent = 'Error: ' + e.message;
+    msgEl.style.display = 'block';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
