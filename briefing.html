@@ -119,6 +119,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 @keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 
 .empty{text-align:center;padding:30px;color:var(--text3);font-size:13.5px;}
+.macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px;}
+.macro-tile{background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px solid var(--border);}
+.macro-label{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+.macro-price{font-size:14px;font-weight:600;font-family:"DM Mono",monospace;}
+.macro-chg{font-size:11.5px;font-weight:600;font-family:"DM Mono",monospace;}
+.global-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.impact-tag{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;display:inline-block;margin-top:4px;}
+.impact-high-tag{background:var(--red-bg);color:var(--red);}
+.impact-med-tag{background:var(--amber-bg);color:var(--amber);}
+.impact-low-tag{background:var(--green-bg);color:var(--green);}
 .success-msg{background:var(--green-bg);color:var(--green);padding:10px 14px;border-radius:8px;font-size:13px;}
 .error-msg{background:var(--red-bg);color:var(--red);padding:10px 14px;border-radius:8px;font-size:13px;}
 
@@ -341,6 +351,48 @@ function renderBriefing(data, type) {
     // News
     + '<div class="card" style="margin-bottom:16px;"><div class="card-title">📰 Market News</div>' + newsHTML + '</div>'
 
+    // Commodities
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">🛢️ Commodities</div>'
+    + '<div class="macro-grid">'
+    + (data.commodities||[]).map(c => {
+        const up = c.pct >= 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
+    // FX & Crypto
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">💱 Currencies & Crypto</div>'
+    + '<div class="macro-grid">'
+    + (data.fx||[]).map(c => {
+        const up = c.pct >= 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
+    // Global Markets
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">🌍 Global Markets</div>'
+    + '<div class="global-grid">'
+    + (data.global||[]).map(c => {
+        const up = c.pct >= 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
     // AI Analysis button
     + '<div class="ai-brief" id="ai-brief-section">'
     + '<div class="ai-brief-title">🧠 AI Market Analysis</div>'
@@ -363,9 +415,15 @@ async function loadAIBriefing() {
     const econ = (d.economic||[]).slice(0,4).map(e => e.event).join(', ');
     const isPre = currentType === 'pre';
 
+    const oilData = (d.commodities||[]).find(c => c.label === 'Crude Oil');
+    const goldData = (d.commodities||[]).find(c => c.label === 'Gold');
+    const btcData = (d.fx||[]).find(c => c.label === 'Bitcoin');
+    const usdData = (d.fx||[]).find(c => c.label === 'USD Index');
+    const macroStr = 'Oil ' + fmt(oilData?.pct) + ', Gold ' + fmt(goldData?.pct) + ', BTC ' + fmt(btcData?.pct) + ', USD ' + fmt(usdData?.pct) + '. ';
+    const topSectors = (d.sectors||[]).slice(0,3).map(s => (s.name||s.symbol) + ' ' + fmt(s.pct)).join(', ');
     const prompt = isPre
-      ? 'Write a concise pre-market briefing for US stock traders. 3 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup and key levels to watch today.\nParagraph 2: Notable movers and catalysts to watch.\nParagraph 3: Key risks and trading opportunities.\n\nData: Indices: ' + indSummary + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings today: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with price levels and percentages. 200 words max.'
-      : 'Write a concise post-market wrap-up for US stock traders. 3 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the market performed today and the main drivers.\nParagraph 2: Notable stock moves and sector rotation.\nParagraph 3: What to watch for tomorrow.\n\nData: Indices: ' + indSummary + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 200 words max.';
+      ? 'Write a concise pre-market briefing for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup — key index levels, futures direction, and macro backdrop.\nParagraph 2: Commodity and currency impacts — how oil, gold, dollar, and crypto are setting up the day.\nParagraph 3: Notable movers, catalysts, and earnings to watch.\nParagraph 4: Key risks and trading opportunities for today.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with numbers. 250 words max.'
+      : 'Write a concise post-market wrap-up for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the major indices performed and the key macro drivers today.\nParagraph 2: Commodity and currency moves that impacted the market.\nParagraph 3: Notable stock moves, sector rotation, and earnings results.\nParagraph 4: What to watch overnight and tomorrow.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 250 words max.';
 
     const resp = await fetch('/api/analyze', {
       method: 'POST',
