@@ -1436,15 +1436,17 @@ function renderCompanyProfile(ticker, data){
   var finEl = document.getElementById('financials-content-' + ticker);
   if(!el) return;
   if(!data || data.error){
-    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Company profile could not be loaded from Yahoo Finance. <a href="https://finance.yahoo.com/quote/'+ticker+'" target="_blank" style="color:var(--accent);">View on Yahoo Finance ↗</a></div>';
-    if(finEl) finEl.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Financial data unavailable. <a href="https://finance.yahoo.com/quote/'+ticker+'/financials/" target="_blank" style="color:var(--accent);">View on Yahoo Finance ↗</a></div>';
+    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Company profile unavailable. <a href="https://finance.yahoo.com/quote/'+ticker+'" target="_blank" style="color:var(--accent);">View on Yahoo Finance</a></div>';
+    if(finEl) finEl.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Financial data unavailable. <a href="https://finance.yahoo.com/quote/'+ticker+'/financials/" target="_blank" style="color:var(--accent);">View on Yahoo Finance</a></div>';
     return;
   }
+  var isFinnhub = data._source === 'finnhub';
 
   // Profile section
   var profileHTML = '<div class="profile-grid">'
     + '<div>'
-    + (data.description ? '<p class="profile-description">' + data.description.substring(0, 800) + (data.description.length > 800 ? '...' : '') + '</p>' : '')
+    + (data.logo ? '<img src="' + data.logo + '" style="height:44px;margin-bottom:12px;border-radius:6px;"/><br/>' : '')
+    + (data.description ? '<p class="profile-description">' + data.description.substring(0, 800) + (data.description.length > 800 ? '...' : '') + '</p>' : '<p style="font-size:13.5px;color:var(--text3);padding:4px 0 12px;">Full description available on <a href="https://finance.yahoo.com/quote/' + ticker + '" target="_blank" style="color:var(--accent);">Yahoo Finance</a></p>')
     + '</div>'
     + '<div class="profile-meta">'
     + (data.sector ? '<div class="profile-meta-row"><span class="profile-meta-label">Sector</span><span class="profile-meta-value">' + data.sector + '</span></div>' : '')
@@ -1535,7 +1537,11 @@ function renderCompanyProfile(ticker, data){
     + row('Short Ratio', fin.shortRatio)
     + '</table>';
 
-  finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
+  if(isFinnhub){
+    finEl.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Detailed financials via Yahoo Finance: <a href="https://finance.yahoo.com/quote/' + ticker + '/financials/" target="_blank" style="color:var(--accent);">View Financial Statements</a></div>';
+  } else {
+    finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
+  }
 }
 
 function row(label, val, isPct){
