@@ -135,7 +135,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .btn-community:hover{background:var(--accent2);}
 
 /* QUICK NAV */
-.quick-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);position:sticky;top:61px;z-index:50;}
+.quick-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;overflow-x:auto;}
+.quick-nav::-webkit-scrollbar{height:0;}
 .qn-btn{font-size:12px;font-weight:500;padding:5px 12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
 .qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
 
@@ -765,8 +766,7 @@ async function doAnalyze(){
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
-  var companyData = null;
-  fetchCompany(ticker).then(function(d){ companyData=d; renderCompanyProfile(ticker, d); });
+  fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   window._currentProfile = profile;
 
   if(!quote||quote.price===0){
@@ -983,13 +983,13 @@ async function doAnalyze(){
   <!-- COMPANY PROFILE -->
   <div id="profile-${ticker}" class="card" style="margin-bottom:16px;">
     <div class="card-title">🏢 Company Profile</div>
-    <div id="company-profile-content-${ticker}"><div style="color:var(--text3);font-size:13.5px;">Loading company profile...</div></div>
+    <div id="company-profile-content-${ticker}"><div style="display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13.5px;padding:8px 0;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading company profile from Yahoo Finance...</div></div>
   </div>
 
   <!-- FINANCIAL STATEMENTS -->
   <div id="financials-${ticker}" class="card" style="margin-bottom:16px;">
     <div class="card-title">💵 Financial Statements</div>
-    <div id="financials-content-${ticker}"><div style="color:var(--text3);font-size:13.5px;">Loading financials...</div></div>
+    <div id="financials-content-${ticker}"><div style="display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13.5px;padding:8px 0;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading financial statements...</div></div>
   </div>
 
   <!-- SEC FILINGS -->
@@ -1050,12 +1050,11 @@ async function doAnalyze(){
   loadQuoteSentiment(ticker);
   renderNews(ticker, newsData);
   renderEdgar(ticker, edgarData);
-  // Load company/filings/trades async after main content shows
+  // Load filings and market data after main content
   setTimeout(function(){
-    renderCompanyProfile(ticker, companyData);
     renderFilings(ticker);
     initMarketData(ticker);
-  }, 100);
+  }, 200);
   initTVChart(ticker);
   initIndicatorPanel(ticker, quote.price, quote.pct);
 }
@@ -1437,7 +1436,8 @@ function renderCompanyProfile(ticker, data){
   var finEl = document.getElementById('financials-content-' + ticker);
   if(!el) return;
   if(!data || data.error){
-    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;">Company profile not available from Yahoo Finance for this ticker.</div>';
+    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Company profile could not be loaded from Yahoo Finance. <a href="https://finance.yahoo.com/quote/'+ticker+'" target="_blank" style="color:var(--accent);">View on Yahoo Finance ↗</a></div>';
+    if(finEl) finEl.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Financial data unavailable. <a href="https://finance.yahoo.com/quote/'+ticker+'/financials/" target="_blank" style="color:var(--accent);">View on Yahoo Finance ↗</a></div>';
     return;
   }
 
