@@ -265,10 +265,14 @@ function renderBriefing(data, type) {
   // Indices
   const indicesHTML = (data.indices || []).map(i => {
     const up = i.pct >= 0;
+    const price = i.price || i.prevClose || 0;
+    const isAH = i.isAfterHours || price === 0;
     return '<div class="index-tile">'
       + '<div class="index-sym">' + i.symbol + '</div>'
-      + '<div class="index-price ' + (up?'up':'down') + '">$' + (i.price||0).toFixed(2) + '</div>'
-      + '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>'
+      + '<div class="index-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
+      + (isAH
+        ? '<div style="font-size:10.5px;color:var(--text3);">Prev Close</div>'
+        : '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>')
       + '</div>';
   }).join('');
 
@@ -357,10 +361,11 @@ function renderBriefing(data, type) {
     + '<div class="macro-grid">'
     + (data.commodities||[]).map(c => {
         const up = c.pct >= 0;
+        const price = c.price || c.prevClose || 0;
         return '<div class="macro-tile">'
           + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
-          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
-          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (price>0&&!c.isAfterHours?(up?'▲':'▼')+' '+fmt(c.pct):'—') + '</div>'
           + '</div>';
       }).join('')
     + '</div></div>'
