@@ -9,10 +9,20 @@ export default async function handler(req) {
         'Accept': 'text/html',
       }
     });
-    const status = res.status;
     const text = await res.text();
-    // Return first 2000 chars so we can see what we're getting
-    return new Response(JSON.stringify({ status, preview: text.substring(0, 2000), length: text.length }), {
+    // Find the section around "Short Interest"
+    const idx = text.indexOf('Current Short Interest');
+    const section = idx !== -1 ? text.substring(idx - 100, idx + 3000) : 'NOT FOUND - searching...';
+    
+    // Also try finding the data table
+    const idx2 = text.indexOf('138');
+    const section2 = idx2 !== -1 ? text.substring(idx2 - 200, idx2 + 500) : 'number not found';
+
+    return new Response(JSON.stringify({ 
+      length: text.length,
+      shortInterestSection: section,
+      numberContext: section2,
+    }), {
       headers: { ...cors, 'Content-Type': 'application/json' }
     });
   } catch(e) {
