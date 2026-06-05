@@ -1120,7 +1120,7 @@ async function runAIAnalysis(ticker, name, sector){
   if(edgarNote) otcNote = edgarNote;
   var prompt = 'You are an institutional stock analyst. ' + otcNote + 'Analyze ' + ticker + ' (' + name + '). The current live price is $' + curPrice + '. Output ONLY plain text, NO markdown, NO ##, NO **bold**.' +
     '\n\nUse these EXACT headers on their own line with nothing else on that line:' +
-    '\n\nVERDICT: BUY | Target: $245 | Confidence: High' +
+    '\n\nVERDICT: [BUY/HOLD/SELL] | Target: $[your 12-month price target based on current price of $' + curPrice + '] | Confidence: [High/Medium/Low]' +
     '\n\nFUNDAMENTAL ANALYSIS' +
     '\n[3 short paragraphs, blank line between each]' +
     '\n\nTECHNICAL ANALYSIS' +
