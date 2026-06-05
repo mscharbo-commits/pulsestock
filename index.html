@@ -1174,17 +1174,38 @@ async function runAIAnalysis(ticker, name, sector){
 
   if(btn){ btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
 
-  // Fetch fresh quote at analysis time
-  var liveQuote = await fetchQuote(ticker);
+  // Fetch fresh quote AND edgar data in parallel at analysis time
+  var [liveQuote, freshEdgar] = await Promise.all([
+    fetchQuote(ticker),
+    fetchWithTimeout('/api/edgar?ticker=' + encodeURIComponent(ticker), 5000),
+  ]);
+
   var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A');
   var curChange = liveQuote ? (liveQuote.pct >= 0 ? '+' : '') + liveQuote.pct.toFixed(2) + '%' : '';
-  var h52live = liveQuote ? null : null;
   var profile = window._currentProfile || {};
   var exchangeInfo = profile ? (profile.exchange || profile.finnhubIndustry || '') : '';
   var isOTC = exchangeInfo.toUpperCase().indexOf('OTC') !== -1 || exchangeInfo.toUpperCase().indexOf('PINK') !== -1 || ticker.indexOf('.') !== -1;
-  var otcNote = isOTC ? 'This company trades on OTC Markets. ' : '';
-  var edgarNote = window._edgarContext && window._edgarContext.indexOf(ticker) !== -1 ? window._edgarContext + ' ' : '';
-  if(edgarNote) otcNote = edgarNote;
+
+  // Build comprehensive context from EDGAR for OTC/reporting companies
+  var otcNote = '';
+  var edgarData = freshEdgar || {};
+  if(edgarData.isFullyReporting){
+    var fin = edgarData.financials || {};
+    otcNote = ticker + ' (' + (edgarData.companyName||name) + ') is a FULLY REPORTING SEC company with audited financials. ';
+    otcNote += 'Recent SEC filings: ' + (edgarData.filingTypes||[]).join(', ') + '. Last filing: ' + (edgarData.lastFilingDate||'N/A') + '. ';
+    if(fin.revenue) otcNote += 'Revenue: $' + fin.revenue + '. ';
+    if(fin.netIncome) otcNote += 'Net Income: $' + fin.netIncome + '. ';
+    if(fin.assets) otcNote += 'Total Assets: $' + fin.assets + '. ';
+    if(fin.cash) otcNote += 'Cash: $' + fin.cash + '. ';
+    otcNote += 'Treat this as an ongoing operating business with real audited financials. ';
+    if(isOTC) otcNote += 'Trades on OTC Markets. ';
+  } else if(isOTC) {
+    otcNote = 'This company trades on OTC Markets. ';
+  }
+  // Fall back to cached edgar context if fresh fetch failed
+  if(!otcNote && window._edgarContext && window._edgarContext.indexOf(ticker) !== -1){
+    otcNote = window._edgarContext + ' ';
+  }
   var prompt = 'You are an institutional stock analyst. ' + otcNote + 'Analyze ' + ticker + ' (' + name + '). The current live price is $' + curPrice + '. Output ONLY plain text, NO markdown, NO ##, NO **bold**.' +
     '\n\nUse these EXACT headers on their own line with nothing else on that line:' +
     '\n\nVERDICT: [BUY/HOLD/SELL] | Target: $[your 12-month price target based on current price of $' + curPrice + '] | Confidence: [High/Medium/Low]' +
