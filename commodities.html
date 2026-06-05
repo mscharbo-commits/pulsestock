@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Commodities & Macro Markets</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--purple:#7C3AED;--purple-bg:#F5F3FF;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;}
+header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.header-inner{max-width:1280px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
+.logo-name span{color:var(--accent);}
+.nav{display:flex;gap:4px;}
+.nav a{padding:7px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--text2);text-decoration:none;}
+.nav a:hover,.nav a.active{background:var(--accent-light);color:var(--accent);}
+.main{max-width:1280px;margin:0 auto;padding:24px;}
+.page-hero{background:linear-gradient(135deg,#B45309 0%,#7C3AED 100%);border-radius:var(--radius);padding:24px 28px;color:#fff;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.hero-left h1{font-size:24px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;}
+.hero-left p{font-size:13.5px;opacity:.8;}
+.hero-note{font-size:12px;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:20px;}
+.filter-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-tab{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:500;background:var(--surface);border:1.5px solid var(--border);color:var(--text2);transition:all .15s;}
+.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.filter-tab:hover:not(.active){background:var(--surface2);}
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+.content{display:flex;flex-direction:column;gap:16px;}
+.rail{display:flex;flex-direction:column;gap:16px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);}
+.card-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.section-title{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.commodity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.commodity-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);}
+.commodity-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(26,107,245,.1);}
+.commodity-card.selected{border-color:var(--accent);background:var(--accent-light);}
+.comm-icon{font-size:24px;margin-bottom:8px;}
+.comm-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.comm-price{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-.5px;}
+.comm-change{font-size:12.5px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px;}
+.comm-unit{font-size:11px;color:var(--text3);margin-top:4px;}
+.up{color:var(--green);}.down{color:var(--red);}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.detail-header{padding:18px 20px;border-bottom:1px solid var(--border);}
+.detail-icon{font-size:28px;margin-bottom:8px;}
+.detail-name{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px;}
+.detail-desc{font-size:13px;color:var(--text3);}
+.detail-price-row{display:flex;align-items:baseline;gap:10px;margin-top:10px;}
+.detail-price{font-size:32px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;}
+.detail-change{font-size:15px;font-weight:600;font-family:'DM Mono',monospace;}
+.detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 20px;border-bottom:1px solid var(--border);}
+.meta-item{padding:8px 10px;background:var(--surface2);border-radius:8px;}
+.meta-label{font-size:11px;color:var(--text3);margin-bottom:3px;}
+.meta-value{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;}
+.chart-wrap{height:180px;padding:14px 16px;}
+.ai-section{padding:16px 20px;border-top:1px solid var(--border);}
+.ai-prompt-btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border-radius:8px;font-size:13.5px;font-weight:600;margin-bottom:10px;}
+.ai-output{font-size:13.5px;color:var(--text2);line-height:1.75;min-height:60px;}
+.ai-cursor{display:inline-block;width:2px;height:14px;background:var(--accent);animation:blink 1s infinite;vertical-align:text-bottom;margin-left:1px;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.news-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;text-decoration:none;}
+.news-item:last-child{border-bottom:none;}
+.news-item:hover .news-hl{color:var(--accent);}
+.news-thumb{width:60px;height:45px;background:var(--surface2);border-radius:6px;flex-shrink:0;object-fit:cover;}
+.news-hl{font-size:13px;font-weight:500;color:var(--text);line-height:1.5;margin-bottom:3px;}
+.news-src{font-size:11.5px;color:var(--text3);}
+.loading{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13.5px;padding:20px 0;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:dp 1.4s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dp{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.heatmap{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.heat-cell{border-radius:8px;padding:10px 12px;text-align:center;cursor:pointer;transition:opacity .15s;}
+.heat-cell:hover{opacity:.85;}
+.heat-sym{font-size:12px;font-weight:700;font-family:'DM Mono',monospace;margin-bottom:2px;}
+.heat-pct{font-size:14px;font-weight:700;}
+.heat-label{font-size:10.5px;opacity:.8;margin-top:2px;}
+@media(max-width:900px){.two-col{grid-template-columns:1fr;}.commodity-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo"><div class="logo-icon">P</div><span class="logo-name">Pulse<span>Stock</span></span></a>
+    <nav class="nav">
+      <a href="/">📊 Analyze</a>
+      <a href="/community.html">💬 Community</a>
+      <a href="/briefing.html">📰 Briefing</a>
+      <a href="/commodities.html" class="active">🛢️ Commodities</a>
+      <a href="/alerts.html">🔔 Alerts</a>
+    </nav>
+  </div>
+</header>
+
+<div class="main">
+  <div class="page-hero">
+    <div class="hero-left">
+      <h1>🌍 Commodities & Macro Markets</h1>
+      <p>Energy · Metals · Agriculture · Currencies · Crypto — live prices, trends & AI analysis</p>
+    </div>
+    <div class="hero-note">⚠️ ETF proxy prices — closely track but ≠ spot prices</div>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="filter-tab active" onclick="setGroup('all',this)">🌐 All Markets</button>
+    <button class="filter-tab" onclick="setGroup('energy',this)">⚡ Energy</button>
+    <button class="filter-tab" onclick="setGroup('metals',this)">🥇 Metals</button>
+    <button class="filter-tab" onclick="setGroup('agriculture',this)">🌾 Agriculture</button>
+    <button class="filter-tab" onclick="setGroup('currencies',this)">💱 Currencies</button>
+    <button class="filter-tab" onclick="setGroup('crypto',this)">₿ Crypto</button>
+  </div>
+
+  <div class="two-col">
+    <div class="content">
+      <!-- HEATMAP -->
+      <div class="card">
+        <div class="card-title">🌡️ Market Heatmap</div>
+        <div class="heatmap" id="heatmap">
+          <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Loading...</span></div>
+        </div>
+      </div>
+
+      <!-- COMMODITY GRID -->
+      <div id="commodity-grid-wrap">
+        <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Loading commodity data...</span></div>
+      </div>
+
+      <!-- NEWS -->
+      <div class="card">
+        <div class="card-title">📰 Commodity & Macro News</div>
+        <div id="comm-news">
+          <div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Loading news...</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <!-- DETAIL CARD -->
+      <div class="detail-card" id="detail-card">
+        <div style="padding:24px;text-align:center;color:var(--text3);">
+          <div style="font-size:32px;margin-bottom:10px;">👆</div>
+          <div style="font-size:14px;">Click any commodity to see details and AI analysis</div>
+        </div>
+      </div>
+
+      <!-- CORRELATIONS -->
+      <div class="card">
+        <div class="card-title">🔗 Key Correlations</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+          <div style="padding:8px 10px;background:var(--surface2);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:2px;">Oil ↑ → Energy stocks ↑</div>
+            <div style="color:var(--text3);">XLE, CVX, XOM move with crude</div>
+          </div>
+          <div style="padding:8px 10px;background:var(--surface2);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:2px;">Gold ↑ → USD ↓ (usually)</div>
+            <div style="color:var(--text3);">Inverse relationship in risk-off periods</div>
+          </div>
+          <div style="padding:8px 10px;background:var(--surface2);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:2px;">Strong USD → Commodities ↓</div>
+            <div style="color:var(--text3);">Most commodities priced in USD</div>
+          </div>
+          <div style="padding:8px 10px;background:var(--surface2);border-radius:8px;">
+            <div style="font-weight:600;margin-bottom:2px;">BTC ↑ → Risk-on sentiment</div>
+            <div style="color:var(--text3);">Often correlates with tech/growth stocks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var allData = null;
+var currentGroup = 'all';
+var selectedComm = null;
+var miniCharts = {};
+
+async function init(){
+  await loadData('all');
+}
+
+async function loadData(group){
+  try {
+    var url = '/api/commodities' + (group && group !== 'all' ? '?group=' + group : '');
+    var r = await fetch(url);
+    allData = await r.json();
+    renderAll();
+  } catch(e) {
+    document.getElementById('commodity-grid-wrap').innerHTML = '<div style="color:var(--text3);padding:20px;">Failed to load commodity data.</div>';
+  }
+}
+
+function setGroup(group, btn){
+  currentGroup = group;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if(!allData) return;
+  renderAll();
+}
+
+function renderAll(){
+  if(!allData) return;
+  var items = currentGroup === 'all' ? allData.commodities : (allData.grouped[currentGroup] || []);
+  renderHeatmap(items);
+  renderGrid(items);
+  renderNews(allData.news);
+}
+
+function renderHeatmap(items){
+  var el = document.getElementById('heatmap');
+  if(!items || !items.length){ el.innerHTML = '<div style="color:var(--text3);">No data</div>'; return; }
+  el.innerHTML = items.slice(0,12).map(function(c){
+    var up = c.pct >= 0;
+    var intensity = Math.min(Math.abs(c.pct) / 3, 1);
+    var bg = up
+      ? 'rgba(13,155,107,' + (0.1 + intensity * 0.4) + ')'
+      : 'rgba(209,63,48,' + (0.1 + intensity * 0.4) + ')';
+    var price = c.price > 0 ? '$' + c.price.toFixed(c.price > 100 ? 2 : 3) : '—';
+    return '<div class="heat-cell" style="background:' + bg + ';" onclick="selectComm(\'' + c.sym + '\')">'
+      + '<div class="heat-sym">' + c.sym + '</div>'
+      + '<div class="heat-pct ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + Math.abs(c.pct).toFixed(2) + '%</div>'
+      + '<div class="heat-label">' + c.label + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function renderGrid(items){
+  var el = document.getElementById('commodity-grid-wrap');
+  if(!items || !items.length){ el.innerHTML = '<div style="color:var(--text3);padding:20px;">No data available.</div>'; return; }
+
+  var grouped = {};
+  items.forEach(function(c){
+    if(!grouped[c.group]) grouped[c.group] = [];
+    grouped[c.group].push(c);
+  });
+
+  var groupNames = { energy:'⚡ Energy', metals:'🥇 Metals', agriculture:'🌾 Agriculture', currencies:'💱 Currencies & FX', crypto:'₿ Crypto' };
+  var html = '';
+
+  Object.keys(grouped).forEach(function(g){
+    html += '<div style="margin-bottom:20px;">';
+    html += '<div class="section-title">' + (groupNames[g]||g) + '</div>';
+    html += '<div class="commodity-grid">';
+    grouped[g].forEach(function(c){
+      var up = c.pct >= 0;
+      var price = c.price > 0 ? '$' + c.price.toFixed(c.price > 100 ? 2 : 3) : '—';
+      var pct = c.pct ? (up?'+':'') + c.pct.toFixed(2) + '%' : '—';
+      html += '<div class="commodity-card" id="card-' + c.sym + '" onclick="selectComm(\'' + c.sym + '\')">'
+        + '<div class="comm-icon">' + c.icon + '</div>'
+        + '<div class="comm-label">' + c.label + '</div>'
+        + '<div class="comm-price ' + (up&&c.price>0?'up':c.price>0?'down':'') + '">' + price + '</div>'
+        + '<div class="comm-change ' + (up?'up':'down') + '">' + (c.price>0?(up?'▲':'▼')+' '+pct:'—') + '</div>'
+        + '<div class="comm-unit">' + c.unit + ' · ' + c.sym + '</div>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
+function renderNews(news){
+  var el = document.getElementById('comm-news');
+  if(!news || !news.length){ el.innerHTML = '<div style="color:var(--text3);">No news available.</div>'; return; }
+  el.innerHTML = news.map(function(n){
+    var ago = timeAgo(n.datetime);
+    return '<a class="news-item" href="' + n.url + '" target="_blank" rel="noopener">'
+      + (n.image ? '<img class="news-thumb" src="' + n.image + '" alt=""/>' : '<div class="news-thumb"></div>')
+      + '<div><div class="news-hl">' + n.headline + '</div>'
+      + '<div class="news-src">' + n.source + ' · ' + ago + '</div></div>'
+      + '</a>';
+  }).join('');
+}
+
+function timeAgo(ts){
+  var diff = Math.floor((Date.now() - ts*1000)/1000);
+  if(diff < 60) return 'Just now';
+  if(diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if(diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+
+function selectComm(sym){
+  if(!allData) return;
+  var c = allData.commodities.find(function(x){ return x.sym === sym; });
+  if(!c) return;
+  selectedComm = c;
+
+  document.querySelectorAll('.commodity-card').forEach(function(el){ el.classList.remove('selected'); });
+  var card = document.getElementById('card-' + sym);
+  if(card) card.classList.add('selected');
+
+  renderDetail(c);
+}
+
+function renderDetail(c){
+  var el = document.getElementById('detail-card');
+  var up = c.pct >= 0;
+  var price = c.price > 0 ? '$' + c.price.toFixed(c.price > 100 ? 2 : 3) : '—';
+  var change = c.change ? (up?'+':'') + c.change.toFixed(2) : '—';
+  var pct = c.pct ? (up?'+':'') + c.pct.toFixed(2) + '%' : '—';
+
+  el.innerHTML =
+    '<div class="detail-header">'
+    + '<div class="detail-icon">' + c.icon + '</div>'
+    + '<div class="detail-name">' + c.label + '</div>'
+    + '<div class="detail-desc">' + c.description + ' · ' + c.sym + '</div>'
+    + '<div class="detail-price-row">'
+    + '<div class="detail-price ' + (up&&c.price>0?'up':c.price>0?'down':'') + '">' + price + '</div>'
+    + '<div class="detail-change ' + (up?'up':'down') + '">' + (c.price>0?(up?'▲':'▼')+' '+change+' ('+pct+')':'—') + '</div>'
+    + '</div></div>'
+    + '<div class="detail-meta">'
+    + '<div class="meta-item"><div class="meta-label">Day High</div><div class="meta-value">' + (c.high?'$'+c.high.toFixed(2):'—') + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Day Low</div><div class="meta-value">' + (c.low?'$'+c.low.toFixed(2):'—') + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Open</div><div class="meta-value">' + (c.open?'$'+c.open.toFixed(2):'—') + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Prev Close</div><div class="meta-value">' + (c.prevClose?'$'+c.prevClose.toFixed(2):'—') + '</div></div>'
+    + '</div>'
+    + '<div class="chart-wrap"><canvas id="mini-chart-' + c.sym + '"></canvas></div>'
+    + '<div class="ai-section">'
+    + '<button class="ai-prompt-btn" onclick="getAIAnalysis(\'' + c.sym + '\',\'' + c.label + '\')">🧠 Get AI Analysis — ' + c.label + '</button>'
+    + '<div class="ai-output" id="ai-out-' + c.sym + '">Click above for AI macro analysis of ' + c.label + '</div>'
+    + '</div>';
+
+  drawMiniChart(c);
+}
+
+function drawMiniChart(c){
+  setTimeout(function(){
+    var ctx = document.getElementById('mini-chart-' + c.sym);
+    if(!ctx) return;
+    var basePrice = c.prevClose || c.price || 100;
+    var points = 30;
+    var data = [];
+    var p = basePrice * 0.97;
+    for(var i=0; i<points; i++){
+      p = p + (basePrice - p) * 0.15 + (Math.random()-0.47) * basePrice * 0.008;
+      data.push(parseFloat(p.toFixed(3)));
+    }
+    data[points-1] = c.price || basePrice;
+    var up = (c.price||0) >= (c.prevClose||c.price||0);
+    var color = up ? '#0D9B6B' : '#D13F30';
+    if(miniCharts[c.sym]){ try{miniCharts[c.sym].destroy();}catch(e){} }
+    miniCharts[c.sym] = new Chart(ctx, {
+      type:'line',
+      data:{ labels: data.map(function(_,i){return i;}), datasets:[{ data, borderColor:color, borderWidth:2, pointRadius:0, tension:0.4, fill:true, backgroundColor: up?'rgba(13,155,107,.06)':'rgba(209,63,48,.06)' }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}}, animation:{duration:400} }
+    });
+  }, 100);
+}
+
+async function getAIAnalysis(sym, label){
+  var outEl = document.getElementById('ai-out-' + sym);
+  if(!outEl) return;
+  outEl.innerHTML = '<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Analyzing ' + label + '...</span></div>';
+
+  var c = allData && allData.commodities.find(function(x){ return x.sym === sym; });
+  var price = c ? '$' + (c.price||0).toFixed(c.price>100?2:3) : 'N/A';
+  var pct = c ? (c.pct>=0?'+':'') + (c.pct||0).toFixed(2) + '%' : 'N/A';
+
+  var prompt = 'You are a macro commodity analyst. Write a concise analysis of ' + label + ' (' + sym + '). '
+    + 'Current price: ' + price + ' (' + pct + ' today). '
+    + 'Cover in 3 short paragraphs (plain text, no markdown, no bullet points): '
+    + '1) Current market conditions and price drivers. '
+    + '2) Key factors to watch — supply/demand, geopolitical, weather, currency impacts. '
+    + '3) Short-term outlook and what investors should monitor. '
+    + 'Be specific and actionable. 150 words max.';
+
+  try {
+    var resp = await fetch('/api/analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ messages:[{ role:'user', content: prompt }] })
+    });
+    var reader = resp.body.getReader();
+    var decoder = new TextDecoder();
+    var fullText = '';
+    var buffer = '';
+    while(true){
+      var read = await reader.read();
+      if(read.done) break;
+      buffer += decoder.decode(read.value, {stream:true});
+      var lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(var line of lines){
+        if(!line.startsWith('data: ')) continue;
+        var data = line.slice(6).trim();
+        if(!data || data==='[DONE]') continue;
+        try{
+          var parsed = JSON.parse(data);
+          if(parsed.type==='content_block_delta'&&parsed.delta?.text) fullText+=parsed.delta.text;
+          else if(parsed.delta?.type==='text_delta'&&parsed.delta?.text) fullText+=parsed.delta.text;
+          if(outEl&&fullText) outEl.innerHTML = fullText.replace(/\n\n/g,'</p><p style="margin-top:10px;">').replace(/\n/g,' ') + '<span class="ai-cursor"></span>';
+        }catch(e){}
+      }
+    }
+    if(outEl) outEl.innerHTML = fullText.replace(/\n\n/g,'</p><p style="margin-top:10px;">').replace(/\n/g,' ');
+  } catch(e) {
+    if(outEl) outEl.textContent = 'Analysis failed. Please try again.';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

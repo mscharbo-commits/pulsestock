@@ -134,6 +134,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .btn-community{background:var(--accent);color:#fff;padding:10px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:none;cursor:pointer;margin-top:auto;}
 .btn-community:hover{background:var(--accent2);}
 
+/* SHORT INTEREST & FTD */
+.short-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.short-tile{background:var(--surface2);border-radius:8px;padding:12px 14px;border:1px solid var(--border);}
+.short-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.short-value{font-size:18px;font-weight:700;font-family:"DM Mono",monospace;}
+.short-sub{font-size:11.5px;color:var(--text3);margin-top:3px;}
+.ftd-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.ftd-row:last-child{border-bottom:none;}
+.short-src{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text3);}
+.short-change-up{color:var(--red);font-weight:600;}
+.short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
 .quick-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;overflow-x:auto;}
 .quick-nav::-webkit-scrollbar{height:0;}
@@ -629,6 +640,10 @@ async function fetchWithTimeout(url, ms){
   }catch(e){ clearTimeout(id); return null; }
 }
 
+async function fetchShortInterest(ticker){
+  return fetchWithTimeout('/api/short?ticker='+encodeURIComponent(ticker), 6000);
+}
+
 async function fetchCompany(ticker){
   return fetchWithTimeout('/api/company?ticker='+encodeURIComponent(ticker), 6000);
 }
@@ -693,6 +708,74 @@ function renderEdgar(ticker, data){
   } else {
     window._edgarContext = '';
   }
+}
+
+function renderShortInterest(ticker, data){
+  var el = document.getElementById('short-content-' + ticker);
+  if(!el) return;
+  if(!data || data.error){
+    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;">Short interest data unavailable for ' + ticker + '. <a href="https://fintel.io/ss/us/' + ticker.toLowerCase() + '" target="_blank" style="color:var(--accent);">View on Fintel ↗</a></div>';
+    return;
+  }
+
+  var fi = data.finnhubShort || {};
+  var fn = data.shortInterest || {};
+  var ftd = data.ftd || {};
+
+  // Format numbers
+  function fmt(n){ if(!n && n!==0) return '—'; if(n >= 1e9) return (n/1e9).toFixed(2)+'B'; if(n >= 1e6) return (n/1e6).toFixed(2)+'M'; if(n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n.toString(); }
+  function fmtPct(n){ if(!n && n!==0) return '—'; return parseFloat(n).toFixed(2)+'%'; }
+
+  var shortShares = fi.shortInterest || fn.shortShares || null;
+  var shortPct = fi.shortPercent || null;
+  var daysTocover = fi.daysTocover || null;
+  var changeDir = fn.changePercent ? (parseFloat(fn.changePercent) >= 0 ? 'up' : 'down') : null;
+  var changePct = fn.changePercent ? (parseFloat(fn.changePercent) >= 0 ? '+' : '') + parseFloat(fn.changePercent).toFixed(2) + '%' : '—';
+
+  var html = '<div class="short-grid">'
+    + '<div class="short-tile">'
+    + '<div class="short-label">Short Interest</div>'
+    + '<div class="short-value">' + fmt(shortShares) + '</div>'
+    + '<div class="short-sub">shares short</div>'
+    + '</div>'
+    + '<div class="short-tile">'
+    + '<div class="short-label">% of Float</div>'
+    + '<div class="short-value ' + (shortPct > 20 ? 'down' : shortPct > 10 ? '' : 'up') + '">' + fmtPct(shortPct) + '</div>'
+    + '<div class="short-sub">' + (shortPct > 20 ? 'High squeeze potential' : shortPct > 10 ? 'Elevated' : 'Normal') + '</div>'
+    + '</div>'
+    + '<div class="short-tile">'
+    + '<div class="short-label">Days to Cover</div>'
+    + '<div class="short-value">' + (daysTocover ? parseFloat(daysTocover).toFixed(1) : '—') + '</div>'
+    + '<div class="short-sub">days at avg volume</div>'
+    + '</div>'
+    + '<div class="short-tile">'
+    + '<div class="short-label">Change vs Prior</div>'
+    + '<div class="short-value ' + (changeDir === 'up' ? 'short-change-up' : changeDir === 'down' ? 'short-change-down' : '') + '">' + changePct + '</div>'
+    + '<div class="short-sub">from last report</div>'
+    + '</div>'
+    + '</div>';
+
+  // Settlement date and source
+  var settleDateStr = fi.date || fn.settleDate || null;
+  html += '<div class="ftd-row">'
+    + '<span style="color:var(--text3);">Last report date</span>'
+    + '<span>' + (settleDateStr || '—') + ' <span class="short-src">FINRA/Finnhub</span></span>'
+    + '</div>';
+
+  // FTD section
+  html += '<div class="ftd-row">'
+    + '<span style="color:var(--text3);">Fails to Deliver (FTD)</span>'
+    + '<div style="display:flex;align-items:center;gap:8px;">'
+    + '<a href="' + ftd.fintelUrl + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">View FTD history on Fintel ↗</a>'
+    + '<a href="' + ftd.ftdUrl + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">SEC EDGAR ↗</a>'
+    + '</div>'
+    + '</div>';
+
+  html += '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
+    + '⏱ Short interest published bi-monthly by FINRA. FTD data published bi-monthly by SEC with ~2 week lag. Not real-time.'
+    + '</div>';
+
+  el.innerHTML = html;
 }
 
 async function reloadNews(ticker, days){
@@ -767,6 +850,7 @@ async function doAnalyze(){
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
+  fetchShortInterest(ticker).then(function(d){ renderShortInterest(ticker, d); });
   window._currentProfile = profile;
 
   if(!quote||quote.price===0){
@@ -825,6 +909,7 @@ async function doAnalyze(){
       <button class="qn-btn" onclick="scrollToSection('valuation-${ticker}')">💰 Valuation</button>
       <button class="qn-btn" onclick="scrollToSection('fundamentals-${ticker}')">📋 Fundamentals</button>
       <button class="qn-btn" onclick="scrollToSection('technical-${ticker}')">📉 Technical</button>
+      <button class="qn-btn" onclick="scrollToSection('short-${ticker}')">📊 Short Interest</button>
       <button class="qn-btn" onclick="scrollToSection('profile-${ticker}')">🏢 Company</button>
       <button class="qn-btn" onclick="scrollToSection('financials-${ticker}')">💵 Financials</button>
       <button class="qn-btn" onclick="scrollToSection('filings-${ticker}')">📁 SEC Filings</button>
@@ -979,6 +1064,20 @@ async function doAnalyze(){
   </div>`:''}
 
   </div><!-- end technical section -->
+
+  <!-- SHORT INTEREST & FTD -->
+  <div id="short-${ticker}" class="card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:600;">📉 Short Interest & Fails to Deliver</div>
+      <div style="display:flex;gap:6px;">
+        <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber);">FINRA bi-monthly</span>
+        <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--amber-bg);color:var(--amber);">SEC bi-monthly</span>
+      </div>
+    </div>
+    <div id="short-content-${ticker}">
+      <div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Loading short interest data...</div>
+    </div>
+  </div>
 
   <!-- COMPANY PROFILE -->
   <div id="profile-${ticker}" class="card" style="margin-bottom:16px;">
