@@ -4,6 +4,7 @@ const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
 
 async function getFinraShortInterest(ticker) {
   try {
+    // Try OTC market endpoint first
     const res = await fetch('https://api.finra.org/data/group/otcMarket/name/EquityShortInterest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -13,9 +14,23 @@ async function getFinraShortInterest(ticker) {
         sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
       })
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data || null;
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data) && data.length > 0) return data;
+    }
+    // Try equity market endpoint for listed stocks
+    const res2 = await fetch('https://api.finra.org/data/group/equity/name/equityShortInterest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        limit: 10,
+        compareFilters: [{ compareType: 'equal', fieldName: 'issueSymbolIdentifier', fieldValue: ticker.toUpperCase() }],
+        sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
+      })
+    });
+    if (!res2.ok) return null;
+    const data2 = await res2.json();
+    return data2 || null;
   } catch(e) { return null; }
 }
 
@@ -23,12 +38,23 @@ async function getFinnhubShortInterest(ticker) {
   try {
     const today = new Date().toISOString().split('T')[0];
     const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().split('T')[0];
+    // Finnhub uses /stock/social-sentiment for some data and /stock/ownership for short
+    // Try the correct short interest endpoint
     const res = await fetch(
       `https://finnhub.io/api/v1/stock/short-interest?symbol=${ticker}&from=${sixMonthsAgo}&to=${today}&token=${FINNHUB_KEY}`
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return data;
+    // Also try to get basic metrics with short ratio
+    const metricsRes = await fetch(
+      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`
+    );
+    let metrics = null;
+    if (metricsRes.ok) {
+      const md = await metricsRes.json();
+      metrics = md.metric || null;
+    }
+    return { ...data, metrics };
   } catch(e) { return null; }
 }
 
@@ -112,15 +138,27 @@ export default async function handler(req) {
 
     // Parse Finnhub data
     let finnhubShort = null;
-    if (finnhubData && finnhubData.data && finnhubData.data.length > 0) {
-      const latest = finnhubData.data[finnhubData.data.length - 1];
-      finnhubShort = {
-        date: latest.date,
-        shortInterest: latest.shortInterest,
-        daysTocover: latest.daysToCover,
-        shortPercent: latest.shortPercent,
-        source: 'Finnhub',
-      };
+    if (finnhubData) {
+      const m = finnhubData.metrics || {};
+      // Try data array first, fall back to metrics
+      if (finnhubData.data && finnhubData.data.length > 0) {
+        const latest = finnhubData.data[finnhubData.data.length - 1];
+        finnhubShort = {
+          date: latest.date,
+          shortInterest: latest.shortInterest,
+          daysTocover: latest.daysToCover,
+          shortPercent: latest.shortPercent,
+          source: 'Finnhub',
+        };
+      } else if (m['10DayAverageTradingVolume'] || m.shortInterest) {
+        finnhubShort = {
+          date: new Date().toISOString().split('T')[0],
+          shortInterest: m.shortInterest || null,
+          daysTocover: m.shortRatio || null,
+          shortPercent: m.shortPercentOutstandingFloat || m.shortPercentOutstanding || null,
+          source: 'Finnhub Metrics',
+        };
+      }
     }
 
     return new Response(JSON.stringify({
