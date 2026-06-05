@@ -714,66 +714,34 @@ function renderShortInterest(ticker, data){
   var el = document.getElementById('short-content-' + ticker);
   if(!el) return;
   if(!data || data.error){
-    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;">Short interest data unavailable for ' + ticker + '. <a href="https://fintel.io/ss/us/' + ticker.toLowerCase() + '" target="_blank" style="color:var(--accent);">View on Fintel ↗</a></div>';
+    el.innerHTML = '<div style="color:var(--text3);font-size:13.5px;">Short interest data unavailable. <a href="https://fintel.io/ss/us/' + ticker.toLowerCase() + '" target="_blank" style="color:var(--accent);">View on Fintel ↗</a></div>';
     return;
   }
 
-  var fi = data.finnhubShort || {};
-  var fn = data.shortInterest || {};
   var ftd = data.ftd || {};
-
-  // Format numbers
-  function fmt(n){ if(!n && n!==0) return '—'; if(n >= 1e9) return (n/1e9).toFixed(2)+'B'; if(n >= 1e6) return (n/1e6).toFixed(2)+'M'; if(n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n.toString(); }
+  function fmt(n){ if(!n && n!==0) return '—'; var a=Math.abs(n); if(a>=1e9) return (n/1e9).toFixed(2)+'B'; if(a>=1e6) return (n/1e6).toFixed(2)+'M'; if(a>=1e3) return (n/1e3).toFixed(1)+'K'; return n.toString(); }
   function fmtPct(n){ if(!n && n!==0) return '—'; return parseFloat(n).toFixed(2)+'%'; }
 
-  var shortShares = fi.shortInterest || fn.shortShares || null;
-  var shortPct = fi.shortPercent || null;
-  var daysTocover = fi.daysTocover || null;
-  var changeDir = fn.changePercent ? (parseFloat(fn.changePercent) >= 0 ? 'up' : 'down') : null;
-  var changePct = fn.changePercent ? (parseFloat(fn.changePercent) >= 0 ? '+' : '') + parseFloat(fn.changePercent).toFixed(2) + '%' : '—';
+  var sp = data.shortPercent;
+  var spSignal = sp > 20 ? 'High — squeeze potential' : sp > 10 ? 'Elevated' : sp > 0 ? 'Normal' : '—';
+  var spClass = sp > 20 ? 'down' : sp > 10 ? '' : sp > 0 ? 'up' : '';
+  var changeDir = data.changePercent ? (parseFloat(data.changePercent) >= 0 ? 'up' : 'down') : null;
+  var changePct = data.changePercent ? (parseFloat(data.changePercent) >= 0 ? '+' : '') + parseFloat(data.changePercent).toFixed(2) + '%' : '—';
 
   var html = '<div class="short-grid">'
-    + '<div class="short-tile">'
-    + '<div class="short-label">Short Interest</div>'
-    + '<div class="short-value">' + fmt(shortShares) + '</div>'
-    + '<div class="short-sub">shares short</div>'
+    + '<div class="short-tile"><div class="short-label">Short Shares</div><div class="short-value">' + fmt(data.shortShares) + '</div><div class="short-sub">shares short</div></div>'
+    + '<div class="short-tile"><div class="short-label">% of Float</div><div class="short-value ' + spClass + '">' + fmtPct(sp) + '</div><div class="short-sub">' + spSignal + '</div></div>'
+    + '<div class="short-tile"><div class="short-label">Days to Cover</div><div class="short-value">' + (data.daysTocover ? parseFloat(data.daysTocover).toFixed(1) : '—') + '</div><div class="short-sub">days at avg volume</div></div>'
+    + '<div class="short-tile"><div class="short-label">Change vs Prior</div><div class="short-value ' + (changeDir==='up'?'short-change-up':changeDir==='down'?'short-change-down':'') + '">' + changePct + '</div><div class="short-sub">from last report</div></div>'
     + '</div>'
-    + '<div class="short-tile">'
-    + '<div class="short-label">% of Float</div>'
-    + '<div class="short-value ' + (shortPct > 20 ? 'down' : shortPct > 10 ? '' : 'up') + '">' + fmtPct(shortPct) + '</div>'
-    + '<div class="short-sub">' + (shortPct > 20 ? 'High squeeze potential' : shortPct > 10 ? 'Elevated' : 'Normal') + '</div>'
-    + '</div>'
-    + '<div class="short-tile">'
-    + '<div class="short-label">Days to Cover</div>'
-    + '<div class="short-value">' + (daysTocover ? parseFloat(daysTocover).toFixed(1) : '—') + '</div>'
-    + '<div class="short-sub">days at avg volume</div>'
-    + '</div>'
-    + '<div class="short-tile">'
-    + '<div class="short-label">Change vs Prior</div>'
-    + '<div class="short-value ' + (changeDir === 'up' ? 'short-change-up' : changeDir === 'down' ? 'short-change-down' : '') + '">' + changePct + '</div>'
-    + '<div class="short-sub">from last report</div>'
-    + '</div>'
-    + '</div>';
-
-  // Settlement date and source
-  var settleDateStr = fi.date || fn.settleDate || null;
-  html += '<div class="ftd-row">'
-    + '<span style="color:var(--text3);">Last report date</span>'
-    + '<span>' + (settleDateStr || '—') + ' <span class="short-src">FINRA/Finnhub</span></span>'
-    + '</div>';
-
-  // FTD section
-  html += '<div class="ftd-row">'
-    + '<span style="color:var(--text3);">Fails to Deliver (FTD)</span>'
+    + '<div class="ftd-row"><span style="color:var(--text3);">Last report date</span><span>' + (data.settleDate||'—') + (data.source?' <span class="short-src">'+data.source+'</span>':'') + '</span></div>'
+    + '<div class="ftd-row"><span style="color:var(--text3);">Fails to Deliver (FTD)</span>'
     + '<div style="display:flex;align-items:center;gap:8px;">'
-    + '<a href="' + ftd.fintelUrl + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">View FTD history on Fintel ↗</a>'
-    + '<a href="' + ftd.ftdUrl + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">SEC EDGAR ↗</a>'
-    + '</div>'
-    + '</div>';
-
-  html += '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'
-    + '⏱ Short interest published bi-monthly by FINRA. FTD data published bi-monthly by SEC with ~2 week lag. Not real-time.'
-    + '</div>';
+    + '<a href="' + (ftd.fintelUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">Fintel FTD ↗</a>'
+    + '<a href="' + (ftd.marketbeatUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">MarketBeat ↗</a>'
+    + '<a href="' + (ftd.ftdUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">SEC EDGAR ↗</a>'
+    + '</div></div>'
+    + '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">⏱ FINRA bi-monthly · SEC FTD ~2 week lag · Not real-time</div>';
 
   el.innerHTML = html;
 }
