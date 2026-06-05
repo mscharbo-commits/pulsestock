@@ -734,6 +734,10 @@ function renderShortInterest(ticker, data){
     + '<div class="short-tile"><div class="short-label">Days to Cover</div><div class="short-value">' + (data.daysTocover ? parseFloat(data.daysTocover).toFixed(1) : '—') + '</div><div class="short-sub">days at avg volume</div></div>'
     + '<div class="short-tile"><div class="short-label">Change vs Prior</div><div class="short-value ' + (changeDir==='up'?'short-change-up':changeDir==='down'?'short-change-down':'') + '">' + changePct + '</div><div class="short-sub">from last report</div></div>'
     + '</div>'
+    + (data.shortVolumeRatio ? '<div class="short-grid" style="margin-top:8px;">'
+    + '<div class="short-tile"><div class="short-label">Short Volume</div><div class="short-value">' + fmt(data.shortVolume) + '</div><div class="short-sub">shares today</div></div>'
+    + '<div class="short-tile"><div class="short-label">Short Vol Ratio</div><div class="short-value ' + (parseFloat(data.shortVolumeRatio)>50?'short-change-up':'') + '">' + data.shortVolumeRatio + '%</div><div class="short-sub">of total volume</div></div>'
+    + '</div>' : '')
     + '<div class="ftd-row"><span style="color:var(--text3);">Last report date</span><span>' + (data.settleDate||'—') + (data.source?' <span class="short-src">'+data.source+'</span>':'') + '</span></div>'
     + '<div class="ftd-row"><span style="color:var(--text3);">Fails to Deliver (FTD)</span>'
     + '<div style="display:flex;align-items:center;gap:8px;">'

@@ -1,43 +1,31 @@
 export const config = { runtime: 'edge' };
 
+const MASSIVE_KEY = '3495_3DnKOgUI1UI9OI57JRBRD8Ghg2c';
 const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
 
-async function getFinnhubMetrics(ticker) {
+async function getMassiveShortInterest(ticker) {
   try {
+    // Massive short interest endpoint (FINRA bi-weekly data)
     const res = await fetch(
-      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`
+      `https://api.massive.com/v3/stocks/${ticker.toUpperCase()}/short-interest?limit=6&order=desc&apiKey=${MASSIVE_KEY}`
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return data.metric || null;
+    return data.results || null;
   } catch(e) { return null; }
 }
 
-async function getMarketBeatShort(ticker) {
+async function getMassiveShortVolume(ticker) {
   try {
-    // MarketBeat publishes short interest data publicly
+    // Massive short volume endpoint (daily)
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
     const res = await fetch(
-      `https://www.marketbeat.com/stocks/NASDAQ/${ticker}/short-interest/`,
-      { headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36', 'Accept': 'text/html' } }
+      `https://api.massive.com/v3/stocks/${ticker.toUpperCase()}/short-volume?from=${weekAgo}&to=${today}&limit=5&order=desc&apiKey=${MASSIVE_KEY}`
     );
     if (!res.ok) return null;
-    const html = await res.text();
-
-    // Parse key metrics from the page
-    const shortSharesMatch = html.match(/Short Interest<\/td>\s*<td[^>]*>([\d,]+)\s*shares/i);
-    const shortPctMatch = html.match(/Percent of Float<\/td>\s*<td[^>]*>([\d.]+)%/i);
-    const daysCoverMatch = html.match(/Short Interest Ratio[^<]*<\/td>\s*<td[^>]*>([\d.]+)/i);
-    const settleDateMatch = html.match(/Last Record Date<\/td>\s*<td[^>]*>([^<]+)</i);
-
-    if (!shortSharesMatch && !shortPctMatch) return null;
-
-    return {
-      shortShares: shortSharesMatch ? parseInt(shortSharesMatch[1].replace(/,/g,'')) : null,
-      shortPercent: shortPctMatch ? parseFloat(shortPctMatch[1]) : null,
-      daysTocover: daysCoverMatch ? parseFloat(daysCoverMatch[1]) : null,
-      settleDate: settleDateMatch ? settleDateMatch[1].trim() : null,
-      source: 'MarketBeat',
-    };
+    const data = await res.json();
+    return data.results || null;
   } catch(e) { return null; }
 }
 
@@ -71,40 +59,61 @@ export default async function handler(req) {
   if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
-    const [metrics, finraData, mbData] = await Promise.all([
-      getFinnhubMetrics(ticker),
+    const [massiveShort, massiveVol, finraData] = await Promise.all([
+      getMassiveShortInterest(ticker),
+      getMassiveShortVolume(ticker),
       getFinraOTC(ticker),
-      getMarketBeatShort(ticker),
     ]);
 
-    let shortShares = null, shortPercent = null, daysTocover = null, settleDate = null, changePercent = null, source = null;
+    let shortShares = null, shortPercent = null, daysTocover = null;
+    let settleDate = null, changePercent = null, source = null;
+    let shortHistory = [];
+    let shortVolume = null, shortVolumeRatio = null;
 
-    // Priority: MarketBeat > FINRA > Finnhub metrics
-    if (mbData && (mbData.shortShares || mbData.shortPercent)) {
-      shortShares = mbData.shortShares;
-      shortPercent = mbData.shortPercent;
-      daysTocover = mbData.daysTocover;
-      settleDate = mbData.settleDate;
-      source = 'MarketBeat / FINRA';
-    } else if (finraData) {
-      const latest = finraData[0];
-      shortShares = latest.currentShortShareNumber;
-      changePercent = latest.changePercent;
-      settleDate = latest.settlementDate;
-      source = 'FINRA';
-    } else if (metrics) {
-      // Finnhub metrics - has basic short data on paid plan, may be null on free
-      shortPercent = metrics.shortPercentOutstandingFloat || metrics.shortPercentOutstanding || null;
-      daysTocover = metrics.shortRatio || null;
-      source = shortPercent ? 'Finnhub' : null;
+    // Parse Massive short interest (primary source)
+    if (massiveShort && massiveShort.length > 0) {
+      const latest = massiveShort[0];
+      const prev = massiveShort[1];
+      shortShares = latest.short_interest;
+      shortPercent = latest.short_percent_float ? parseFloat(latest.short_percent_float) * 100 : null;
+      daysTocover = latest.days_to_cover ? parseFloat(latest.days_to_cover) : null;
+      settleDate = latest.settlement_date;
+      source = 'FINRA via Massive';
+      if (prev && prev.short_interest && latest.short_interest) {
+        changePercent = ((latest.short_interest - prev.short_interest) / prev.short_interest * 100).toFixed(2);
+      }
+      shortHistory = massiveShort.slice(0, 6).map(d => ({
+        date: d.settlement_date,
+        shares: d.short_interest,
+        percent: d.short_percent_float ? (parseFloat(d.short_percent_float)*100).toFixed(2) : null,
+      }));
     }
 
-    // Short history from FINRA if available
-    const shortHistory = finraData ? finraData.slice(0, 6).map(d => ({
-      date: d.settlementDate,
-      shares: d.currentShortShareNumber,
-      change: d.changePercent,
-    })) : [];
+    // Parse Massive short volume (supplement)
+    if (massiveVol && massiveVol.length > 0) {
+      const latest = massiveVol[0];
+      shortVolume = latest.short_volume;
+      shortVolumeRatio = latest.short_volume_ratio
+        ? parseFloat(latest.short_volume_ratio * 100).toFixed(1)
+        : (latest.short_volume && latest.total_volume
+            ? (latest.short_volume / latest.total_volume * 100).toFixed(1)
+            : null);
+    }
+
+    // Fallback to FINRA OTC for pink/OTC stocks
+    if (!shortShares && finraData && finraData.length > 0) {
+      const latest = finraData[0];
+      const prev = finraData[1];
+      shortShares = latest.currentShortShareNumber;
+      settleDate = latest.settlementDate;
+      changePercent = latest.changePercent;
+      source = 'FINRA OTC';
+      shortHistory = finraData.slice(0,6).map(d => ({
+        date: d.settlementDate,
+        shares: d.currentShortShareNumber,
+        change: d.changePercent,
+      }));
+    }
 
     return new Response(JSON.stringify({
       ticker: ticker.toUpperCase(),
@@ -113,10 +122,11 @@ export default async function handler(req) {
       daysTocover,
       settleDate,
       changePercent,
+      shortVolume,
+      shortVolumeRatio,
       source,
       shortHistory,
       ftd: {
-        note: 'SEC FTD data published bi-monthly. View raw data below.',
         ftdUrl: 'https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data',
         fintelUrl: `https://fintel.io/fails-to-deliver/${ticker.toUpperCase()}`,
         marketbeatUrl: `https://www.marketbeat.com/stocks/NASDAQ/${ticker.toUpperCase()}/short-interest/`,
