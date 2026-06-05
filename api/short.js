@@ -1,28 +1,89 @@
 export const config = { runtime: 'edge' };
 
-const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+async function scrapeMarketBeat(ticker) {
+  // Try NASDAQ first, then NYSE
+  const exchanges = ['NASDAQ', 'NYSE', 'NYSEARCA', 'OTC'];
+  for (const exch of exchanges) {
+    try {
+      const url = `https://www.marketbeat.com/stocks/${exch}/${ticker.toUpperCase()}/short-interest/`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://www.marketbeat.com/',
+          'Cache-Control': 'no-cache',
+        }
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (!html.includes('Short Interest')) continue;
 
-// SEC FTD files are pipe-delimited text inside ZIP files
-// We fetch the index page to find latest file URLs
-async function getSecFTDIndex() {
-  try {
-    const res = await fetch('https://www.sec.gov/data/foiadocsfailsdatahtm', {
-      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    // Find all cnsfails links
-    const matches = [...html.matchAll(/href="([^"]*cnsfails\d{6}[ab]\.zip)"/gi)];
-    return matches.map(m => 'https://www.sec.gov' + m[1]).slice(0, 4);
-  } catch(e) { return null; }
-}
+      // Parse the data table - matching what we see in the screenshot
+      const parse = (pattern) => {
+        const m = html.match(pattern);
+        return m ? m[1].trim() : null;
+      };
 
-async function getFinnhubQuote(ticker) {
-  try {
-    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
-    const d = await r.json();
-    return d;
-  } catch(e) { return null; }
+      // Current Short Interest shares
+      const sharesMatch = html.match(/Current Short Interest<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
+        || html.match(/Current Short Interest[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
+
+      // Short Percent of Float
+      const pctMatch = html.match(/Short Percent of Float<\/td>[\s\S]*?<td[^>]*>([\d.]+)%/i)
+        || html.match(/Short Percent of Float[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d.]+)%/i);
+
+      // Days to Cover / Short Interest Ratio
+      const daysMatch = html.match(/Short Interest Ratio<\/td>[\s\S]*?<td[^>]*>([\d.]+)\s*Days/i)
+        || html.match(/Days to Cover[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d.]+)/i)
+        || html.match(/Short Interest Ratio[^<]*<\/td>[\s\S]{0,200}?([\d.]+)\s*Days/i);
+
+      // Change vs prior
+      const changeMatch = html.match(/Change Vs\.? Previous[^<]*<\/td>[\s\S]*?<td[^>]*>([+-]?[\d.]+)%/i)
+        || html.match(/Change Vs[^<]*<\/td>[\s\S]{0,300}?([+-]?[\d.]+)%/i);
+
+      // Last Record Date
+      const dateMatch = html.match(/Last Record Date<\/td>[\s\S]*?<td[^>]*>([^<]+)/i)
+        || html.match(/Settlement Date[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([^<]+)/i);
+
+      // Previous short interest
+      const prevMatch = html.match(/Previous Short Interest<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
+        || html.match(/Previous Short Interest[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
+
+      // Outstanding shares  
+      const outstandingMatch = html.match(/Outstanding Shares<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
+        || html.match(/Outstanding Shares[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
+
+      // Avg trading volume
+      const avgVolMatch = html.match(/Average Trading Volume<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
+        || html.match(/Average Trading Volume[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
+
+      const shortShares = sharesMatch ? parseInt(sharesMatch[1].replace(/,/g,'')) : null;
+      const prevShares = prevMatch ? parseInt(prevMatch[1].replace(/,/g,'')) : null;
+
+      if (!shortShares && !pctMatch) continue; // No useful data found
+
+      // Build short history from current + previous
+      const shortHistory = [];
+      if (shortShares && dateMatch) shortHistory.push({ date: dateMatch[1]?.trim(), shares: shortShares });
+      if (prevShares) shortHistory.push({ date: 'Prior period', shares: prevShares });
+
+      return {
+        shortShares,
+        shortPercent: pctMatch ? parseFloat(pctMatch[1]) : null,
+        daysTocover: daysMatch ? parseFloat(daysMatch[1]) : null,
+        settleDate: dateMatch ? dateMatch[1]?.trim() : null,
+        changePercent: changeMatch ? changeMatch[1] : null,
+        prevShortShares: prevShares,
+        outstandingShares: outstandingMatch ? parseInt(outstandingMatch[1].replace(/,/g,'')) : null,
+        avgVolume: avgVolMatch ? parseInt(avgVolMatch[1].replace(/,/g,'')) : null,
+        source: 'MarketBeat / FINRA',
+        exchange: exch,
+        shortHistory,
+      };
+    } catch(e) { continue; }
+  }
+  return null;
 }
 
 async function getFinraOTC(ticker) {
@@ -35,18 +96,6 @@ async function getFinraOTC(ticker) {
         compareFilters: [{ compareType: 'equal', fieldName: 'issueSymbolIdentifier', fieldValue: ticker.toUpperCase() }],
         sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
       })
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return Array.isArray(data) && data.length > 0 ? data : null;
-  } catch(e) { return null; }
-}
-
-async function getFinraEquity(ticker) {
-  try {
-    // FINRA equity short interest (for listed stocks)
-    const res = await fetch(`https://api.finra.org/data/group/equity/name/equityShortInterest?compareFilters=[{"compareType":"equal","fieldName":"symbolCode","fieldValue":"${ticker.toUpperCase()}"}]&limit=6&sortFields=[{"fieldName":"settlementDate","sortType":"DESC"}]`, {
-      headers: { 'Accept': 'application/json' }
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -69,74 +118,40 @@ export default async function handler(req) {
   const t = ticker.toUpperCase();
 
   try {
-    const [finraOTC, finraEquity, ftdIndex] = await Promise.all([
+    const [mbData, finraOTC] = await Promise.all([
+      scrapeMarketBeat(t),
       getFinraOTC(t),
-      getFinraEquity(t),
-      getSecFTDIndex(),
     ]);
 
-    let shortShares = null, shortPercent = null, daysTocover = null;
-    let settleDate = null, changePercent = null, source = null;
-    let shortHistory = [];
+    let result = {
+      ticker: t,
+      shortShares: null, shortPercent: null, daysTocover: null,
+      settleDate: null, changePercent: null, source: null,
+      prevShortShares: null, outstandingShares: null, avgVolume: null,
+      shortHistory: [],
+      ftd: {
+        ftdUrl: 'https://www.sec.gov/data/foiadocsfailsdatahtm',
+        fintelUrl: `https://fintel.io/fails-to-deliver/${t}`,
+        marketbeatUrl: `https://www.marketbeat.com/stocks/NASDAQ/${t}/short-interest/`,
+      }
+    };
 
-    // Parse FINRA OTC data
-    if (finraOTC && finraOTC.length > 0) {
+    if (mbData) {
+      Object.assign(result, mbData);
+    } else if (finraOTC && finraOTC.length > 0) {
       const latest = finraOTC[0];
-      shortShares = latest.currentShortShareNumber || latest.shortInterestQuantity;
-      settleDate = latest.settlementDate;
-      changePercent = latest.changePercent;
-      source = 'FINRA OTC';
-      shortHistory = finraOTC.slice(0,6).map(d => ({
+      result.shortShares = latest.currentShortShareNumber;
+      result.settleDate = latest.settlementDate;
+      result.changePercent = latest.changePercent;
+      result.source = 'FINRA OTC';
+      result.shortHistory = finraOTC.slice(0,6).map(d => ({
         date: d.settlementDate,
-        shares: d.currentShortShareNumber || d.shortInterestQuantity,
+        shares: d.currentShortShareNumber,
         change: d.changePercent,
       }));
     }
 
-    // Parse FINRA equity data (for listed stocks)
-    if (!shortShares && finraEquity && finraEquity.length > 0) {
-      const latest = finraEquity[0];
-      shortShares = latest.currentShortInterestQuantity || latest.shortInterestQuantity || latest.currentShortShareNumber;
-      settleDate = latest.settlementDate;
-      changePercent = latest.percentChangeFromPriorSettlementDate || latest.changePercent;
-      shortPercent = latest.shortInterestPercentOfFloat || latest.percentOfFloatShortInterest;
-      daysTocover = latest.daysToCoverShortInterest || latest.averageDailyShareVolume ? 
-        (shortShares / latest.averageDailyShareVolume).toFixed(1) : null;
-      source = 'FINRA';
-      shortHistory = finraEquity.slice(0,6).map(d => ({
-        date: d.settlementDate,
-        shares: d.currentShortInterestQuantity || d.shortInterestQuantity,
-        change: d.percentChangeFromPriorSettlementDate,
-      }));
-    }
-
-    // Get latest FTD files list
-    const ftdFiles = ftdIndex || [];
-    const latestFtdFile = ftdFiles[0] || null;
-
-    return new Response(JSON.stringify({
-      ticker: t,
-      shortShares,
-      shortPercent: shortPercent ? parseFloat(shortPercent) : null,
-      daysTocover: daysTocover ? parseFloat(daysTocover) : null,
-      settleDate,
-      changePercent,
-      source,
-      shortHistory,
-      ftd: {
-        note: 'SEC FTD data published bi-monthly (~2 week lag)',
-        ftdUrl: 'https://www.sec.gov/data/foiadocsfailsdatahtm',
-        latestFile: latestFtdFile,
-        fintelUrl: `https://fintel.io/fails-to-deliver/${t}`,
-        marketbeatUrl: `https://www.marketbeat.com/stocks/NASDAQ/${t}/short-interest/`,
-        chartmillUrl: `https://www.chartmill.com/stock/quote/${t}/short-interest`,
-      },
-      debug: {
-        finraOTCFound: !!finraOTC,
-        finraEquityFound: !!finraEquity,
-        ftdFilesFound: ftdFiles.length,
-      }
-    }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' }
     });
 
