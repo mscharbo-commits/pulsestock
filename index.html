@@ -1637,7 +1637,24 @@ function renderCompanyProfile(ticker, data){
         : '<span style="font-size:9px;opacity:.5;margin-left:2px;">Q</span>';
       return '<th style="text-align:right;font-size:11px;">'+(p.label||p.period)+badge+'</th>';
     }).join('') + '</tr>';
-    return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
+    var nCols = periods.length;
+    var rowsHtml = rows.map(function(r) {
+      if (!r) return '';
+      // Section header sentinel
+      if (r.__sectionRow) {
+        return '<tr><td colspan="'+(nCols+1)+'" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+r.title+'</td></tr>';
+      }
+      // Single-value row sentinel
+      if (r.__rowSpan) {
+        var n = parseFloat(r.val);
+        var cls = r.isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
+        var cells = '<td class="'+cls+'" style="text-align:right;">'+r.val+'</td>';
+        for (var i = 1; i < nCols; i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
+        return '<tr><td style="font-weight:500;">'+r.label+'</td>'+cells+'</tr>';
+      }
+      return r; // plain HTML string
+    }).join('');
+    return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rowsHtml + '</table>';
   }
 
   function histRow(label, latestVal, histArr, qtrArr, isPct, isShares) {
@@ -1677,13 +1694,6 @@ function renderCompanyProfile(ticker, data){
     return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
   }
 
-  // Pre-compute period count so rowSpan cells align correctly
-  var _preAnnuals = fin.revenueHistory || [];
-  var _preQtrs = fin.revenueQtrs || [];
-  var _prePeriods = (window._finPeriod === 'quarterly') ? _preQtrs.slice(0,8) : _preAnnuals.slice(0,5);
-  if(!_prePeriods.length) _prePeriods = (window._finPeriod === 'quarterly' ? _preAnnuals : _preQtrs).slice(0,5);
-  window._finPeriodCount = _prePeriods.length || 1;
-
   var incomeHTML = buildHistTable('fin-income-'+ticker, [
     histRow('Total Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
     histRow('Cost of Revenue', fin.costOfRevenue, fin.costOfRevHistory, fin.costOfRevQtrs),
@@ -1719,7 +1729,7 @@ function renderCompanyProfile(ticker, data){
   ], 'none');
 
   function ratioSectionRow(title) {
-    return '<tr><td colspan="99" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+title+'</td></tr>';
+    return {__sectionRow: true, title: title};
   }
   var ratiosHTML = buildHistTable('fin-ratios-'+ticker, [
     ratioSectionRow('Valuation'),
@@ -1802,13 +1812,8 @@ function row(label, val, isPct){
 
 function rowSpan(label, val, isPct){
   if(!val && val !== 0) return '';
-  var n = parseFloat(val);
-  var cls = isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
-  // Use window._finPeriodCount to emit the right number of cells
-  var count = window._finPeriodCount || 1;
-  var cells = '<td class="' + cls + '" style="text-align:right;">' + val + '</td>';
-  for (var i = 1; i < count; i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
-  return '<tr><td style="font-weight:500;">' + label + '</td>' + cells + '</tr>';
+  // Return a sentinel object - buildHistTable will render it with correct column count
+  return {__rowSpan: true, label: label, val: val, isPct: isPct};
 }
 
 function showFinTab(tab, btn, ticker){
