@@ -1,19 +1,22 @@
 export const config = { maxDuration: 60 };
 
 async function getSecFTD(ticker) {
+  // Build file list: start from last month, go back 6 months
+  // Skip current month entirely (files lag by 2 weeks)
   const now = new Date();
   const files = [];
-  for (let i = 0; i < 4; i++) {
-    const d = new Date(now - i * 30 * 86400000);
+  for (let i = 1; i <= 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const yr = d.getFullYear();
     const mo = String(d.getMonth()+1).padStart(2,'0');
+    // Second half first (more recent), then first half
     files.push(`https://www.sec.gov/files/data/fails-deliver-data/cnsfails${yr}${mo}b.zip`);
     files.push(`https://www.sec.gov/files/data/fails-deliver-data/cnsfails${yr}${mo}a.zip`);
   }
 
   for (const zipUrl of files) {
     try {
-      const res = await fetch(zipUrl, { 
+      const res = await fetch(zipUrl, {
         headers: { 'User-Agent': 'PulseStock research@pulsestock.com' },
       });
       if (!res.ok) continue;
@@ -80,6 +83,8 @@ async function getSecFTD(ticker) {
         };
       }).filter(d => d.date && d.quantity > 0);
 
+      if (ftdData.length === 0) continue;
+
       const totalFTD = ftdData.reduce((a,b) => a + b.quantity, 0);
       const latestFTD = ftdData[ftdData.length-1];
       const maxFTD = Math.max(...ftdData.map(d => d.quantity));
@@ -95,14 +100,26 @@ async function getSecFTD(ticker) {
 export default async function handler(req) {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
-  const url = new URL(req.url);
-  const ticker = url.searchParams.get('ticker')?.toUpperCase();
+
+  // Fix: handle both full URLs and relative paths for req.url
+  let ticker;
+  try {
+    const base = 'https://placeholder.com';
+    const u = new URL(req.url.startsWith('http') ? req.url : base + req.url);
+    ticker = u.searchParams.get('ticker')?.toUpperCase();
+  } catch(e) {
+    // Fallback: parse query string manually
+    const qs = req.url.includes('?') ? req.url.split('?')[1] : '';
+    const params = Object.fromEntries(qs.split('&').map(p => p.split('=')));
+    ticker = params.ticker?.toUpperCase();
+  }
+
   if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
     const data = await getSecFTD(ticker);
     return new Response(JSON.stringify(data || { error: 'No FTD data found', ticker }), {
-      headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=43200' } // 12hr cache
+      headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=43200' }
     });
   } catch(err) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
