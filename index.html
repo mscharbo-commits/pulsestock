@@ -640,6 +640,10 @@ async function fetchWithTimeout(url, ms){
   }catch(e){ clearTimeout(id); return null; }
 }
 
+async function fetchFTD(ticker){
+  return fetchWithTimeout('/api/ftd?ticker='+encodeURIComponent(ticker), 25000);
+}
+
 async function fetchShortInterest(ticker){
   return fetchWithTimeout('/api/short?ticker='+encodeURIComponent(ticker), 6000);
 }
@@ -708,6 +712,18 @@ function renderEdgar(ticker, data){
   } else {
     window._edgarContext = '';
   }
+}
+
+function renderFTD(ticker, ftd){
+  var el = document.getElementById('ftd-inline-' + ticker);
+  if(!el || !ftd || !ftd.totalFTD) return;
+  function fmt(n){ if(!n&&n!==0) return '—'; if(n>=1e6) return (n/1e6).toFixed(2)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return n.toLocaleString(); }
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">'
+    + '<div class="short-tile"><div class="short-label">Latest FTD</div><div class="short-value">' + fmt(ftd.latestFTD) + '</div><div class="short-sub">' + (ftd.latestDate||'') + '</div></div>'
+    + '<div class="short-tile"><div class="short-label">Period Total</div><div class="short-value">' + fmt(ftd.totalFTD) + '</div><div class="short-sub">' + (ftd.period||'') + '</div></div>'
+    + '<div class="short-tile"><div class="short-label">Peak Day</div><div class="short-value">' + fmt(ftd.maxFTD) + '</div><div class="short-sub">highest single day</div></div>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Source: ' + (ftd.zipFile||'SEC EDGAR') + '</div>';
 }
 
 function renderShortInterest(ticker, data){
@@ -830,7 +846,11 @@ async function doAnalyze(){
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
-  fetchShortInterest(ticker).then(function(d){ renderShortInterest(ticker, d); });
+  fetchShortInterest(ticker).then(function(d){ 
+    renderShortInterest(ticker, d);
+    // Load FTD separately after short interest (takes longer due to ZIP parsing)
+    fetchFTD(ticker).then(function(ftd){ renderFTD(ticker, ftd); });
+  });
   window._currentProfile = profile;
 
   if(!quote||quote.price===0){

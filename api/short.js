@@ -168,11 +168,19 @@ export default async function handler(req) {
   if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
-    const [mbData, ftdData, finraOTC] = await Promise.all([
+    // Run MarketBeat + FINRA in parallel, FTD separately with timeout
+    const [mbData, finraOTC] = await Promise.all([
       scrapeMarketBeat(ticker),
-      getSecFTD(ticker),
       getFinraOTC(ticker),
     ]);
+    
+    // FTD with its own timeout - if it takes too long return without it
+    let ftdData = null;
+    const ftdUrl = url.searchParams.get('ftd') === '1';
+    if (ftdUrl) {
+      // Only fetch FTD when explicitly requested via ?ftd=1
+      ftdData = await getSecFTD(ticker);
+    }
 
     let result = {
       ticker,
