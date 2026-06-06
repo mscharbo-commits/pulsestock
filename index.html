@@ -1605,56 +1605,84 @@ function renderCompanyProfile(ticker, data){
     + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'
     + '</div>';
 
-  var incomeHTML = '<table class="fin-table" id="fin-income-'+ticker+'">'
-    + '<tr><th>Metric</th><th>Value</th></tr>'
-    + row('Revenue', fin.revenue)
-    + row('Gross Profit', fin.grossProfit)
-    + row('Operating Income', fin.operatingIncome)
-    + row('Net Income', fin.netIncome)
-    + row('EBITDA', fin.ebitda)
-    + row('Gross Margin', fin.grossMargin, true)
-    + row('Operating Margin', fin.operatingMargin, true)
-    + row('Profit Margin', fin.profitMargin, true)
-    + row('Revenue Growth', fin.revenueGrowth, true)
-    + row('Earnings Growth', fin.earningsGrowth, true)
-    + row('Free Cash Flow', fin.freeCashflow)
-    + row('Operating Cash Flow', fin.operatingCashflow)
-    + '</table>';
-
-  var balanceHTML = '<table class="fin-table" id="fin-balance-'+ticker+'" style="display:none;">'
-    + '<tr><th>Metric</th><th>Value</th></tr>'
-    + row('Total Assets', fin.totalAssets)
-    + row('Total Debt', fin.totalDebt)
-    + row('Cash & Equivalents', fin.cash)
-    + row('Total Equity', fin.totalEquity)
-    + row('Book Value/Share', fin.bookValue)
-    + row('Debt to Equity', fin.debtToEquity)
-    + row('Current Ratio', fin.currentRatio)
-    + row('Quick Ratio', fin.quickRatio)
-    + row('Return on Equity', fin.roe, true)
-    + row('Return on Assets', fin.roa, true)
-    + '</table>';
-
-  var ratiosHTML = '<table class="fin-table" id="fin-ratios-'+ticker+'" style="display:none;">'
-    + '<tr><th>Metric</th><th>Value</th></tr>'
-    + row('P/E Ratio', fin.pe)
-    + row('Forward P/E', fin.forwardPE)
-    + row('PEG Ratio', fin.peg)
-    + row('P/S Ratio', fin.ps)
-    + row('P/B Ratio', fin.pb)
-    + row('EV/EBITDA', fin.evEbitda)
-    + row('EV/Revenue', fin.evRevenue)
-    + row('EPS (TTM)', fin.eps)
-    + row('Forward EPS', fin.forwardEps)
-    + row('Beta', fin.beta)
-    + row('Dividend Yield', fin.dividendYield, true)
-    + row('Payout Ratio', fin.payoutRatio, true)
-    + row('Short Ratio', fin.shortRatio)
-    + '</table>';
-
-  if(false){ /* placeholder */ } else {
-    finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
+  // Build period headers from historical data
+  function buildHistTable(id, rows, display) {
+    var annuals = fin.revenueHistory || [];
+    var qtrs = fin.revenueQtrs || [];
+    var periods = qtrs.slice(0,4).concat(annuals.slice(0,4));
+    if(!periods.length) {
+      return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">'
+        + '<tr><th>Metric</th><th style="text-align:right;">Latest</th></tr>'
+        + rows.join('') + '</table>';
+    }
+    var hdrs = '<tr><th>Metric</th>' + periods.map(function(p){
+      var badge = p.type==='annual' ? '<span style="font-size:9px;opacity:.5;margin-left:2px;">A</span>' : '<span style="font-size:9px;opacity:.5;margin-left:2px;">Q</span>';
+      return '<th style="text-align:right;font-size:11px;">'+(p.label||p.period)+badge+'</th>';
+    }).join('') + '</tr>';
+    return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
   }
+
+  function histRow(label, latestVal, histArr, qtrArr, isPct) {
+    var annuals = histArr || [];
+    var qtrs = qtrArr || [];
+    var periods = qtrs.slice(0,4).concat(annuals.slice(0,4));
+    if(!periods.length) return row(label, latestVal, isPct);
+    var cells = periods.map(function(p) {
+      var v = p.value;
+      if(v === null || v === undefined) return '<td style="text-align:right;color:var(--text3);">—</td>';
+      var formatted, cls = '';
+      if(isPct) {
+        formatted = (v*100).toFixed(1)+'%';
+        cls = v >= 0 ? 'fin-positive' : 'fin-negative';
+      } else if(Math.abs(v) >= 1e12) { formatted = '$'+(v/1e12).toFixed(2)+'T'; }
+      else if(Math.abs(v) >= 1e9) { formatted = '$'+(v/1e9).toFixed(2)+'B'; }
+      else if(Math.abs(v) >= 1e6) { formatted = '$'+(v/1e6).toFixed(2)+'M'; }
+      else if(Math.abs(v) < 100) { formatted = '$'+parseFloat(v).toFixed(2); }
+      else { formatted = '$'+v.toFixed(0); }
+      return '<td style="text-align:right;" class="'+cls+'">'+formatted+'</td>';
+    }).join('');
+    return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
+  }
+
+  var incomeHTML = buildHistTable('fin-income-'+ticker, [
+    histRow('Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
+    histRow('Gross Profit', fin.grossProfit, fin.grossProfitHistory, []),
+    histRow('Operating Income', fin.operatingIncome, [], []),
+    histRow('Net Income', fin.netIncome, fin.netIncomeHistory, fin.netIncomeQtrs),
+    histRow('EPS (Diluted)', fin.eps, fin.epsHistory, fin.epsQtrs),
+    histRow('Gross Margin %', fin.grossMargin, [], [], true),
+    histRow('Operating Margin %', fin.operatingMargin, [], [], true),
+    histRow('Net Margin %', fin.profitMargin, [], [], true),
+    histRow('Free Cash Flow', fin.freeCashflow, [], []),
+    histRow('Operating Cash Flow', fin.operatingCashflow, [], []),
+  ], 'table');
+
+  var balanceHTML = buildHistTable('fin-balance-'+ticker, [
+    histRow('Total Assets', fin.totalAssets, [], []),
+    histRow('Cash & Equivalents', fin.cash, fin.cashHistory, []),
+    histRow('Total Debt', fin.totalDebt, fin.debtHistory, []),
+    histRow('Total Equity', fin.totalEquity, [], []),
+    histRow('Current Assets', fin.currentAssets, [], []),
+    histRow('Current Liabilities', fin.currentLiabilities, [], []),
+    row('Current Ratio', fin.currentRatio),
+    row('Debt to Equity', fin.debtToEquity),
+    row('Return on Equity', fin.roe),
+    row('Return on Assets', fin.roa),
+  ], 'none');
+
+  var ratiosHTML = buildHistTable('fin-ratios-'+ticker, [
+    row('P/E Ratio (TTM)', fin.pe),
+    row('Forward P/E', fin.forwardPE),
+    row('P/B Ratio', fin.pb),
+    row('Beta', fin.beta),
+    row('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
+    row('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null),
+    row('Dividend Yield', fin.dividendYield),
+    histRow('EPS (Diluted)', fin.eps, fin.epsHistory, fin.epsQtrs),
+    row('Shares Outstanding', fin.sharesOutstanding),
+  ], 'none');
+
+  finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
 }
 
 function row(label, val, isPct){
