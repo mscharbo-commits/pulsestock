@@ -46,14 +46,25 @@ async function getEdgarCik(ticker) {
   } catch(e) { return null; }
 }
 
-function getLatestValue(facts, concept, unit = 'USD') {
+function getLatestValue(facts, concept, unit = 'USD', preferEnd = null) {
   try {
     const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
     if (!data || !data.length) return null;
-    // Get most recent annual (10-K) value, then quarterly
-    const annuals = data.filter(d => d.form === '10-K' && d.val != null).sort((a,b) => b.end?.localeCompare(a.end));
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.start && d.end).sort((a,b) => b.end.localeCompare(a.end));
+    // If a preferred end date is given, try to match it first
+    if (preferEnd) {
+      const match = annuals.find(d => d.end === preferEnd);
+      if (match) return match.val;
+    }
+    // Filter to strict 1-year periods to avoid cumulative entries
+    const annual1yr = annuals.filter(d => {
+      const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+      return days >= 300 && days <= 400;
+    });
+    if (annual1yr.length) return annual1yr[0].val;
     if (annuals.length) return annuals[0].val;
-    const qtrs = data.filter(d => (d.form === '10-Q' || d.form === '10-K') && d.val != null).sort((a,b) => b.end?.localeCompare(a.end));
+    // Fall back to most recent quarterly
+    const qtrs = data.filter(d => d.form === '10-Q' && d.val != null).sort((a,b) => b.end.localeCompare(a.end));
     return qtrs.length ? qtrs[0].val : null;
   } catch(e) { return null; }
 }
@@ -300,7 +311,8 @@ export default async function handler(req) {
     const cash = getLatestValue(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue') || getLatestValue(edgarFacts, 'Cash');
     const totalDebt = getLatestValue(edgarFacts, 'LongTermDebt') || getLatestValue(edgarFacts, 'DebtCurrent');
     const operatingCashflow = getLatestValue(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
-    const capex = getLatestValue(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
+    const _capexConcepts = ['PaymentsToAcquirePropertyPlantAndEquipment','PaymentsForCapitalImprovements','PaymentsToAcquireProductiveAssets'];
+    const capex = _capexConcepts.reduce((v, c) => v || getLatestValue(edgarFacts, c), null);
     const freeCashflow = (operatingCashflow && capex) ? operatingCashflow - capex : null;
     const eps = epsBasic || epsDiluted;
     const sharesOutstanding = getLatestValue(edgarFacts, 'CommonStockSharesOutstanding', 'shares');
@@ -384,8 +396,13 @@ export default async function handler(req) {
     const currentLiabQtrs      = getInstantQtrs(edgarFacts, 'LiabilitiesCurrent');
     const opCfHistory        = getHistoricalValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
     const opCfQtrs           = getQuarterlyValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
-    const capexHistory       = getHistoricalValues(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
-    const capexQtrs          = getQuarterlyValues(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
+    const _getCapexHist = (fn) => {
+      for (const c of ['PaymentsToAcquirePropertyPlantAndEquipment','PaymentsForCapitalImprovements','PaymentsToAcquireProductiveAssets']) {
+        const r = fn(edgarFacts, c); if (r.length) return r;
+      } return [];
+    };
+    const capexHistory       = _getCapexHist(getHistoricalValues);
+    const capexQtrs          = _getCapexHist(getQuarterlyValues);
 
     return new Response(JSON.stringify({
       // Profile
