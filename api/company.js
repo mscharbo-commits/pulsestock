@@ -220,7 +220,7 @@ export default async function handler(req) {
     ]);
 
     // Extract financials from EDGAR XBRL
-    const revenue = getLatestValue(edgarFacts, 'Revenues') || getLatestValue(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax') || getLatestValue(edgarFacts, 'SalesRevenueNet');
+    const revenue = getLatestValue(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax') || getLatestValue(edgarFacts, 'Revenues') || getLatestValue(edgarFacts, 'SalesRevenueNet');
     const netIncome = getLatestValue(edgarFacts, 'NetIncomeLoss');
     const grossProfit = getLatestValue(edgarFacts, 'GrossProfit');
     const operatingIncome = getLatestValue(edgarFacts, 'OperatingIncomeLoss');
@@ -247,7 +247,14 @@ export default async function handler(req) {
     const currentRatio = (currentAssets && currentLiabilities) ? currentAssets / currentLiabilities : null;
 
     // Historical annual + quarterly data from EDGAR
-    const revConcept = getLatestValue(edgarFacts, 'Revenues') ? 'Revenues' : 'RevenueFromContractWithCustomerExcludingAssessedTax';
+    // Pick revenue concept with most recent data
+    const _revCheck = (c) => {
+      const d = edgarFacts?.facts?.['us-gaap']?.[c]?.units?.USD || [];
+      const latest = d.filter(e => e.form==='10-K' && e.val!=null && e.start).sort((a,b)=>b.end.localeCompare(a.end));
+      return latest[0]?.end || '';
+    };
+    const revConcept = ['RevenueFromContractWithCustomerExcludingAssessedTax','Revenues','SalesRevenueNet']
+      .sort((a,b) => _revCheck(b).localeCompare(_revCheck(a)))[0];
     const revenueHistory   = getHistoricalValues(edgarFacts, revConcept);
     const revenueQtrs      = getQuarterlyValues(edgarFacts, revConcept);
     const netIncomeHistory = getHistoricalValues(edgarFacts, 'NetIncomeLoss');
