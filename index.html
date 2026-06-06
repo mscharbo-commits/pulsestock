@@ -1704,42 +1704,39 @@ function renderCompanyProfile(ticker, data){
     histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
   ], 'none');
 
-  function ratioRow(label, val) {
-    if(!val && val !== 0) return '';
-    return '<tr><td style="font-weight:500;color:var(--text2);">'+label+'</td><td style="text-align:right;font-family:\'DM Mono\',monospace;">'+val+'</td></tr>';
+  function ratioSectionRow(title) {
+    return '<tr><td colspan="99" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+title+'</td></tr>';
   }
-  function ratioSection(title) {
-    return '<tr><td colspan="2" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+title+'</td></tr>';
-  }
-  var ratiosHTML = '<table class="fin-table" id="fin-ratios-'+ticker+'" style="display:none;">'
-    + '<tr><th>Metric</th><th style="text-align:right;">Value</th></tr>'
-    + ratioSection('Valuation')
-    + ratioRow('P/E Ratio (TTM)', fin.pe ? fin.pe+'x' : null)
-    + ratioRow('Forward P/E', fin.forwardPE ? fin.forwardPE+'x' : null)
-    + ratioRow('P/B Ratio', fin.pb ? fin.pb+'x' : null)
-    + ratioRow('EV/EBITDA', fin.evEbitda ? fin.evEbitda+'x' : null)
-    + ratioSection('Per Share')
-    + ratioRow('EPS (Diluted TTM)', fin.epsDiluted ? '$'+fin.epsDiluted : null)
-    + ratioRow('EPS (Basic TTM)', fin.epsBasic ? '$'+fin.epsBasic : null)
-    + ratioRow('Shares Outstanding', fin.sharesOutstanding)
-    + ratioRow('Dividend Yield', fin.dividendYield)
-    + ratioSection('Profitability')
-    + ratioRow('Gross Margin', fin.grossMargin)
-    + ratioRow('Operating Margin', fin.operatingMargin)
-    + ratioRow('Net Margin', fin.profitMargin)
-    + ratioRow('Return on Equity', fin.roe)
-    + ratioRow('Return on Assets', fin.roa)
-    + ratioSection('Financial Health')
-    + ratioRow('Current Ratio', fin.currentRatio)
-    + ratioRow('Debt to Equity', fin.debtToEquity)
-    + ratioRow('Total Debt', fin.totalDebt)
-    + ratioRow('Free Cash Flow', fin.freeCashflow)
-    + ratioSection('Market Data')
-    + ratioRow('Beta', fin.beta)
-    + ratioRow('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null)
-    + ratioRow('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null)
-    + ratioRow('Avg Volume (10D)', fin.avgVolume ? parseInt(fin.avgVolume).toLocaleString() : null)
-    + '</table>';
+  var ratiosHTML = buildHistTable('fin-ratios-'+ticker, [
+    ratioSectionRow('Valuation'),
+    rowSpan('P/E Ratio (TTM)', fin.pe ? fin.pe+'x' : null),
+    rowSpan('Forward P/E', fin.forwardPE ? fin.forwardPE+'x' : null),
+    rowSpan('P/B Ratio', fin.pb ? fin.pb+'x' : null),
+    ratioSectionRow('Per Share'),
+    histRow('EPS (Diluted)', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
+    histRow('EPS (Basic)', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
+    histRow('Shares (Basic)', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
+    rowSpan('Shares Outstanding', fin.sharesOutstanding),
+    rowSpan('Dividend Yield', fin.dividendYield),
+    ratioSectionRow('Profitability'),
+    histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
+    histRow('Operating Margin %', fin.operatingMargin, deriveMargin(fin.opIncomeHistory, fin.revenueHistory), deriveMargin(fin.opIncomeQtrs, fin.revenueQtrs), true),
+    histRow('Net Margin %', fin.profitMargin, deriveMargin(fin.netIncomeHistory, fin.revenueHistory), deriveMargin(fin.netIncomeQtrs, fin.revenueQtrs), true),
+    rowSpan('Return on Equity', fin.roe),
+    rowSpan('Return on Assets', fin.roa),
+    ratioSectionRow('Financial Health'),
+    histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, fin.totalAssetsQtrs),
+    histRow('Total Debt', fin.totalDebt, fin.debtHistory, fin.debtQtrs),
+    histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, fin.totalEquityQtrs),
+    histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
+    rowSpan('Current Ratio', fin.currentRatio),
+    rowSpan('Debt to Equity', fin.debtToEquity),
+    ratioSectionRow('Market Data'),
+    rowSpan('Beta', fin.beta),
+    rowSpan('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
+    rowSpan('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null),
+    rowSpan('Avg Volume (10D)', fin.avgVolume ? parseInt(fin.avgVolume).toLocaleString() : null),
+  ], 'none');
 
   window._lastFinData = data;
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
