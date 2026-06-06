@@ -1,7 +1,4 @@
-export const config = { 
-  runtime: 'edge',
-  maxDuration: 30, // 30 second timeout for this endpoint
-};
+export const config = { maxDuration: 60 };
 
 async function getSecFTD(ticker) {
   const now = new Date();

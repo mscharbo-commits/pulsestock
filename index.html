@@ -842,10 +842,13 @@ async function doAnalyze(){
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
+  // Load short interest first, then FTD after DOM is ready
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
-    // Load FTD separately after short interest (takes longer due to ZIP parsing)
-    fetchFTD(ticker).then(function(ftd){ renderFTD(ticker, ftd); });
+    // Start FTD after short interest renders (ensures ftd-inline div exists in DOM)
+    setTimeout(function(){
+      fetchFTD(ticker).then(function(ftd){ renderFTD(ticker, ftd); });
+    }, 100);
   });
   window._currentProfile = profile;
 
