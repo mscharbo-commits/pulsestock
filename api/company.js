@@ -62,19 +62,33 @@ function getHistoricalValues(facts, concept, unit = 'USD', limit = 4) {
   try {
     const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
     if (!data) return [];
-    // Deduplicate by year - keep the one with the longest duration (full year)
-    const byYear = {};
-    data.filter(d => d.form === '10-K' && d.val != null && d.end).forEach(d => {
-      const yr = d.end.substring(0,4);
-      const duration = d.start ? (new Date(d.end) - new Date(d.start)) : 0;
-      if (!byYear[yr] || duration > byYear[yr].duration) {
-        byYear[yr] = { ...d, duration };
-      }
+    
+    // Only keep 10-K annual filings with both start and end dates
+    // Duration must be ~1 year (300-400 days) to avoid cumulative multi-year entries
+    const annuals = data.filter(d => {
+      if (d.form !== '10-K' || d.val == null || !d.end || !d.start) return false;
+      const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+      return days >= 300 && days <= 400; // strictly 1-year periods only
     });
-    return Object.values(byYear)
+    
+    // Deduplicate by fiscal year end date (full date, not just year)
+    const seen = new Set();
+    const unique = annuals.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
       .sort((a,b) => b.end.localeCompare(a.end))
       .slice(0, limit)
-      .map(d => ({ period: d.end.substring(0,4), label: 'FY ' + d.end.substring(0,4), value: d.val, type: 'annual' }));
+      .map(d => ({ 
+        period: d.end.substring(0,4), 
+        label: 'FY ' + d.end.substring(0,4), 
+        value: d.val, 
+        type: 'annual',
+        end: d.end
+      }));
   } catch(e) { return []; }
 }
 
@@ -82,22 +96,32 @@ function getQuarterlyValues(facts, concept, unit = 'USD', limit = 4) {
   try {
     const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
     if (!data) return [];
-    // Quarterly values: form 10-Q, duration ~90 days
+    
+    // Quarterly: 10-Q filings with ~90 day duration
     const qtrs = data
-      .filter(d => d.form === '10-Q' && d.val != null && d.end && d.start)
-      .map(d => {
+      .filter(d => {
+        if ((d.form !== '10-Q') || d.val == null || !d.end || !d.start) return false;
         const days = (new Date(d.end) - new Date(d.start)) / 86400000;
-        return { ...d, days };
-      })
-      .filter(d => d.days >= 75 && d.days <= 105) // ~1 quarter duration
-      .sort((a,b) => b.end.localeCompare(a.end))
-      .slice(0, limit);
-    return qtrs.map(d => {
-      const endDate = new Date(d.end);
-      const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
-      const yr = endDate.getFullYear();
-      return { period: d.end?.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter' };
+        return days >= 75 && days <= 105;
+      });
+    
+    // Deduplicate by end date
+    const seen = new Set();
+    const unique = qtrs.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
     });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => {
+        const endDate = new Date(d.end);
+        const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
+        const yr = endDate.getFullYear();
+        return { period: d.end.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter', end: d.end };
+      });
   } catch(e) { return []; }
 }
 
