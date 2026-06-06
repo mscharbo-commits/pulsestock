@@ -1559,8 +1559,8 @@ async function renderPortfolio(){
       const val=h.shares*price,cost=h.shares*h.avg,pnl=val-cost,pp=(pnl/cost)*100,day=q?h.shares*price*(q.pct/100):0;
       return `<div class="holding-row">
         <div><div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;cursor:pointer;" onclick="goAnalyze('${h.ticker}')">${h.ticker}</div><div style="font-size:12px;color:var(--text3);">${h.ticker}</div></div>
-        <div class="hr-cell">${h.shares}</div>
-        <div class="hr-cell">$${h.avg}</div>
+        <div class="hr-cell">${h.shares.toLocaleString()}</div>
+        <div class="hr-cell">$${h.avg.toLocaleString()}</div>
         <div class="hr-cell ${q?(q.pct>=0?'up':'down'):''}">${q?'$'+price.toFixed(2):'Loading…'}</div>
         <div class="hr-cell ${day>=0?'up':'down'}">${day>=0?'+':'-'}$${Math.abs(day).toFixed(0)}</div>
         <div class="hr-cell ${pnl>=0?'up':'down'}">${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(0)}<br/><span style="font-size:11px;opacity:.8;">${pnl>=0?'+':''}${pp.toFixed(1)}%</span></div>
@@ -1571,8 +1571,10 @@ async function renderPortfolio(){
 function addHolding(){
   const t=(prompt('Ticker symbol:')||'').trim().toUpperCase();
   if(!t) return;
-  const shares=parseFloat(prompt('Number of shares:')||0);
-  const avg=parseFloat(prompt('Average cost per share ($):')||0);
+  const sharesRaw=(prompt('Number of shares (e.g. 100000):')||'').replace(/,/g,'');
+  const avgRaw=(prompt('Average cost per share ($):')||'').replace(/[$,]/g,'');
+  const shares=parseFloat(sharesRaw)||0;
+  const avg=parseFloat(avgRaw)||0;
   if(!shares||!avg) return;
   const ex=portfolio.find(h=>h.ticker===t);
   if(ex)ex.shares+=shares;else portfolio.push({ticker:t,shares,avg});
