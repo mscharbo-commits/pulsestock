@@ -1637,24 +1637,7 @@ function renderCompanyProfile(ticker, data){
         : '<span style="font-size:9px;opacity:.5;margin-left:2px;">Q</span>';
       return '<th style="text-align:right;font-size:11px;">'+(p.label||p.period)+badge+'</th>';
     }).join('') + '</tr>';
-    var nCols = periods.length;
-    var rowsHtml = rows.map(function(r) {
-      if (!r) return '';
-      // Section header sentinel
-      if (r.__sectionRow) {
-        return '<tr><td colspan="'+(nCols+1)+'" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+r.title+'</td></tr>';
-      }
-      // Single-value row sentinel
-      if (r.__rowSpan) {
-        var n = parseFloat(r.val);
-        var cls = r.isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
-        var cells = '<td class="'+cls+'" style="text-align:right;">'+r.val+'</td>';
-        for (var i = 1; i < nCols; i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
-        return '<tr><td style="font-weight:500;">'+r.label+'</td>'+cells+'</tr>';
-      }
-      return r; // plain HTML string
-    }).join('');
-    return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rowsHtml + '</table>';
+    return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
   }
 
   function histRow(label, latestVal, histArr, qtrArr, isPct, isShares) {
@@ -1694,6 +1677,27 @@ function renderCompanyProfile(ticker, data){
     return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
   }
 
+  // Compute period count once so rowSpan can use it
+  var _annuals = fin.revenueHistory || [];
+  var _qtrs = fin.revenueQtrs || [];
+  var _periods = (window._finPeriod === 'quarterly') ? _qtrs.slice(0,8) : _annuals.slice(0,5);
+  if(!_periods.length) _periods = (window._finPeriod === 'quarterly' ? _annuals : _qtrs).slice(0,5);
+  var _nCols = _periods.length || 1;
+
+  // Local rowSpan that knows the column count — no sentinel needed
+  function makeSpanRow(label, val, isPct) {
+    if(!val && val !== 0) return '';
+    var n = parseFloat(val);
+    var cls = isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
+    var cells = '<td class="'+cls+'" style="text-align:right;">'+val+'</td>';
+    for(var _i = 1; _i < _nCols; _i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
+    return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
+  }
+
+  function makeSectionRow(title) {
+    return '<tr><td colspan="'+(_nCols+1)+'" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+title+'</td></tr>';
+  }
+
   var incomeHTML = buildHistTable('fin-income-'+ticker, [
     histRow('Total Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
     histRow('Cost of Revenue', fin.costOfRevenue, fin.costOfRevHistory, fin.costOfRevQtrs),
@@ -1728,45 +1732,35 @@ function renderCompanyProfile(ticker, data){
     histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
   ], 'none');
 
-  function ratioSectionRow(title) {
-    return {__sectionRow: true, title: title};
-  }
   var ratiosHTML = buildHistTable('fin-ratios-'+ticker, [
-    ratioSectionRow('Valuation'),
-    rowSpan('P/E Ratio (TTM)', fin.pe ? fin.pe+'x' : null),
-    rowSpan('Forward P/E', fin.forwardPE ? fin.forwardPE+'x' : null),
-    rowSpan('P/B Ratio', fin.pb ? fin.pb+'x' : null),
-    ratioSectionRow('Per Share'),
+    makeSectionRow('Valuation'),
+    makeSpanRow('P/E Ratio (TTM)', fin.pe ? fin.pe+'x' : null),
+    makeSpanRow('Forward P/E', fin.forwardPE ? fin.forwardPE+'x' : null),
+    makeSpanRow('P/B Ratio', fin.pb ? fin.pb+'x' : null),
+    makeSectionRow('Per Share'),
     histRow('EPS (Diluted)', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
     histRow('EPS (Basic)', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
     histRow('Shares (Basic)', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs, false, true),
-    rowSpan('Shares Outstanding', (function(){
-      var s = parseFloat(fin.sharesOutstanding);
-      if(!s) return fin.sharesOutstanding;
-      if(s>=1e12) return (s/1e12).toFixed(2)+'T';
-      if(s>=1e9) return (s/1e9).toFixed(2)+'B';
-      if(s>=1e6) return (s/1e6).toFixed(2)+'M';
-      return s.toLocaleString();
-    })()),
-    rowSpan('Dividend Yield', fin.dividendYield),
-    ratioSectionRow('Profitability'),
+    makeSpanRow('Shares Outstanding', (function(){ var s=parseFloat(fin.sharesOutstanding); if(!s) return fin.sharesOutstanding; if(s>=1e12) return (s/1e12).toFixed(2)+'T'; if(s>=1e9) return (s/1e9).toFixed(2)+'B'; if(s>=1e6) return (s/1e6).toFixed(2)+'M'; return s.toLocaleString(); })()),
+    makeSpanRow('Dividend Yield', fin.dividendYield),
+    makeSectionRow('Profitability'),
     histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
     histRow('Operating Margin %', fin.operatingMargin, deriveMargin(fin.opIncomeHistory, fin.revenueHistory), deriveMargin(fin.opIncomeQtrs, fin.revenueQtrs), true),
     histRow('Net Margin %', fin.profitMargin, deriveMargin(fin.netIncomeHistory, fin.revenueHistory), deriveMargin(fin.netIncomeQtrs, fin.revenueQtrs), true),
-    rowSpan('Return on Equity', fin.roe),
-    rowSpan('Return on Assets', fin.roa),
-    ratioSectionRow('Financial Health'),
+    makeSpanRow('Return on Equity', fin.roe),
+    makeSpanRow('Return on Assets', fin.roa),
+    makeSectionRow('Financial Health'),
     histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, fin.totalAssetsQtrs),
     histRow('Total Debt', fin.totalDebt, fin.debtHistory, fin.debtQtrs),
     histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, fin.totalEquityQtrs),
     histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
-    rowSpan('Current Ratio', fin.currentRatio),
-    rowSpan('Debt to Equity', fin.debtToEquity),
-    ratioSectionRow('Market Data'),
-    rowSpan('Beta', fin.beta),
-    rowSpan('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
-    rowSpan('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null),
-    rowSpan('Avg Volume (10D)', fin.avgVolume ? parseInt(fin.avgVolume).toLocaleString() : null),
+    makeSpanRow('Current Ratio', fin.currentRatio),
+    makeSpanRow('Debt to Equity', fin.debtToEquity),
+    makeSectionRow('Market Data'),
+    makeSpanRow('Beta', fin.beta),
+    makeSpanRow('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
+    makeSpanRow('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null),
+    makeSpanRow('Avg Volume (10D)', fin.avgVolume ? parseInt(fin.avgVolume).toLocaleString() : null),
   ], 'none');
 
   window._lastFinData = data;
