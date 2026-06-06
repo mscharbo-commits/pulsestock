@@ -739,11 +739,19 @@ function renderShortInterest(ticker, data){
     + '<div class="short-tile"><div class="short-label">Short Vol Ratio</div><div class="short-value ' + (parseFloat(data.shortVolumeRatio)>50?'short-change-up':'') + '">' + data.shortVolumeRatio + '%</div><div class="short-sub">of total volume</div></div>'
     + '</div>' : '')
     + '<div class="ftd-row"><span style="color:var(--text3);">Last report date</span><span>' + (data.settleDate||'—') + (data.source?' <span class="short-src">'+data.source+'</span>':'') + '</span></div>'
-    + '<div class="ftd-row"><span style="color:var(--text3);">Fails to Deliver (FTD)</span>'
-    + '<div style="display:flex;align-items:center;gap:8px;">'
-    + '<a href="' + (ftd.fintelUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">Fintel FTD ↗</a>'
+    + '<div class="ftd-row" style="align-items:flex-start;">'
+    + '<div style="flex:1;">'
+    + '<span style="color:var(--text2);font-weight:500;">Fails to Deliver (FTD)</span>'
+    + '<div style="font-size:11.5px;color:var(--text3);margin-top:2px;">SEC bi-monthly · shares that failed to settle · elevated = potential naked shorting</div>'
+    + (ftd.totalFTD ? '<div style="margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+      + '<div style="background:var(--surface2);border-radius:8px;padding:9px 12px;"><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Latest FTD</div><div style="font-size:15px;font-weight:700;font-family:var(--mono);margin-top:3px;">' + ftd.latestFTD.toLocaleString() + '</div><div style="font-size:11px;color:var(--text3);">' + (ftd.latestDate||'') + '</div></div>'
+      + '<div style="background:var(--surface2);border-radius:8px;padding:9px 12px;"><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Period Total</div><div style="font-size:15px;font-weight:700;font-family:var(--mono);margin-top:3px;">' + ftd.totalFTD.toLocaleString() + '</div><div style="font-size:11px;color:var(--text3);">' + (ftd.period||'') + '</div></div>'
+      + '<div style="background:var(--surface2);border-radius:8px;padding:9px 12px;"><div style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Period Peak</div><div style="font-size:15px;font-weight:700;font-family:var(--mono);margin-top:3px;">' + ftd.maxFTD.toLocaleString() + '</div><div style="font-size:11px;color:var(--text3);">shares in one day</div></div>'
+      + '</div>' : '')
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:12px;">'
     + '<a href="' + (ftd.marketbeatUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">MarketBeat ↗</a>'
-    + '<a href="' + (ftd.ftdUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">SEC EDGAR ↗</a>'
+    + '<a href="' + (ftd.ftdUrl||'#') + '" target="_blank" style="font-size:12px;color:var(--accent);font-weight:500;">SEC ↗</a>'
     + '</div></div>'
     + '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">⏱ FINRA bi-monthly · SEC FTD ~2 week lag · Not real-time</div>';
 
