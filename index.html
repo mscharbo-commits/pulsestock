@@ -1652,31 +1652,7 @@ function renderCompanyProfile(ticker, data){
     + row('Short Ratio', fin.shortRatio)
     + '</table>';
 
-  if(!data.revenue && !data.grossMargin && !data.pe){
-    finEl.innerHTML = '<div style="color:var(--text3);font-size:13.5px;padding:8px 0;">Detailed financials: <a href="https://finance.yahoo.com/quote/' + ticker + '/financials/" target="_blank" style="color:var(--accent);">View on Yahoo Finance ↗</a></div>';
-  } else if(!data.revenue) {
-    // Finnhub metrics only - show key ratios
-    var fmtPct = function(v){ return v ? (parseFloat(v)*100).toFixed(1)+'%' : '—'; };
-    var fmtNum = function(v){ return v ? parseFloat(v).toFixed(2) : '—'; };
-    finEl.innerHTML = '<table class="fin-table">'
-      + '<tr><th>Metric</th><th>Value</th></tr>'
-      + (data.pe ? '<tr><td>P/E Ratio (TTM)</td><td>' + fmtNum(data.pe) + 'x</td></tr>' : '')
-      + (data.forwardPE ? '<tr><td>Forward P/E</td><td>' + fmtNum(data.forwardPE) + 'x</td></tr>' : '')
-      + (data.eps ? '<tr><td>EPS (TTM)</td><td>$' + fmtNum(data.eps) + '</td></tr>' : '')
-      + (data.pb ? '<tr><td>Price / Book</td><td>' + fmtNum(data.pb) + 'x</td></tr>' : '')
-      + (data.beta ? '<tr><td>Beta</td><td>' + fmtNum(data.beta) + '</td></tr>' : '')
-      + (data.dividendYield ? '<tr><td>Dividend Yield</td><td>' + fmtPct(data.dividendYield) + '</td></tr>' : '')
-      + (data.week52High ? '<tr><td>52-Week High</td><td>$' + fmtNum(data.week52High) + '</td></tr>' : '')
-      + (data.week52Low ? '<tr><td>52-Week Low</td><td>$' + fmtNum(data.week52Low) + '</td></tr>' : '')
-      + (data.grossMargin ? '<tr><td>Gross Margin</td><td>' + fmtPct(data.grossMargin) + '</td></tr>' : '')
-      + (data.operatingMargin ? '<tr><td>Operating Margin</td><td>' + fmtPct(data.operatingMargin) + '</td></tr>' : '')
-      + (data.netMargin ? '<tr><td>Net Profit Margin</td><td>' + fmtPct(data.netMargin) + '</td></tr>' : '')
-      + (data.roe ? '<tr><td>Return on Equity</td><td>' + fmtPct(data.roe) + '</td></tr>' : '')
-      + (data.roa ? '<tr><td>Return on Assets</td><td>' + fmtPct(data.roa) + '</td></tr>' : '')
-      + (data.revenueGrowth ? '<tr><td>Revenue Growth YoY</td><td>' + fmtPct(data.revenueGrowth) + '</td></tr>' : '')
-      + '</table>'
-      + '<div style="font-size:11.5px;color:var(--text3);margin-top:8px;">Source: Finnhub · <a href="https://finance.yahoo.com/quote/' + ticker + '/financials/" target="_blank" style="color:var(--accent);">Full statements on Yahoo ↗</a></div>';
-  } else {
+  if(false){ /* placeholder */ } else {
     finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
   }
 }

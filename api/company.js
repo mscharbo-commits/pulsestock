@@ -2,37 +2,6 @@ export const config = { runtime: 'edge' };
 
 const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
 
-async function getWikipediaDescription(companyName, ticker) {
-  // Try Wikipedia REST API - free, no key needed
-  const searches = [
-    companyName?.replace(/\s+(Inc\.?|Corp\.?|Ltd\.?|LLC|Co\.?|Company|Group|Holdings?|plc)$/i,'').trim(),
-    companyName,
-    ticker,
-  ].filter(Boolean);
-
-  for (const term of searches) {
-    try {
-      // Search Wikipedia
-      const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(term)}&limit=1&format=json&origin=*`;
-      const sr = await fetch(searchUrl, { headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' } });
-      if (!sr.ok) continue;
-      const sd = await sr.json();
-      const title = sd?.[1]?.[0];
-      if (!title) continue;
-
-      // Get summary
-      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-      const pr = await fetch(summaryUrl, { headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' } });
-      if (!pr.ok) continue;
-      const pd = await pr.json();
-      if (pd.extract && pd.extract.length > 50) {
-        return pd.extract;
-      }
-    } catch(e) { continue; }
-  }
-  return null;
-}
-
 async function getFinnhubProfile(ticker) {
   try {
     const r = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`);
@@ -50,32 +19,88 @@ async function getFinnhubMetrics(ticker) {
   } catch(e) { return null; }
 }
 
-async function getEdgarFinancials(ticker) {
+async function getEdgarFacts(cik) {
   try {
-    // We already have a working edgar endpoint
-    const r = await fetch(`https://pulsestock-nu.vercel.app/api/edgar?ticker=${ticker}`);
+    const paddedCik = cik.replace(/^0+/, '').padStart(10, '0');
+    const r = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'application/json' }
+    });
     if (!r.ok) return null;
     return await r.json();
   } catch(e) { return null; }
 }
 
-async function tryYahoo(ticker) {
-  const modules = 'assetProfile,summaryDetail,financialData,defaultKeyStatistics,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,recommendationTrend,upgradeDowngradeHistory';
-  const attempts = [
-    { url: `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=${modules}`, agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36' },
-    { url: `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=${modules}`, agent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36' },
-    { url: `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=${modules}`, agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.6 Safari/605.1.15' },
-  ];
-  for (const { url, agent } of attempts) {
-    try {
-      const r = await fetch(url, { headers: { 'User-Agent': agent, 'Accept': 'application/json', 'Referer': 'https://finance.yahoo.com/' } });
-      if (!r.ok) continue;
-      const data = await r.json();
-      const result = data?.quoteSummary?.result?.[0];
-      if (result) return result;
-    } catch(e) { continue; }
+async function getEdgarCik(ticker) {
+  try {
+    const r = await fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    });
+    // Try tickers.json first - SEC provides a full mapping
+    const r2 = await fetch('https://www.sec.gov/files/company_tickers.json', {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    });
+    if (!r2.ok) return null;
+    const data = await r2.json();
+    const entry = Object.values(data).find(e => e.ticker?.toUpperCase() === ticker.toUpperCase());
+    return entry ? String(entry.cik_str).padStart(10,'0') : null;
+  } catch(e) { return null; }
+}
+
+function getLatestValue(facts, concept, unit = 'USD') {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data || !data.length) return null;
+    // Get most recent annual (10-K) value, then quarterly
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null).sort((a,b) => b.end?.localeCompare(a.end));
+    if (annuals.length) return annuals[0].val;
+    const qtrs = data.filter(d => (d.form === '10-Q' || d.form === '10-K') && d.val != null).sort((a,b) => b.end?.localeCompare(a.end));
+    return qtrs.length ? qtrs[0].val : null;
+  } catch(e) { return null; }
+}
+
+function getHistoricalValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.end)
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit);
+    return annuals.map(d => ({ period: d.end?.substring(0,4), value: d.val }));
+  } catch(e) { return []; }
+}
+
+function fmt(val, type = 'currency') {
+  if (val === null || val === undefined) return null;
+  const n = parseFloat(val);
+  if (isNaN(n)) return null;
+  if (type === 'currency') {
+    if (Math.abs(n) >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+    if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+    if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    return '$' + n.toFixed(0);
   }
-  return null;
+  if (type === 'pct') return (n * 100).toFixed(1) + '%';
+  if (type === 'ratio') return n.toFixed(2) + 'x';
+  return n.toFixed(2);
+}
+
+async function getWikipediaDesc(name) {
+  try {
+    const clean = name.replace(/\s+(Inc\.?|Corp\.?|Ltd\.?|LLC|Co\.?|Company|Group|Holdings?|plc)$/i,'').trim();
+    const sr = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(clean)}&limit=1&format=json&origin=*`, {
+      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' }
+    });
+    if (!sr.ok) return null;
+    const sd = await sr.json();
+    const title = sd?.[1]?.[0];
+    if (!title) return null;
+    const pr = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' }
+    });
+    if (!pr.ok) return null;
+    const pd = await pr.json();
+    return pd.extract?.length > 50 ? pd.extract : null;
+  } catch(e) { return null; }
 }
 
 export default async function handler(req) {
@@ -86,125 +111,113 @@ export default async function handler(req) {
   if (!ticker) return new Response(JSON.stringify({}), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
-    // Run all sources in parallel
-    const [yahooResult, fhProfile, fhMetrics] = await Promise.all([
-      tryYahoo(ticker),
+    const [fhProfile, fhMetrics, cik] = await Promise.all([
       getFinnhubProfile(ticker),
       getFinnhubMetrics(ticker),
+      getEdgarCik(ticker),
     ]);
 
     const fh = fhProfile || {};
     const m = fhMetrics || {};
-    const fmt = (v) => (!v?.raw && v?.raw !== 0) ? null : (v.fmt || v.raw);
+    const companyName = fh.name || ticker;
 
-    // Get Wikipedia description using company name
-    const companyName = yahooResult?.assetProfile?.longName || fh.name || ticker;
-    const wikiDesc = await getWikipediaDescription(companyName, ticker);
+    // Fetch EDGAR facts and Wikipedia in parallel
+    const [edgarFacts, wikiDesc] = await Promise.all([
+      cik ? getEdgarFacts(cik) : null,
+      getWikipediaDesc(companyName),
+    ]);
 
-    if (yahooResult) {
-      const profile = yahooResult.assetProfile || {};
-      const summary = yahooResult.summaryDetail || {};
-      const fin = yahooResult.financialData || {};
-      const stats = yahooResult.defaultKeyStatistics || {};
-      const income = yahooResult.incomeStatementHistory?.incomeStatementHistory?.[0] || {};
-      const balance = yahooResult.balanceSheetHistory?.balanceSheetHistory?.[0] || {};
-      const cashflow = yahooResult.cashflowStatementHistory?.cashflowStatementHistory?.[0] || {};
-      const recTrend = yahooResult.recommendationTrend?.trend?.[0] || {};
-      const upgrades = yahooResult.upgradeDowngradeHistory?.history?.slice(0,10) || [];
+    // Extract financials from EDGAR XBRL
+    const revenue = getLatestValue(edgarFacts, 'Revenues') || getLatestValue(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax') || getLatestValue(edgarFacts, 'SalesRevenueNet');
+    const netIncome = getLatestValue(edgarFacts, 'NetIncomeLoss');
+    const grossProfit = getLatestValue(edgarFacts, 'GrossProfit');
+    const operatingIncome = getLatestValue(edgarFacts, 'OperatingIncomeLoss');
+    const totalAssets = getLatestValue(edgarFacts, 'Assets');
+    const totalLiabilities = getLatestValue(edgarFacts, 'Liabilities');
+    const totalEquity = getLatestValue(edgarFacts, 'StockholdersEquity') || getLatestValue(edgarFacts, 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest');
+    const cash = getLatestValue(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue') || getLatestValue(edgarFacts, 'Cash');
+    const totalDebt = getLatestValue(edgarFacts, 'LongTermDebt') || getLatestValue(edgarFacts, 'DebtCurrent');
+    const operatingCashflow = getLatestValue(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
+    const capex = getLatestValue(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
+    const freeCashflow = (operatingCashflow && capex) ? operatingCashflow - capex : null;
+    const eps = getLatestValue(edgarFacts, 'EarningsPerShareBasic', 'USD/shares') || getLatestValue(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
+    const sharesOutstanding = getLatestValue(edgarFacts, 'CommonStockSharesOutstanding', 'shares');
+    const currentAssets = getLatestValue(edgarFacts, 'AssetsCurrent');
+    const currentLiabilities = getLatestValue(edgarFacts, 'LiabilitiesCurrent');
 
-      return new Response(JSON.stringify({
-        name: profile.longName || fh.name || ticker,
-        description: profile.longBusinessSummary || wikiDesc,
-        sector: profile.sector || fh.finnhubIndustry || null,
-        industry: profile.industry || null,
-        website: profile.website || fh.weburl || null,
-        phone: profile.phone || fh.phone || null,
-        employees: profile.fullTimeEmployees || fh.employeeTotal || null,
-        address: [profile.address1, profile.city, profile.state, profile.zip, profile.country].filter(Boolean).join(', ') || null,
-        exchange: fh.exchange || null,
-        marketCap: fmt(summary.marketCap),
-        logo: fh.logo || null,
-        ipo: fh.ipo || null,
-        beta: fmt(summary.beta),
-        pe: fmt(summary.trailingPE),
-        forwardPE: fmt(summary.forwardPE),
-        eps: fmt(stats.trailingEps),
-        forwardEps: fmt(stats.forwardEps),
-        peg: fmt(stats.pegRatio),
-        pb: fmt(stats.priceToBook),
-        evEbitda: fmt(stats.enterpriseToEbitda),
-        dividendYield: fmt(summary.dividendYield),
-        dividendRate: fmt(summary.dividendRate),
-        exDivDate: summary.exDividendDate?.fmt || null,
-        week52High: fmt(summary.fiftyTwoWeekHigh),
-        week52Low: fmt(summary.fiftyTwoWeekLow),
-        fiftyDayAvg: fmt(summary.fiftyDayAverage),
-        twoHundredDayAvg: fmt(summary.twoHundredDayAverage),
-        avgVolume: fmt(summary.averageVolume),
-        sharesOutstanding: fmt(stats.sharesOutstanding),
-        float: fmt(stats.floatShares),
-        revenue: fmt(income.totalRevenue),
-        grossProfit: fmt(income.grossProfit),
-        operatingIncome: fmt(income.operatingIncome),
-        netIncome: fmt(income.netIncome),
-        grossMargin: fmt(fin.grossMargins),
-        operatingMargin: fmt(fin.operatingMargins),
-        profitMargin: fmt(fin.profitMargins),
-        revenueGrowth: fmt(fin.revenueGrowth),
-        earningsGrowth: fmt(fin.earningsGrowth),
-        totalAssets: fmt(balance.totalAssets),
-        totalDebt: fmt(balance.totalDebt || balance.longTermDebt),
-        cash: fmt(balance.cash),
-        totalEquity: fmt(balance.totalStockholderEquity),
-        debtToEquity: fmt(fin.debtToEquity),
-        currentRatio: fmt(fin.currentRatio),
-        operatingCashflow: fmt(cashflow.totalCashFromOperatingActivities),
-        freeCashflow: fmt(fin.freeCashflow),
-        roe: fmt(fin.returnOnEquity),
-        roa: fmt(fin.returnOnAssets),
-        targetHigh: fmt(fin.targetHighPrice),
-        targetLow: fmt(fin.targetLowPrice),
-        targetMean: fmt(fin.targetMeanPrice),
-        recommendation: fin.recommendationKey || null,
-        strongBuy: recTrend.strongBuy || 0,
-        buy: recTrend.buy || 0,
-        hold: recTrend.hold || 0,
-        sell: recTrend.sell || 0,
-        strongSell: recTrend.strongSell || 0,
-        upgrades: upgrades.map(u => ({ firm: u.firm, action: u.action, fromGrade: u.fromGrade, toGrade: u.toGrade, date: u.epochGradeDate ? new Date(u.epochGradeDate*1000).toLocaleDateString() : null })),
-        _source: 'yahoo+wiki',
-      }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
-    }
+    // Calculate derived metrics
+    const grossMargin = (grossProfit && revenue) ? grossProfit / revenue : null;
+    const operatingMargin = (operatingIncome && revenue) ? operatingIncome / revenue : null;
+    const netMargin = (netIncome && revenue) ? netIncome / revenue : null;
+    const roe = (netIncome && totalEquity) ? netIncome / totalEquity : null;
+    const roa = (netIncome && totalAssets) ? netIncome / totalAssets : null;
+    const debtToEquity = (totalDebt && totalEquity) ? totalDebt / totalEquity : null;
+    const currentRatio = (currentAssets && currentLiabilities) ? currentAssets / currentLiabilities : null;
 
-    // Yahoo failed — use Finnhub + Wikipedia + Finnhub metrics
+    // Historical revenue for trend
+    const revenueHistory = getHistoricalValues(edgarFacts, 'Revenues') || getHistoricalValues(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax');
+
     return new Response(JSON.stringify({
-      name: fh.name || ticker,
+      // Profile
+      name: companyName,
       description: wikiDesc,
       sector: fh.finnhubIndustry || null,
       industry: fh.finnhubIndustry || null,
       website: fh.weburl || null,
       phone: fh.phone || null,
       employees: fh.employeeTotal || null,
-      address: null,
       exchange: fh.exchange || null,
-      marketCap: fh.marketCapitalization ? '$' + (fh.marketCapitalization >= 1000 ? (fh.marketCapitalization/1000).toFixed(2)+'T' : fh.marketCapitalization.toFixed(2)+'B') : null,
+      marketCap: fh.marketCapitalization ? fmt(fh.marketCapitalization * 1e6) : null,
       logo: fh.logo || null,
       ipo: fh.ipo || null,
-      pe: m['peTTM'] || null,
-      forwardPE: m['forwardPE'] || null,
-      eps: m['epsTTM'] || null,
-      pb: m['pbAnnual'] || null,
+      cik,
+
+      // Market metrics from Finnhub
+      pe: m['peTTM'] ? parseFloat(m['peTTM']).toFixed(1) : null,
+      forwardPE: m['forwardPE'] ? parseFloat(m['forwardPE']).toFixed(1) : null,
+      eps: eps ? fmt(eps, 'ratio').replace('x','') : (m['epsTTM'] ? m['epsTTM'] : null),
+      pb: m['pbAnnual'] ? parseFloat(m['pbAnnual']).toFixed(2) : null,
+      beta: m['beta'] ? parseFloat(m['beta']).toFixed(2) : null,
+      dividendYield: m['dividendYieldIndicatedAnnual'] ? (parseFloat(m['dividendYieldIndicatedAnnual'])*100).toFixed(2)+'%' : null,
       week52High: m['52WeekHigh'] || null,
       week52Low: m['52WeekLow'] || null,
-      beta: m['beta'] || null,
-      dividendYield: m['dividendYieldIndicatedAnnual'] || null,
-      roe: m['roeRfy'] || null,
-      roa: m['roaRfy'] || null,
-      revenueGrowth: m['revenueGrowthTTMYoy'] || null,
-      grossMargin: m['grossMarginTTM'] || null,
-      operatingMargin: m['operatingMarginTTM'] || null,
-      netMargin: m['netProfitMarginTTM'] || null,
-      _source: 'finnhub+wiki',
+      fiftyDayAvg: m['50DayMovingAverage'] || null,
+      twoHundredDayAvg: m['200DayMovingAverage'] || null,
+      avgVolume: m['10DayAverageTradingVolume'] ? Math.round(m['10DayAverageTradingVolume']*1e6) : null,
+
+      // Income Statement (from EDGAR)
+      revenue: fmt(revenue),
+      grossProfit: fmt(grossProfit),
+      operatingIncome: fmt(operatingIncome),
+      netIncome: fmt(netIncome),
+      grossMargin: grossMargin ? (grossMargin*100).toFixed(1)+'%' : null,
+      operatingMargin: operatingMargin ? (operatingMargin*100).toFixed(1)+'%' : null,
+      profitMargin: netMargin ? (netMargin*100).toFixed(1)+'%' : null,
+      revenueHistory,
+
+      // Balance Sheet (from EDGAR)
+      totalAssets: fmt(totalAssets),
+      totalLiabilities: fmt(totalLiabilities),
+      totalEquity: fmt(totalEquity),
+      cash: fmt(cash),
+      totalDebt: fmt(totalDebt),
+      currentAssets: fmt(currentAssets),
+      currentLiabilities: fmt(currentLiabilities),
+      sharesOutstanding: sharesOutstanding ? fmt(sharesOutstanding, 'shares') : null,
+
+      // Cash Flow (from EDGAR)
+      operatingCashflow: fmt(operatingCashflow),
+      capex: capex ? fmt(capex) : null,
+      freeCashflow: fmt(freeCashflow),
+
+      // Ratios
+      roe: roe ? (roe*100).toFixed(1)+'%' : null,
+      roa: roa ? (roa*100).toFixed(1)+'%' : null,
+      debtToEquity: debtToEquity ? debtToEquity.toFixed(2) : null,
+      currentRatio: currentRatio ? currentRatio.toFixed(2) : null,
+
+      _source: 'edgar+finnhub+wiki',
+      _edgarAvailable: !!edgarFacts,
     }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
 
   } catch(err) {
