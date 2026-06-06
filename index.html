@@ -1600,7 +1600,18 @@ function renderCompanyProfile(ticker, data){
   if(!finEl) return;
   var fin = data;
   var _isQtr = window._finPeriod === 'quarterly';
-  var finTabsHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">'    + '<div class="fin-tabs" data-ticker="' + ticker + '" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">'    + '<button class="fin-tab active" data-tab="income" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Income Statement</button>'    + '<button class="fin-tab" data-tab="balance" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Balance Sheet</button>'    + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'    + '</div>'    + '<div style="display:flex;gap:4px;padding-bottom:4px;">'    + '<button class="fin-period-btn' + (!_isQtr ? ' active' : '') + '" onclick="setFinPeriod(\'annual\',this)">Annual</button>'    + '<button class="fin-period-btn' + (_isQtr ? ' active' : '') + '" onclick="setFinPeriod(\'quarterly\',this)">Quarterly</button>'    + '</div>'    + '</div>'    + '<div style="height:1px;background:var(--border);margin-bottom:14px;"></div>';
+  var finTabsHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">'
+    + '<div class="fin-tabs" data-ticker="' + ticker + '" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">'
+    + '<button class="fin-tab active" data-tab="income" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Income Statement</button>'
+    + '<button class="fin-tab" data-tab="balance" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Balance Sheet</button>'
+    + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'
+    + '</div>'
+    + '<div style="display:flex;gap:4px;padding-bottom:4px;">'
+    + '<button class="fin-period-btn' + (!_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;annual&quot;,this)">Annual</button>'
+    + '<button class="fin-period-btn' + (_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;quarterly&quot;,this)">Quarterly</button>'
+    + '</div>'
+    + '</div>'
+    + '<div style="height:1px;background:var(--border);margin-bottom:14px;"></div>';
 
   // Build period headers from historical data
   // _finPeriod is at window scope - set by toggle buttons outside this function
@@ -1671,12 +1682,12 @@ function renderCompanyProfile(ticker, data){
     histRow('Basic EPS', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
     histRow('Diluted EPS', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
     histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
-    histRow('Gross Margin %', fin.grossMargin, [], [], true),
-    histRow('Operating Margin %', fin.operatingMargin, [], [], true),
-    histRow('Net Margin %', fin.profitMargin, [], [], true),
+    histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
+    histRow('Operating Margin %', fin.operatingMargin, deriveMargin(fin.opIncomeHistory, fin.revenueHistory), deriveMargin(fin.opIncomeQtrs, fin.revenueQtrs), true),
+    histRow('Net Margin %', fin.profitMargin, deriveMargin(fin.netIncomeHistory, fin.revenueHistory), deriveMargin(fin.netIncomeQtrs, fin.revenueQtrs), true),
     histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
     histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
-    histRow('Free Cash Flow', fin.freeCashflow, [], []),
+    histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
   ], 'table');
 
   var balanceHTML = buildHistTable('fin-balance-'+ticker, [
@@ -1689,7 +1700,7 @@ function renderCompanyProfile(ticker, data){
     histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, fin.totalEquityQtrs),
     histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
     histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
-    histRow('Free Cash Flow', fin.freeCashflow, [], []),
+    histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
     row('Current Ratio', fin.currentRatio),
     row('Debt to Equity', fin.debtToEquity),
     row('Return on Equity', fin.roe),
@@ -1710,6 +1721,25 @@ function renderCompanyProfile(ticker, data){
 
   window._lastFinData = data;
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
+}
+
+
+function deriveMargin(numArr, denomArr) {
+  if (!numArr || !denomArr || !numArr.length || !denomArr.length) return [];
+  return numArr.map(function(n) {
+    var d = denomArr.find(function(x){ return x.end === n.end; });
+    if (!d || !d.value || !n.value) return null;
+    return { period: n.period, label: n.label, value: n.value / d.value, type: n.type, end: n.end };
+  }).filter(Boolean);
+}
+
+function deriveFCF(opCfArr, capexArr) {
+  if (!opCfArr || !capexArr || !opCfArr.length || !capexArr.length) return [];
+  return opCfArr.map(function(o) {
+    var c = capexArr.find(function(x){ return x.end === o.end; });
+    if (!c || c.value == null || o.value == null) return null;
+    return { period: o.period, label: o.label, value: o.value - c.value, type: o.type, end: o.end };
+  }).filter(Boolean);
 }
 
 window._finPeriod = window._finPeriod || 'annual';
