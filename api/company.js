@@ -62,11 +62,19 @@ function getHistoricalValues(facts, concept, unit = 'USD', limit = 4) {
   try {
     const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
     if (!data) return [];
-    const annuals = data
-      .filter(d => d.form === '10-K' && d.val != null && d.end)
+    // Deduplicate by year - keep the one with the longest duration (full year)
+    const byYear = {};
+    data.filter(d => d.form === '10-K' && d.val != null && d.end).forEach(d => {
+      const yr = d.end.substring(0,4);
+      const duration = d.start ? (new Date(d.end) - new Date(d.start)) : 0;
+      if (!byYear[yr] || duration > byYear[yr].duration) {
+        byYear[yr] = { ...d, duration };
+      }
+    });
+    return Object.values(byYear)
       .sort((a,b) => b.end.localeCompare(a.end))
-      .slice(0, limit);
-    return annuals.map(d => ({ period: d.end?.substring(0,4), label: 'FY ' + d.end?.substring(0,4), value: d.val, type: 'annual' }));
+      .slice(0, limit)
+      .map(d => ({ period: d.end.substring(0,4), label: 'FY ' + d.end.substring(0,4), value: d.val, type: 'annual' }));
   } catch(e) { return []; }
 }
 
@@ -247,7 +255,7 @@ export default async function handler(req) {
       eps: eps ? fmt(eps, 'ratio').replace('x','') : (m['epsTTM'] ? m['epsTTM'] : null),
       pb: m['pbAnnual'] ? parseFloat(m['pbAnnual']).toFixed(2) : null,
       beta: m['beta'] ? parseFloat(m['beta']).toFixed(2) : null,
-      dividendYield: m['dividendYieldIndicatedAnnual'] ? (parseFloat(m['dividendYieldIndicatedAnnual'])*100).toFixed(2)+'%' : null,
+      dividendYield: m['dividendYieldIndicatedAnnual'] ? parseFloat(m['dividendYieldIndicatedAnnual']).toFixed(2)+'%' : null,
       week52High: m['52WeekHigh'] || null,
       week52Low: m['52WeekLow'] || null,
       fiftyDayAvg: m['50DayMovingAverage'] || null,
