@@ -150,8 +150,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .short-change-up{color:var(--red);font-weight:600;}
 .short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
-.quick-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
-.quick-nav::-webkit-scrollbar{height:0;}
+.quick-nav{display:block;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
 .qn-btn{font-size:12px;font-weight:500;padding:5px 13px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
 .qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
 
@@ -879,23 +878,13 @@ async function doAnalyze(){
   const above200=f.ma200?quote.price>parseFloat(f.ma200):true;
 
   el.innerHTML=`<div class="fade-in">
-  <!-- QUICK NAV - sticky sibling of main card, persists through all page sections -->
+  <!-- QUICK NAV - auto-balanced two rows by measured pixel width -->
   <div class="quick-nav" id="quick-nav-${ticker}">
-    <span style="font-size:11px;font-weight:600;color:var(--text3);flex-shrink:0;">Jump to:</span>
-    <button class="qn-btn" onclick="scrollToSection('chart-${ticker}')">📈 Chart</button>
-    <button class="qn-btn" onclick="scrollToSection('indicators-${ticker}')">📊 Indicators</button>
-    <button class="qn-btn" onclick="scrollToSection('marketdata-${ticker}')">⚖️ Level II & T&S</button>
-    <button class="qn-btn" onclick="scrollToSection('valuation-${ticker}')">💰 Valuation</button>
-    <button class="qn-btn" onclick="scrollToSection('fundamentals-${ticker}')">📋 Fundamentals</button>
-    <button class="qn-btn" onclick="scrollToSection('technical-${ticker}')">📉 Technical</button>
-    <button class="qn-btn" onclick="scrollToSection('short-${ticker}')">📊 Short Interest</button>
-    <button class="qn-btn" onclick="scrollToSection('profile-${ticker}')">🏢 Company</button>
-    <button class="qn-btn" onclick="scrollToSection('financials-${ticker}')">💵 Financials</button>
-    <button class="qn-btn" onclick="scrollToSection('filings-${ticker}')">📁 SEC Filings</button>
-    <button class="qn-btn" onclick="scrollToSection('news-${ticker}')">📰 News</button>
-    <button class="qn-btn" onclick="scrollToSection('ai-analysis-${ticker}')">🧠 AI Analysis</button>
-    <button class="qn-btn" onclick="scrollToSection('community-${ticker}')">💬 Community</button>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-align:center;letter-spacing:.04em;margin-bottom:7px;">Jump to</div>
+    <div id="qn-row1-${ticker}" style="display:flex;justify-content:center;gap:6px;"></div>
+    <div id="qn-row2-${ticker}" style="display:flex;justify-content:center;gap:6px;margin-top:6px;"></div>
   </div>
+  <div id="qn-stage-${ticker}" style="position:absolute;visibility:hidden;pointer-events:none;display:flex;gap:6px;top:0;left:0;"></div>
   <div class="card">
     <div class="stock-hdr">
       <div>
@@ -1154,6 +1143,54 @@ async function doAnalyze(){
   }, 200);
   initTVChart(ticker);
   initIndicatorPanel(ticker, quote.price, quote.pct);
+  // Balance quick-nav rows by measured width
+  requestAnimationFrame(function(){
+    var t = ticker;
+    var btns = [
+      {label:'📈 Chart', target:'chart-'+t},
+      {label:'📊 Indicators', target:'indicators-'+t},
+      {label:'⚖️ Level II & T&S', target:'marketdata-'+t},
+      {label:'💰 Valuation', target:'valuation-'+t},
+      {label:'📋 Fundamentals', target:'fundamentals-'+t},
+      {label:'📉 Technical', target:'technical-'+t},
+      {label:'📊 Short Interest', target:'short-'+t},
+      {label:'🏢 Company', target:'profile-'+t},
+      {label:'💵 Financials', target:'financials-'+t},
+      {label:'📁 SEC Filings', target:'filings-'+t},
+      {label:'📰 News', target:'news-'+t},
+      {label:'🧠 AI Analysis', target:'ai-analysis-'+t},
+      {label:'💬 Community', target:'community-'+t},
+    ];
+    function makeBtn(b) {
+      var el = document.createElement('button');
+      el.className = 'qn-btn';
+      el.textContent = b.label;
+      el.onclick = function(){ scrollToSection(b.target); };
+      return el;
+    }
+    var stage = document.getElementById('qn-stage-'+t);
+    if(!stage) return;
+    var els = btns.map(function(b){ var el=makeBtn(b); stage.appendChild(el); return el; });
+    requestAnimationFrame(function(){
+      var GAP = 6;
+      var widths = els.map(function(el){ return el.getBoundingClientRect().width; });
+      var best = {split:1, diff:Infinity};
+      for(var i=1; i<widths.length; i++){
+        var w1 = widths.slice(0,i).reduce(function(a,b){return a+b;},0) + GAP*(i-1);
+        var w2 = widths.slice(i).reduce(function(a,b){return a+b;},0) + GAP*(widths.length-i-1);
+        var diff = Math.abs(w1-w2);
+        if(diff < best.diff) best = {split:i, diff:diff};
+      }
+      var r1 = document.getElementById('qn-row1-'+t);
+      var r2 = document.getElementById('qn-row2-'+t);
+      if(!r1||!r2) return;
+      btns.forEach(function(b,i){
+        if(i < best.split) r1.appendChild(makeBtn(b));
+        else r2.appendChild(makeBtn(b));
+      });
+      stage.remove();
+    });
+  });
 }
 
 async function loadQuoteSentiment(ticker){
