@@ -1684,14 +1684,18 @@ function renderCompanyProfile(ticker, data){
   if(!_periods.length) _periods = (window._finPeriod === 'quarterly' ? _annuals : _qtrs).slice(0,5);
   var _nCols = _periods.length || 1;
 
-  // Single-value row: label in col1, value right-aligned spanning ALL data cols
+  // Single-value row: value in first data col, dashes fill the rest
   function makeSpanRow(label, val, isPct) {
     if(!val && val !== 0) return '';
     var n = parseFloat(val);
     var cls = isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
-    return '<tr><td style="font-weight:500;">'+label+'</td>'
-      + '<td colspan="99" class="'+cls+'" style="text-align:right;">'+val+'</td>'
-      + '</tr>';
+    var nPeriods = (window._finPeriod === 'quarterly')
+      ? (fin.revenueQtrs || fin.revenueHistory || []).slice(0,8).length
+      : (fin.revenueHistory || fin.revenueQtrs || []).slice(0,5).length;
+    if(!nPeriods) nPeriods = 1;
+    var cells = '<td class="'+cls+'" style="text-align:right;">'+val+'</td>';
+    for(var _i = 1; _i < nPeriods; _i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
+    return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
   }
 
   function makeSectionRow(title) {
