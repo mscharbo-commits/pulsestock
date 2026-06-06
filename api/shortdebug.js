@@ -3,45 +3,88 @@ export const config = { runtime: 'edge' };
 export default async function handler(req) {
   const cors = {'Access-Control-Allow-Origin':'*'};
   try {
-    // Try fetching the FTD data page to find actual file URLs
-    const res = await fetch('https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data', {
-      headers: { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'text/html' }
+    // Fetch the ZIP file
+    const zipUrl = 'https://www.sec.gov/files/data/fails-deliver-data/cnsfails202605a.zip';
+    const res = await fetch(zipUrl, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
     });
-    const html = await res.text();
-    // Find all zip file links
-    const matches = [...html.matchAll(/href="([^"]*cnsfails[^"]*\.zip)"/gi)];
-    const zips = matches.map(m => m[1].startsWith('http') ? m[1] : 'https://www.sec.gov' + m[1]).slice(0,4);
     
-    // Now try fetching one of the txt files directly (SEC also publishes .txt versions)
-    // Try the most recent period
-    const now = new Date();
-    const yr = now.getFullYear();
-    const mo = String(now.getMonth()+1).padStart(2,'0');
-    const prevMo = now.getMonth() === 0 ? 12 : now.getMonth();
-    const prevYr = now.getMonth() === 0 ? yr-1 : yr;
-    const prevMoStr = String(prevMo).padStart(2,'0');
+    const arrayBuffer = await res.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
     
-    // Try direct txt files (some periods have txt not just zip)
-    const txtUrls = [
-      `https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data/cnsfails${yr}${mo}b.zip`,
-      `https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data/cnsfails${yr}${mo}a.zip`,
-      `https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data/cnsfails${prevYr}${prevMoStr}b.zip`,
-    ];
+    // ZIP local file header magic: PK\x03\x04
+    // Find the first local file entry and extract compressed data
+    // ZIP format: signature(4) + version(2) + flags(2) + compression(2) + modtime(2) + moddate(2) 
+    //             + crc32(4) + compsize(4) + uncompsize(4) + namelen(2) + extralen(2) + name + extra + data
     
-    // Check if any txt files exist
-    const checks = await Promise.all(txtUrls.slice(0,2).map(async u => {
-      const r = await fetch(u, { method: 'HEAD', headers: { 'User-Agent': 'PulseStock research@pulsestock.com' } });
-      return { url: u, status: r.status };
-    }));
+    let offset = 0;
+    let txtContent = null;
     
-    return new Response(JSON.stringify({ 
-      pageStatus: res.status,
-      pageLength: html.length,
-      zipLinks: zips,
-      fileChecks: checks,
-      htmlPreview: html.substring(html.indexOf('cnsfails') > 0 ? html.indexOf('cnsfails')-100 : 0, html.indexOf('cnsfails')+500)
+    while (offset < bytes.length - 4) {
+      // Check for local file header signature
+      if (bytes[offset] === 0x50 && bytes[offset+1] === 0x4B && 
+          bytes[offset+2] === 0x03 && bytes[offset+3] === 0x04) {
+        
+        const compression = bytes[offset+8] | (bytes[offset+9] << 8);
+        const compSize = bytes[offset+18] | (bytes[offset+19] << 8) | (bytes[offset+20] << 16) | (bytes[offset+21] << 24);
+        const uncompSize = bytes[offset+22] | (bytes[offset+23] << 8) | (bytes[offset+24] << 16) | (bytes[offset+25] << 24);
+        const nameLen = bytes[offset+26] | (bytes[offset+27] << 8);
+        const extraLen = bytes[offset+28] | (bytes[offset+29] << 8);
+        const dataOffset = offset + 30 + nameLen + extraLen;
+        
+        const name = new TextDecoder().decode(bytes.slice(offset+30, offset+30+nameLen));
+        
+        if (name.endsWith('.txt') || name.endsWith('.csv')) {
+          const compressedData = bytes.slice(dataOffset, dataOffset + compSize);
+          
+          if (compression === 8) {
+            // DEFLATE compressed - use DecompressionStream
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            
+            writer.write(compressedData);
+            writer.close();
+            
+            const chunks = [];
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            
+            const totalLen = chunks.reduce((a, c) => a + c.length, 0);
+            const result = new Uint8Array(totalLen);
+            let pos = 0;
+            for (const chunk of chunks) { result.set(chunk, pos); pos += chunk.length; }
+            
+            txtContent = new TextDecoder().decode(result);
+          } else if (compression === 0) {
+            txtContent = new TextDecoder().decode(compressedData);
+          }
+          break;
+        }
+        
+        offset = dataOffset + compSize;
+      } else {
+        offset++;
+      }
+    }
+    
+    // Search for AAPL in the text
+    const lines = txtContent ? txtContent.split('\n').filter(l => l.includes('AAPL')) : [];
+    
+    return new Response(JSON.stringify({
+      zipSize: arrayBuffer.byteLength,
+      txtFound: !!txtContent,
+      txtLength: txtContent?.length,
+      aaplLines: lines.slice(0, 5),
+      firstLine: txtContent?.split('\n')[0], // header row
     }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    
   } catch(e) {
-    return new Response(JSON.stringify({ error: e.message }), { headers: { ...cors, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: e.message, stack: e.stack }), { 
+      headers: { ...cors, 'Content-Type': 'application/json' } 
+    });
   }
 }
