@@ -328,30 +328,55 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 }
 
 /* MARKET TICKER BAR */
-.ticker-bar{background:#0D1117;color:#fff;padding:0;overflow:hidden;height:34px;display:flex;align-items:center;border-bottom:1px solid #1E2530;}
+.ticker-bar{background:#0D1117;color:#fff;padding:0;overflow:hidden;height:44px;display:flex;align-items:center;border-bottom:1px solid #1E2530;}
 .ticker-scroll{display:flex;gap:0;animation:scroll 60s linear infinite;white-space:nowrap;align-items:center;}
 .ticker-scroll:hover{animation-play-state:paused;}
-.ticker-item{display:flex;align-items:center;gap:8px;padding:0 20px;height:34px;border-right:1px solid #1E2530;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.ticker-item{display:flex;align-items:center;gap:10px;padding:0 22px;height:44px;border-right:1px solid #1E2530;cursor:pointer;transition:background .15s;flex-shrink:0;}
 .ticker-item:hover{background:#1E2530;}
-.ticker-sym{font-size:12px;font-weight:600;font-family:"DM Mono",monospace;color:#E5E9F0;}
-.ticker-price{font-size:12px;font-family:"DM Mono",monospace;color:#E5E9F0;}
-.ticker-chg{font-size:11px;font-family:"DM Mono",monospace;font-weight:500;}
+.ticker-sym{font-size:13.5px;font-weight:700;font-family:"DM Mono",monospace;color:#E5E9F0;}
+.ticker-price{font-size:13.5px;font-family:"DM Mono",monospace;color:#E5E9F0;}
+.ticker-chg{font-size:12px;font-family:"DM Mono",monospace;font-weight:600;}
 .ticker-up{color:#22D3A5;}.ticker-down{color:#F87171;}
-.ticker-label{font-size:10px;padding:1px 5px;border-radius:3px;font-weight:500;margin-right:2px;}
+.ticker-label{font-size:11px;padding:2px 6px;border-radius:3px;font-weight:600;margin-right:2px;}
 .ticker-idx{background:#1E2530;color:#8A95A3;}
-.ticker-loading{font-size:12px;color:#8A95A3;padding:0 20px;}
+.ticker-loading{font-size:13px;color:#8A95A3;padding:0 20px;}
 @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 </style>
 </head>
 <body>
 <!-- MARKET TICKER BAR -->
 <div class="ticker-bar" id="ticker-bar">
-  <div style="background:#1A6BF5;padding:0 14px;height:34px;display:flex;align-items:center;flex-shrink:0;border-right:1px solid #0F4FC4;">
+  <div style="background:#1A6BF5;padding:0 14px;height:44px;display:flex;align-items:center;flex-shrink:0;border-right:1px solid #0F4FC4;">
     <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;">MARKETS</span>
   </div>
   <div style="overflow:hidden;flex:1;display:flex;align-items:center;">
     <div class="ticker-scroll" id="ticker-scroll">
       <span class="ticker-loading">Loading market data…</span>
+    </div>
+  </div>
+  <button onclick="openTickerEditor()" style="background:none;border:none;padding:0 14px;height:44px;display:flex;align-items:center;cursor:pointer;border-left:1px solid #1E2530;flex-shrink:0;gap:6px;" title="Edit tickers">
+    <span style="font-size:11px;color:#8A95A3;font-weight:500;">✏️ Edit</span>
+  </button>
+</div>
+
+<!-- TICKER EDITOR MODAL -->
+<div id="ticker-editor-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#0D1117;border:1px solid #2E3640;border-radius:12px;padding:24px;width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <span style="font-size:16px;font-weight:700;color:#E5E9F0;">Edit Ticker Bar</span>
+      <button onclick="closeTickerEditor()" style="background:none;border:none;color:#8A95A3;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+    </div>
+    <div style="font-size:12px;color:#8A95A3;margin-bottom:14px;">Drag to reorder · Click ✕ to remove · Add new tickers below</div>
+    <div id="ticker-editor-list" style="margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <input id="ticker-add-input" type="text" placeholder="Add ticker (e.g. TSLA)" maxlength="10"
+        style="flex:1;background:#1A2030;border:1px solid #2E3640;color:#E5E9F0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;text-transform:uppercase;"
+        onkeydown="if(event.key==='Enter')addTickerFromEditor()"/>
+      <button onclick="addTickerFromEditor()" style="background:#1A6BF5;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;">Add</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeTickerEditor()" style="background:none;border:1px solid #2E3640;color:#8A95A3;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="saveTickerEditor()" style="background:#1A6BF5;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;">Save & Refresh</button>
     </div>
   </div>
 </div>
@@ -2444,7 +2469,7 @@ function initIndicatorPanel(ticker, price, pct) {
 }
 
 // ── MARKET TICKER BAR ──
-const TICKER_SYMBOLS = [
+let TICKER_SYMBOLS = [
   {sym:'SPY',   label:'S&P 500', idx:true},
   {sym:'QQQ',   label:'NASDAQ',  idx:true},
   {sym:'DIA',   label:'DOW',     idx:true},
@@ -2465,6 +2490,55 @@ const TICKER_SYMBOLS = [
   {sym:'GOOGL', label:'',        idx:false},
   {sym:'JPM',   label:'',        idx:false},
 ];
+
+function openTickerEditor() {
+  var overlay = document.getElementById('ticker-editor-overlay');
+  overlay.style.display = 'flex';
+  renderTickerEditorList();
+}
+
+function closeTickerEditor() {
+  document.getElementById('ticker-editor-overlay').style.display = 'none';
+}
+
+function renderTickerEditorList() {
+  var list = document.getElementById('ticker-editor-list');
+  list.innerHTML = TICKER_SYMBOLS.map(function(t, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#1A2030;border:1px solid #2E3640;border-radius:8px;margin-bottom:6px;">'
+      + '<span style="color:#8A95A3;cursor:grab;font-size:14px;">⠿</span>'
+      + '<span style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;color:#E5E9F0;flex:1;">' + t.sym + '</span>'
+      + (t.label ? '<span style="font-size:11px;color:#8A95A3;background:#0D1117;padding:2px 7px;border-radius:4px;">' + t.label + '</span>' : '')
+      + (t.idx ? '<span style="font-size:10px;color:#5A95A3;background:#1E2530;padding:2px 7px;border-radius:4px;">INDEX</span>' : '<span style="font-size:10px;color:#5A85A3;background:#1E2530;padding:2px 7px;border-radius:4px;">STOCK</span>')
+      + '<button onclick="removeTickerAt(' + i + ')" style="background:none;border:none;color:#D13F30;font-size:16px;cursor:pointer;padding:0 2px;line-height:1;">✕</button>'
+      + '</div>';
+  }).join('');
+}
+
+function removeTickerAt(i) {
+  TICKER_SYMBOLS.splice(i, 1);
+  renderTickerEditorList();
+}
+
+function addTickerFromEditor() {
+  var input = document.getElementById('ticker-add-input');
+  var sym = input.value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  if(!sym) return;
+  if(TICKER_SYMBOLS.find(function(t){return t.sym===sym;})) {
+    input.value = '';
+    return;
+  }
+  TICKER_SYMBOLS.push({sym: sym, label: '', idx: false});
+  input.value = '';
+  renderTickerEditorList();
+}
+
+function saveTickerEditor() {
+  closeTickerEditor();
+  // Clear and reload ticker bar
+  var scroll = document.getElementById('ticker-scroll');
+  if(scroll) scroll.innerHTML = '<span class="ticker-loading">Refreshing...</span>';
+  loadTickerBar();
+}
 
 async function loadTickerBar(){
   const results = await Promise.all(TICKER_SYMBOLS.map(async t => {
