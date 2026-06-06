@@ -19,39 +19,31 @@ export default async function handler(req) {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    // Find all Item 1 Business occurrences, skip TOC (which has page numbers after it)
+    // Collect all match positions
     const matches = [];
     const pattern = /Item\s+1[\.\s]+Business/gi;
     let m;
-    while ((m = pattern.exec(text)) !== null) {
-      matches.push(m.index);
-    }
+    while ((m = pattern.exec(text)) !== null) matches.push(m.index);
 
-    // TOC entry has digits right after (page numbers), real section has actual prose
-    const realIdx = matches.find(idx => {
-      const after = text.substring(idx + 20, idx + 100);
-      // TOC: "Item 1. Business 1 Item 1A..." — has digit then "Item"
-      // Real: "Item 1. Business Company Background..." — has words
-      return !/^\s*\d+\s*Item/.test(after) && !/^\s*\d+\s*$/.test(after.trim().substring(0,5));
-    }) || matches[matches.length - 1]; // fallback to last match
-
-    // Extract from real Item 1 to Item 1A
-    const endIdx = text.indexOf('Item 1A', realIdx + 50);
+    // Use the LAST match - always the real content, first is always TOC
+    const realIdx = matches[matches.length - 1];
+    
+    // Find end: next "Item 1A" after our start
+    const endIdx = text.indexOf('Item 1A', realIdx + 30);
     const rawSection = text.substring(realIdx, endIdx > 0 ? endIdx : realIdx + 5000);
-
-    // Clean up: remove "Item 1. Business" header, clean whitespace
+    
+    // Strip the header "Item 1. Business" from start
     const cleaned = rawSection
       .replace(/^Item\s+1[\.\s]+Business\s*/i, '')
       .replace(/\s+/g, ' ')
-      .trim();
-
-    // Take first 800 chars as the description — enough for a good summary
-    const description = cleaned.substring(0, 800);
+      .trim()
+      .substring(0, 1000);
 
     return new Response(JSON.stringify({
+      totalMatches: matches.length,
+      matchPositions: matches,
       realIdx,
-      descriptionLength: cleaned.length,
-      description,
+      description: cleaned,
     }), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch(e) {
     return new Response(JSON.stringify({ error: e.message }), { headers: { ...cors, 'Content-Type': 'application/json' } });
