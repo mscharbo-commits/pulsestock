@@ -125,6 +125,61 @@ function getQuarterlyValues(facts, concept, unit = 'USD', limit = 4) {
   } catch(e) { return []; }
 }
 
+function getInstantValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    // Balance sheet / instant items: 10-K filings, no start date required
+    // Each fiscal year-end filing has one value
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.end);
+    
+    const seen = new Set();
+    const unique = annuals.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => ({
+        period: d.end.substring(0,4),
+        label: 'FY ' + d.end.substring(0,4),
+        value: d.val,
+        type: 'annual',
+        end: d.end
+      }));
+  } catch(e) { return []; }
+}
+
+function getInstantQtrs(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    const qtrs = data.filter(d => d.form === '10-Q' && d.val != null && d.end);
+    
+    const seen = new Set();
+    const unique = qtrs.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => {
+        const endDate = new Date(d.end);
+        const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
+        const yr = endDate.getFullYear();
+        return { period: d.end.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter', end: d.end };
+      });
+  } catch(e) { return []; }
+}
+
 function fmt(val, type = 'currency') {
   if (val === null || val === undefined) return null;
   const n = parseFloat(val);
@@ -265,7 +320,8 @@ export default async function handler(req) {
     };
     const revConcept = ['RevenueFromContractWithCustomerExcludingAssessedTax','Revenues','SalesRevenueNet']
       .sort((a,b) => _revCheck(b).localeCompare(_revCheck(a)))[0];
-    const corConcept = _revCheck('CostOfGoodsSold') >= _revCheck('CostOfRevenue') ? 'CostOfGoodsSold' : (_revCheck('CostOfRevenue') >= _revCheck('CostOfGoodsAndServicesSold') ? 'CostOfRevenue' : 'CostOfGoodsAndServicesSold');
+    const _corConcepts = ['CostOfGoodsSold','CostOfRevenue','CostOfGoodsAndServicesSold'];
+    const corConcept = _corConcepts.sort((a,b) => _revCheck(b).localeCompare(_revCheck(a)))[0];
     const revenueHistory     = getHistoricalValues(edgarFacts, revConcept);
     const revenueQtrs        = getQuarterlyValues(edgarFacts, revConcept);
     const costOfRevHistory   = getHistoricalValues(edgarFacts, corConcept);
@@ -290,11 +346,20 @@ export default async function handler(req) {
     const epsQtrs            = getQuarterlyValues(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
     const sharesBasicHistory = getHistoricalValues(edgarFacts, 'WeightedAverageNumberOfSharesOutstandingBasic', 'shares');
     const sharesBasicQtrs    = getQuarterlyValues(edgarFacts, 'WeightedAverageNumberOfSharesOutstandingBasic', 'shares');
-    const cashHistory        = getHistoricalValues(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue');
-    const totalAssetsHistory = getHistoricalValues(edgarFacts, 'Assets');
-    const totalLiabHistory   = getHistoricalValues(edgarFacts, 'Liabilities');
-    const totalEquityHistory = getHistoricalValues(edgarFacts, 'StockholdersEquity');
-    const debtHistory        = getHistoricalValues(edgarFacts, 'LongTermDebt');
+    const cashHistory        = getInstantValues(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue');
+    const cashQtrs           = getInstantQtrs(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue');
+    const totalAssetsHistory = getInstantValues(edgarFacts, 'Assets');
+    const totalAssetsQtrs    = getInstantQtrs(edgarFacts, 'Assets');
+    const totalLiabHistory   = getInstantValues(edgarFacts, 'Liabilities');
+    const totalLiabQtrs      = getInstantQtrs(edgarFacts, 'Liabilities');
+    const totalEquityHistory = getInstantValues(edgarFacts, 'StockholdersEquity');
+    const totalEquityQtrs    = getInstantQtrs(edgarFacts, 'StockholdersEquity');
+    const debtHistory        = getInstantValues(edgarFacts, 'LongTermDebt');
+    const debtQtrs           = getInstantQtrs(edgarFacts, 'LongTermDebt');
+    const currentAssetsHistory = getInstantValues(edgarFacts, 'AssetsCurrent');
+    const currentAssetsQtrs    = getInstantQtrs(edgarFacts, 'AssetsCurrent');
+    const currentLiabHistory   = getInstantValues(edgarFacts, 'LiabilitiesCurrent');
+    const currentLiabQtrs      = getInstantQtrs(edgarFacts, 'LiabilitiesCurrent');
     const opCfHistory        = getHistoricalValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
     const opCfQtrs           = getQuarterlyValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
     const capexHistory       = getHistoricalValues(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
@@ -358,9 +423,13 @@ export default async function handler(req) {
       epsBasicHistory, epsBasicQtrs,
       epsDilutedHistory, epsQtrs,
       sharesBasicHistory, sharesBasicQtrs,
-      cashHistory,
-      totalAssetsHistory, totalLiabHistory, totalEquityHistory,
-      debtHistory,
+      cashHistory, cashQtrs,
+      totalAssetsHistory, totalAssetsQtrs,
+      totalLiabHistory, totalLiabQtrs,
+      totalEquityHistory, totalEquityQtrs,
+      debtHistory, debtQtrs,
+      currentAssetsHistory, currentAssetsQtrs,
+      currentLiabHistory, currentLiabQtrs,
       opCfHistory, opCfQtrs,
       capexHistory, capexQtrs,
 
@@ -398,9 +467,13 @@ export default async function handler(req) {
       epsBasicHistory, epsBasicQtrs,
       epsDilutedHistory, epsQtrs,
       sharesBasicHistory, sharesBasicQtrs,
-      cashHistory,
-      totalAssetsHistory, totalLiabHistory, totalEquityHistory,
-      debtHistory,
+      cashHistory, cashQtrs,
+      totalAssetsHistory, totalAssetsQtrs,
+      totalLiabHistory, totalLiabQtrs,
+      totalEquityHistory, totalEquityQtrs,
+      debtHistory, debtQtrs,
+      currentAssetsHistory, currentAssetsQtrs,
+      currentLiabHistory, currentLiabQtrs,
       opCfHistory, opCfQtrs,
       capexHistory, capexQtrs,
 

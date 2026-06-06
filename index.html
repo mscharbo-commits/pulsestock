@@ -1599,30 +1599,19 @@ function renderCompanyProfile(ticker, data){
   // Financials section
   if(!finEl) return;
   var fin = data;
-  var finTabsHTML = '<div class="fin-tabs" data-ticker="' + ticker + '">'
-    + '<button class="fin-tab active" data-tab="income" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Income Statement</button>'
-    + '<button class="fin-tab" data-tab="balance" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Balance Sheet</button>'
-    + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'
-    + '</div>';
+  var _isQtr = window._finPeriod === 'quarterly';
+  var finTabsHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">'    + '<div class="fin-tabs" data-ticker="' + ticker + '" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">'    + '<button class="fin-tab active" data-tab="income" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Income Statement</button>'    + '<button class="fin-tab" data-tab="balance" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Balance Sheet</button>'    + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'    + '</div>'    + '<div style="display:flex;gap:4px;padding-bottom:4px;">'    + '<button class="fin-period-btn' + (!_isQtr ? ' active' : '') + '" onclick="setFinPeriod(\'annual\',this)">Annual</button>'    + '<button class="fin-period-btn' + (_isQtr ? ' active' : '') + '" onclick="setFinPeriod(\'quarterly\',this)">Quarterly</button>'    + '</div>'    + '</div>'    + '<div style="height:1px;background:var(--border);margin-bottom:14px;"></div>';
 
   // Build period headers from historical data
-  var _finPeriod = 'annual'; // 'annual' or 'quarterly'
-  function setFinPeriod(mode, btn) {
-    _finPeriod = mode;
-    document.querySelectorAll('.fin-period-btn').forEach(function(b){ b.classList.remove('active'); });
-    btn.classList.add('active');
-    // Rebuild all visible fin tables
-    var ticker = document.querySelector('.fin-tabs')?.dataset?.ticker;
-    if(ticker && window._lastFinData) renderFinancials(ticker, window._lastFinData);
-  }
+  // _finPeriod is at window scope - set by toggle buttons outside this function
 
   function buildHistTable(id, rows, display) {
     var annuals = fin.revenueHistory || [];
     var qtrs = fin.revenueQtrs || [];
-    var periods = _finPeriod === 'quarterly' ? qtrs.slice(0,8) : annuals.slice(0,5);
+    var periods = (window._finPeriod === 'quarterly') ? qtrs.slice(0,8) : annuals.slice(0,5);
     if(!periods.length) {
       // fallback: show both if preferred mode has no data
-      periods = (_finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
+      periods = (window._finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
     }
     if(!periods.length) {
       return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">'
@@ -1641,8 +1630,8 @@ function renderCompanyProfile(ticker, data){
   function histRow(label, latestVal, histArr, qtrArr, isPct) {
     var annuals = histArr || [];
     var qtrs = qtrArr || [];
-    var periods = _finPeriod === 'quarterly' ? qtrs.slice(0,8) : annuals.slice(0,5);
-    if(!periods.length) periods = (_finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
+    var periods = (window._finPeriod === 'quarterly') ? qtrs.slice(0,8) : annuals.slice(0,5);
+    if(!periods.length) periods = (window._finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
     if(!periods.length) return row(label, latestVal, isPct);
     var cells = periods.map(function(p) {
       var v = p.value;
@@ -1691,13 +1680,13 @@ function renderCompanyProfile(ticker, data){
   ], 'table');
 
   var balanceHTML = buildHistTable('fin-balance-'+ticker, [
-    histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, []),
-    histRow('Current Assets', fin.currentAssets, [], []),
-    histRow('Cash & Equivalents', fin.cash, fin.cashHistory, []),
-    histRow('Total Liabilities', fin.totalLiabilities, fin.totalLiabHistory, []),
-    histRow('Current Liabilities', fin.currentLiabilities, [], []),
-    histRow('Total Debt (Long Term)', fin.totalDebt, fin.debtHistory, []),
-    histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, []),
+    histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, fin.totalAssetsQtrs),
+    histRow('Current Assets', fin.currentAssets, fin.currentAssetsHistory, fin.currentAssetsQtrs),
+    histRow('Cash & Equivalents', fin.cash, fin.cashHistory, fin.cashQtrs),
+    histRow('Total Liabilities', fin.totalLiabilities, fin.totalLiabHistory, fin.totalLiabQtrs),
+    histRow('Current Liabilities', fin.currentLiabilities, fin.currentLiabHistory, fin.currentLiabQtrs),
+    histRow('Total Debt (Long Term)', fin.totalDebt, fin.debtHistory, fin.debtQtrs),
+    histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, fin.totalEquityQtrs),
     histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
     histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
     histRow('Free Cash Flow', fin.freeCashflow, [], []),
@@ -1721,6 +1710,16 @@ function renderCompanyProfile(ticker, data){
 
   window._lastFinData = data;
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
+}
+
+window._finPeriod = window._finPeriod || 'annual';
+
+function setFinPeriod(mode, btn) {
+  window._finPeriod = mode;
+  document.querySelectorAll('.fin-period-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var ticker = document.querySelector('.fin-tabs')?.dataset?.ticker;
+  if(ticker && window._lastFinData) renderFinancials(ticker, window._lastFinData);
 }
 
 function row(label, val, isPct){
