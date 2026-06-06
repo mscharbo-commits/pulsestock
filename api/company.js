@@ -279,7 +279,12 @@ export default async function handler(req) {
     const costOfRevenue = getLatestValue(edgarFacts, 'CostOfGoodsSold') || getLatestValue(edgarFacts, 'CostOfRevenue') || getLatestValue(edgarFacts, 'CostOfGoodsAndServicesSold');
     const grossProfit = getLatestValue(edgarFacts, 'GrossProfit');
     const rndExpense = getLatestValue(edgarFacts, 'ResearchAndDevelopmentExpense');
-    const sgaExpense = getLatestValue(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
+    const sgaExpense = getLatestValue(edgarFacts, 'SellingGeneralAndAdministrativeExpense')
+      || (() => {
+        const sm = getLatestValue(edgarFacts, 'SellingAndMarketingExpense');
+        const ga = getLatestValue(edgarFacts, 'GeneralAndAdministrativeExpense');
+        return (sm != null && ga != null) ? sm + ga : (sm || ga || null);
+      })();
     const operatingExpenses = getLatestValue(edgarFacts, 'OperatingExpenses');
     const operatingIncome = getLatestValue(edgarFacts, 'OperatingIncomeLoss');
     const pretaxIncome = getLatestValue(edgarFacts, 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest');
@@ -328,10 +333,27 @@ export default async function handler(req) {
     const costOfRevQtrs      = getQuarterlyValues(edgarFacts, corConcept);
     const grossProfitHistory = getHistoricalValues(edgarFacts, 'GrossProfit');
     const grossProfitQtrs    = getQuarterlyValues(edgarFacts, 'GrossProfit');
-    const rndHistory         = getHistoricalValues(edgarFacts, 'ResearchAndDevelopmentExpense');
-    const rndQtrs            = getQuarterlyValues(edgarFacts, 'ResearchAndDevelopmentExpense');
-    const sgaHistory         = getHistoricalValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
-    const sgaQtrs            = getQuarterlyValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
+    const rndHistory         = getHistoricalValues(edgarFacts, 'ResearchAndDevelopmentExpense')
+      .concat(getHistoricalValues(edgarFacts, 'ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost'))
+      .filter((v,i,a) => a.findIndex(x=>x.end===v.end)===i)
+      .sort((a,b)=>b.end.localeCompare(a.end)).slice(0,4);
+    const rndQtrs            = getQuarterlyValues(edgarFacts, 'ResearchAndDevelopmentExpense')
+      .concat(getQuarterlyValues(edgarFacts, 'ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost'))
+      .filter((v,i,a) => a.findIndex(x=>x.end===v.end)===i)
+      .sort((a,b)=>b.end.localeCompare(a.end)).slice(0,8);
+    const _sgaCombined = (arr1, arr2) => {
+      if (!arr1.length && !arr2.length) return [];
+      const map = {};
+      arr1.forEach(d => { map[d.end] = {...d}; });
+      arr2.forEach(d => { if (map[d.end]) map[d.end].value += d.value; else map[d.end] = {...d}; });
+      return Object.values(map).sort((a,b) => b.end.localeCompare(a.end));
+    };
+    const _sgaDirectHist = getHistoricalValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
+    const sgaHistory = _sgaDirectHist.length ? _sgaDirectHist
+      : _sgaCombined(getHistoricalValues(edgarFacts,'SellingAndMarketingExpense'), getHistoricalValues(edgarFacts,'GeneralAndAdministrativeExpense'));
+    const _sgaDirectQtrs = getQuarterlyValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
+    const sgaQtrs = _sgaDirectQtrs.length ? _sgaDirectQtrs
+      : _sgaCombined(getQuarterlyValues(edgarFacts,'SellingAndMarketingExpense'), getQuarterlyValues(edgarFacts,'GeneralAndAdministrativeExpense'));
     const opIncomeHistory    = getHistoricalValues(edgarFacts, 'OperatingIncomeLoss');
     const opIncomeQtrs       = getQuarterlyValues(edgarFacts, 'OperatingIncomeLoss');
     const pretaxHistory      = getHistoricalValues(edgarFacts, 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest');
