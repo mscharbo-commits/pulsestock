@@ -1630,6 +1630,7 @@ function renderCompanyProfile(ticker, data){
         + '<tr><th>Metric</th><th style="text-align:right;">Latest</th></tr>'
         + rows.join('') + '</table>';
     }
+    window._finPeriodCount = periods.length;
     var hdrs = '<tr><th>Metric</th>' + periods.map(function(p){
       var badge = p.type==='annual'
         ? '<span style="font-size:9px;opacity:.5;margin-left:2px;">A</span>'
@@ -1639,7 +1640,7 @@ function renderCompanyProfile(ticker, data){
     return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
   }
 
-  function histRow(label, latestVal, histArr, qtrArr, isPct) {
+  function histRow(label, latestVal, histArr, qtrArr, isPct, isShares) {
     var annuals = histArr || [];
     var qtrs = qtrArr || [];
     var periods = (window._finPeriod === 'quarterly') ? qtrs.slice(0,8) : annuals.slice(0,5);
@@ -1655,8 +1656,14 @@ function renderCompanyProfile(ticker, data){
       } else {
         var abs = Math.abs(v);
         var neg = v < 0 ? '-' : '';
-        // EPS and per-share values (small numbers)
-        if(abs < 1000 && abs > 0) {
+        if(isShares) {
+          // Share counts - no $ prefix
+          if(abs >= 1e12) formatted = neg+(abs/1e12).toFixed(2)+'T';
+          else if(abs >= 1e9) formatted = neg+(abs/1e9).toFixed(2)+'B';
+          else if(abs >= 1e6) formatted = neg+(abs/1e6).toFixed(2)+'M';
+          else formatted = neg+abs.toLocaleString();
+        } else if(abs < 1000 && abs > 0) {
+          // EPS and per-share values (small numbers)
           formatted = neg + '$' + abs.toFixed(2);
         } else if(abs >= 1e12) { formatted = neg+'$'+(abs/1e12).toFixed(2)+'T'; }
         else if(abs >= 1e9)  { formatted = neg+'$'+(abs/1e9).toFixed(2)+'B'; }
@@ -1682,7 +1689,7 @@ function renderCompanyProfile(ticker, data){
     histRow('Net Income', fin.netIncome, fin.netIncomeHistory, fin.netIncomeQtrs),
     histRow('Basic EPS', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
     histRow('Diluted EPS', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
-    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
+    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs, false, true),
     histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
     histRow('Operating Margin %', fin.operatingMargin, deriveMargin(fin.opIncomeHistory, fin.revenueHistory), deriveMargin(fin.opIncomeQtrs, fin.revenueQtrs), true),
     histRow('Net Margin %', fin.profitMargin, deriveMargin(fin.netIncomeHistory, fin.revenueHistory), deriveMargin(fin.netIncomeQtrs, fin.revenueQtrs), true),
@@ -1715,8 +1722,15 @@ function renderCompanyProfile(ticker, data){
     ratioSectionRow('Per Share'),
     histRow('EPS (Diluted)', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
     histRow('EPS (Basic)', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
-    histRow('Shares (Basic)', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
-    rowSpan('Shares Outstanding', fin.sharesOutstanding),
+    histRow('Shares (Basic)', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs, false, true),
+    rowSpan('Shares Outstanding', (function(){
+      var s = parseFloat(fin.sharesOutstanding);
+      if(!s) return fin.sharesOutstanding;
+      if(s>=1e12) return (s/1e12).toFixed(2)+'T';
+      if(s>=1e9) return (s/1e9).toFixed(2)+'B';
+      if(s>=1e6) return (s/1e6).toFixed(2)+'M';
+      return s.toLocaleString();
+    })()),
     rowSpan('Dividend Yield', fin.dividendYield),
     ratioSectionRow('Profitability'),
     histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
@@ -1783,7 +1797,11 @@ function rowSpan(label, val, isPct){
   if(!val && val !== 0) return '';
   var n = parseFloat(val);
   var cls = isPct ? (n >= 0 ? 'fin-positive' : 'fin-negative') : '';
-  return '<tr><td style="font-weight:500;">' + label + '</td><td colspan="99" class="' + cls + '" style="text-align:right;">' + val + '</td></tr>';
+  // Use window._finPeriodCount to emit the right number of cells
+  var count = window._finPeriodCount || 1;
+  var cells = '<td class="' + cls + '" style="text-align:right;">' + val + '</td>';
+  for (var i = 1; i < count; i++) cells += '<td style="text-align:right;color:var(--text3);">—</td>';
+  return '<tr><td style="font-weight:500;">' + label + '</td>' + cells + '</tr>';
 }
 
 function showFinTab(tab, btn, ticker){
