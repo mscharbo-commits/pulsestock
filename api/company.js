@@ -62,10 +62,34 @@ function getHistoricalValues(facts, concept, unit = 'USD', limit = 4) {
   try {
     const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
     if (!data) return [];
-    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.end)
+    const annuals = data
+      .filter(d => d.form === '10-K' && d.val != null && d.end)
       .sort((a,b) => b.end.localeCompare(a.end))
       .slice(0, limit);
-    return annuals.map(d => ({ period: d.end?.substring(0,4), value: d.val }));
+    return annuals.map(d => ({ period: d.end?.substring(0,4), label: 'FY ' + d.end?.substring(0,4), value: d.val, type: 'annual' }));
+  } catch(e) { return []; }
+}
+
+function getQuarterlyValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    // Quarterly values: form 10-Q, duration ~90 days
+    const qtrs = data
+      .filter(d => d.form === '10-Q' && d.val != null && d.end && d.start)
+      .map(d => {
+        const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+        return { ...d, days };
+      })
+      .filter(d => d.days >= 75 && d.days <= 105) // ~1 quarter duration
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit);
+    return qtrs.map(d => {
+      const endDate = new Date(d.end);
+      const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
+      const yr = endDate.getFullYear();
+      return { period: d.end?.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter' };
+    });
   } catch(e) { return []; }
 }
 
@@ -84,22 +108,58 @@ function fmt(val, type = 'currency') {
   return n.toFixed(2);
 }
 
-async function getWikipediaDesc(name) {
+async function getEdgarDescription(cik) {
   try {
-    const clean = name.replace(/\s+(Inc\.?|Corp\.?|Ltd\.?|LLC|Co\.?|Company|Group|Holdings?|plc)$/i,'').trim();
-    const sr = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(clean)}&limit=1&format=json&origin=*`, {
-      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' }
+    if (!cik) return null;
+    const cleanCik = cik.replace(/^0+/, '');
+
+    // Get most recent 10-K filing
+    const subRes = await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
     });
-    if (!sr.ok) return null;
-    const sd = await sr.json();
-    const title = sd?.[1]?.[0];
-    if (!title) return null;
-    const pr = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
-      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' }
-    });
-    if (!pr.ok) return null;
-    const pd = await pr.json();
-    return pd.extract?.length > 50 ? pd.extract : null;
+    if (!subRes.ok) return null;
+    const sub = await subRes.json();
+    const recent = sub.filings?.recent;
+    const idx10k = recent?.form?.findIndex(f => f === '10-K');
+    if (idx10k < 0) return null;
+
+    const accession = recent.accessionNumber[idx10k].replace(/-/g,'');
+    const primaryDoc = recent.primaryDocument[idx10k];
+    const docUrl = `https://www.sec.gov/Archives/edgar/data/${cleanCik}/${accession}/${primaryDoc}`;
+
+    const docRes = await fetch(docUrl, { headers: { 'User-Agent': 'PulseStock research@pulsestock.com' } });
+    if (!docRes.ok) return null;
+    const html = await docRes.text();
+
+    // Strip tags to plain text
+    const text = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&#\d+;/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    // Find all "Item 1. Business" occurrences - last one is real content, first is TOC
+    const matches = [];
+    const pattern = /Item\s+1[\.\s]+Business/gi;
+    let m;
+    while ((m = pattern.exec(text)) !== null) matches.push(m.index);
+    if (!matches.length) return null;
+
+    const realIdx = matches[matches.length - 1];
+    const endIdx = text.indexOf('Item 1A', realIdx + 30);
+    const rawSection = text.substring(realIdx, endIdx > 0 ? endIdx : realIdx + 5000);
+
+    const description = rawSection
+      .replace(/^Item\s+1[\.\s]+Business\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 1200);
+
+    return description.length > 100 ? description : null;
   } catch(e) { return null; }
 }
 
@@ -122,7 +182,7 @@ export default async function handler(req) {
     const companyName = fh.name || ticker;
 
     // Fetch EDGAR facts and Wikipedia in parallel
-    const [edgarFacts, wikiDesc] = await Promise.all([
+    const [edgarFacts, edgarDesc] = await Promise.all([
       cik ? getEdgarFacts(cik) : null,
       getWikipediaDesc(companyName),
     ]);
@@ -160,7 +220,7 @@ export default async function handler(req) {
     return new Response(JSON.stringify({
       // Profile
       name: companyName,
-      description: wikiDesc,
+      description: edgarDesc,
       sector: fh.finnhubIndustry || null,
       industry: fh.finnhubIndustry || null,
       website: fh.weburl || null,
@@ -215,6 +275,17 @@ export default async function handler(req) {
       roa: roa ? (roa*100).toFixed(1)+'%' : null,
       debtToEquity: debtToEquity ? debtToEquity.toFixed(2) : null,
       currentRatio: currentRatio ? currentRatio.toFixed(2) : null,
+
+      // Historical financials
+      revenueHistory,
+      revenueQtrs,
+      netIncomeHistory,
+      netIncomeQtrs,
+      grossProfitHistory,
+      epsHistory,
+      epsQtrs,
+      cashHistory,
+      debtHistory,
 
       _source: 'edgar+finnhub+wiki',
       _edgarAvailable: !!edgarFacts,
