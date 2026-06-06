@@ -265,6 +265,7 @@ export default async function handler(req) {
     };
     const revConcept = ['RevenueFromContractWithCustomerExcludingAssessedTax','Revenues','SalesRevenueNet']
       .sort((a,b) => _revCheck(b).localeCompare(_revCheck(a)))[0];
+    const corConcept = _revCheck('CostOfGoodsSold') >= _revCheck('CostOfRevenue') ? 'CostOfGoodsSold' : (_revCheck('CostOfRevenue') >= _revCheck('CostOfGoodsAndServicesSold') ? 'CostOfRevenue' : 'CostOfGoodsAndServicesSold');
     const revenueHistory     = getHistoricalValues(edgarFacts, revConcept);
     const revenueQtrs        = getQuarterlyValues(edgarFacts, revConcept);
     const costOfRevHistory   = getHistoricalValues(edgarFacts, corConcept);
