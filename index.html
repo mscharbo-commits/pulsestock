@@ -98,6 +98,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ind-signal{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:4px;}
 .ind-period-btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text3);cursor:pointer;transition:all .15s;}
 .ind-period-btn:hover,.ind-period-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+  .fin-period-wrap{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:2px;gap:2px;}
+  .fin-period-btn{font-size:12px;font-weight:600;padding:4px 14px;border-radius:6px;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all .18s;letter-spacing:.01em;}
+  .fin-period-btn:hover{color:var(--text1);}
+  .fin-period-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.12);}
 .indicator-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden;}
 .range-track{height:3px;background:var(--surface3);border-radius:2px;position:relative;margin-bottom:14px;}
 .range-progress{position:absolute;height:100%;background:var(--border2);border-radius:2px;}
@@ -1606,10 +1610,7 @@ function renderCompanyProfile(ticker, data){
     + '<button class="fin-tab" data-tab="balance" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Balance Sheet</button>'
     + '<button class="fin-tab" data-tab="ratios" onclick="showFinTab(this.dataset.tab,this,this.closest(\'.fin-tabs\').dataset.ticker)">Key Ratios</button>'
     + '</div>'
-    + '<div style="display:flex;gap:4px;padding-bottom:4px;">'
-    + '<button class="fin-period-btn' + (!_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;annual&quot;,this)">Annual</button>'
-    + '<button class="fin-period-btn' + (_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;quarterly&quot;,this)">Quarterly</button>'
-    + '</div>'
+    + '<div class="fin-period-wrap">'    + '<button class="fin-period-btn' + (!_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;annual&quot;,this)">Annual</button>'    + '<button class="fin-period-btn' + (_isQtr ? ' active' : '') + '" onclick="setFinPeriod(&quot;quarterly&quot;,this)">Quarterly</button>'    + '</div>'
     + '</div>'
     + '<div style="height:1px;background:var(--border);margin-bottom:14px;"></div>';
 
@@ -1701,29 +1702,44 @@ function renderCompanyProfile(ticker, data){
     histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
     histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
     histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
-    rowSpan('Current Ratio', fin.currentRatio),
-    rowSpan('Debt to Equity', fin.debtToEquity),
-    rowSpan('Return on Equity', fin.roe),
-    rowSpan('Return on Assets', fin.roa),
   ], 'none');
 
-  var ratiosHTML = buildHistTable('fin-ratios-'+ticker, [
-    rowSpan('P/E Ratio (TTM)', fin.pe),
-    rowSpan('Forward P/E', fin.forwardPE),
-    rowSpan('P/B Ratio', fin.pb),
-    rowSpan('Beta', fin.beta),
-    rowSpan('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
-    rowSpan('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null),
-    rowSpan('Dividend Yield', fin.dividendYield),
-    histRow('EPS (Diluted)', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
-    histRow('EPS (Basic)', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
-    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
-    rowSpan('Shares Outstanding', fin.sharesOutstanding),
-    rowSpan('Return on Equity', fin.roe),
-    rowSpan('Return on Assets', fin.roa),
-    rowSpan('Debt to Equity', fin.debtToEquity),
-    rowSpan('Current Ratio', fin.currentRatio),
-  ], 'none');
+  function ratioRow(label, val) {
+    if(!val && val !== 0) return '';
+    return '<tr><td style="font-weight:500;color:var(--text2);">'+label+'</td><td style="text-align:right;font-family:\'DM Mono\',monospace;">'+val+'</td></tr>';
+  }
+  function ratioSection(title) {
+    return '<tr><td colspan="2" style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:12px 12px 4px;background:var(--surface2);border-top:1px solid var(--border);">'+title+'</td></tr>';
+  }
+  var ratiosHTML = '<table class="fin-table" id="fin-ratios-'+ticker+'" style="display:none;">'
+    + '<tr><th>Metric</th><th style="text-align:right;">Value</th></tr>'
+    + ratioSection('Valuation')
+    + ratioRow('P/E Ratio (TTM)', fin.pe ? fin.pe+'x' : null)
+    + ratioRow('Forward P/E', fin.forwardPE ? fin.forwardPE+'x' : null)
+    + ratioRow('P/B Ratio', fin.pb ? fin.pb+'x' : null)
+    + ratioRow('EV/EBITDA', fin.evEbitda ? fin.evEbitda+'x' : null)
+    + ratioSection('Per Share')
+    + ratioRow('EPS (Diluted TTM)', fin.epsDiluted ? '$'+fin.epsDiluted : null)
+    + ratioRow('EPS (Basic TTM)', fin.epsBasic ? '$'+fin.epsBasic : null)
+    + ratioRow('Shares Outstanding', fin.sharesOutstanding)
+    + ratioRow('Dividend Yield', fin.dividendYield)
+    + ratioSection('Profitability')
+    + ratioRow('Gross Margin', fin.grossMargin)
+    + ratioRow('Operating Margin', fin.operatingMargin)
+    + ratioRow('Net Margin', fin.profitMargin)
+    + ratioRow('Return on Equity', fin.roe)
+    + ratioRow('Return on Assets', fin.roa)
+    + ratioSection('Financial Health')
+    + ratioRow('Current Ratio', fin.currentRatio)
+    + ratioRow('Debt to Equity', fin.debtToEquity)
+    + ratioRow('Total Debt', fin.totalDebt)
+    + ratioRow('Free Cash Flow', fin.freeCashflow)
+    + ratioSection('Market Data')
+    + ratioRow('Beta', fin.beta)
+    + ratioRow('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null)
+    + ratioRow('52-Week Low', fin.week52Low ? '$'+parseFloat(fin.week52Low).toFixed(2) : null)
+    + ratioRow('Avg Volume (10D)', fin.avgVolume ? parseInt(fin.avgVolume).toLocaleString() : null)
+    + '</table>';
 
   window._lastFinData = data;
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
