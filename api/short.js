@@ -1,85 +1,60 @@
 export const config = { runtime: 'edge' };
 
 async function scrapeMarketBeat(ticker) {
-  // Try NASDAQ first, then NYSE
   const exchanges = ['NASDAQ', 'NYSE', 'NYSEARCA', 'OTC'];
   for (const exch of exchanges) {
     try {
-      const url = `https://www.marketbeat.com/stocks/${exch}/${ticker.toUpperCase()}/short-interest/`;
-      const res = await fetch(url, {
+      const res = await fetch(`https://www.marketbeat.com/stocks/${exch}/${ticker}/short-interest/`, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Referer': 'https://www.marketbeat.com/',
-          'Cache-Control': 'no-cache',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+          'Accept': 'text/html',
         }
       });
       if (!res.ok) continue;
       const html = await res.text();
-      if (!html.includes('Short Interest')) continue;
+      if (!html.includes('Current Short Interest')) continue;
 
-      // Parse the data table - matching what we see in the screenshot
-      const parse = (pattern) => {
-        const m = html.match(pattern);
+      // Exact patterns matching the HTML structure we found:
+      // <dt>Current Short Interest</dt><dd class="text-right">138,782,718 shares</dd>
+      const get = (label) => {
+        const re = new RegExp('<dt>' + label + '<\\/dt><dd[^>]*>([^<]+)<\\/dd>', 'i');
+        const m = html.match(re);
         return m ? m[1].trim() : null;
       };
 
-      // Current Short Interest shares
-      const sharesMatch = html.match(/Current Short Interest<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
-        || html.match(/Current Short Interest[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
+      const getSpan = (label) => {
+        const re = new RegExp('<dt>' + label + '<\\/dt><dd[^>]*><span[^>]*>([^<]+)<\\/span><\\/dd>', 'i');
+        const m = html.match(re);
+        return m ? m[1].trim() : null;
+      };
 
-      // Short Percent of Float
-      const pctMatch = html.match(/Short Percent of Float<\/td>[\s\S]*?<td[^>]*>([\d.]+)%/i)
-        || html.match(/Short Percent of Float[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d.]+)%/i);
+      const currentRaw = get('Current Short Interest');
+      const previousRaw = get('Previous Short Interest');
+      const changeRaw = getSpan('Change Vs\\. Previous Month') || get('Change Vs\\. Previous Month');
+      const ratioRaw = get('Short Interest Ratio');
+      const dateRaw = get('Last Record Date');
+      const outstandingRaw = get('Outstanding Shares');
+      const floatPctRaw = get('Short Percent of Float');
+      const avgVolRaw = get('Average Trading Volume');
 
-      // Days to Cover / Short Interest Ratio
-      const daysMatch = html.match(/Short Interest Ratio<\/td>[\s\S]*?<td[^>]*>([\d.]+)\s*Days/i)
-        || html.match(/Days to Cover[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d.]+)/i)
-        || html.match(/Short Interest Ratio[^<]*<\/td>[\s\S]{0,200}?([\d.]+)\s*Days/i);
+      const parseShares = (s) => s ? parseInt(s.replace(/[^0-9]/g,'')) : null;
+      const parsePct = (s) => s ? parseFloat(s.replace('%','')) : null;
+      const parseDays = (s) => s ? parseFloat(s) : null;
 
-      // Change vs prior
-      const changeMatch = html.match(/Change Vs\.? Previous[^<]*<\/td>[\s\S]*?<td[^>]*>([+-]?[\d.]+)%/i)
-        || html.match(/Change Vs[^<]*<\/td>[\s\S]{0,300}?([+-]?[\d.]+)%/i);
-
-      // Last Record Date
-      const dateMatch = html.match(/Last Record Date<\/td>[\s\S]*?<td[^>]*>([^<]+)/i)
-        || html.match(/Settlement Date[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([^<]+)/i);
-
-      // Previous short interest
-      const prevMatch = html.match(/Previous Short Interest<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
-        || html.match(/Previous Short Interest[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
-
-      // Outstanding shares  
-      const outstandingMatch = html.match(/Outstanding Shares<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
-        || html.match(/Outstanding Shares[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
-
-      // Avg trading volume
-      const avgVolMatch = html.match(/Average Trading Volume<\/td>[\s\S]*?<td[^>]*>([\d,]+)\s*shares/i)
-        || html.match(/Average Trading Volume[^<]*<\/td>[\s\S]{0,200}?<td[^>]*>([\d,]+)/i);
-
-      const shortShares = sharesMatch ? parseInt(sharesMatch[1].replace(/,/g,'')) : null;
-      const prevShares = prevMatch ? parseInt(prevMatch[1].replace(/,/g,'')) : null;
-
-      if (!shortShares && !pctMatch) continue; // No useful data found
-
-      // Build short history from current + previous
-      const shortHistory = [];
-      if (shortShares && dateMatch) shortHistory.push({ date: dateMatch[1]?.trim(), shares: shortShares });
-      if (prevShares) shortHistory.push({ date: 'Prior period', shares: prevShares });
+      const shortShares = parseShares(currentRaw);
+      if (!shortShares) continue;
 
       return {
         shortShares,
-        shortPercent: pctMatch ? parseFloat(pctMatch[1]) : null,
-        daysTocover: daysMatch ? parseFloat(daysMatch[1]) : null,
-        settleDate: dateMatch ? dateMatch[1]?.trim() : null,
-        changePercent: changeMatch ? changeMatch[1] : null,
-        prevShortShares: prevShares,
-        outstandingShares: outstandingMatch ? parseInt(outstandingMatch[1].replace(/,/g,'')) : null,
-        avgVolume: avgVolMatch ? parseInt(avgVolMatch[1].replace(/,/g,'')) : null,
+        prevShortShares: parseShares(previousRaw),
+        changePercent: changeRaw ? changeRaw.replace('%','') : null,
+        daysTocover: ratioRaw ? parseDays(ratioRaw) : null,
+        settleDate: dateRaw,
+        outstandingShares: parseShares(outstandingRaw),
+        shortPercent: floatPctRaw ? parsePct(floatPctRaw) : null,
+        avgVolume: parseShares(avgVolRaw),
         source: 'MarketBeat / FINRA',
         exchange: exch,
-        shortHistory,
       };
     } catch(e) { continue; }
   }
@@ -93,7 +68,7 @@ async function getFinraOTC(ticker) {
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         limit: 6,
-        compareFilters: [{ compareType: 'equal', fieldName: 'issueSymbolIdentifier', fieldValue: ticker.toUpperCase() }],
+        compareFilters: [{ compareType: 'equal', fieldName: 'issueSymbolIdentifier', fieldValue: ticker }],
         sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
       })
     });
@@ -104,60 +79,50 @@ async function getFinraOTC(ticker) {
 }
 
 export default async function handler(req) {
-  const cors = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
   const url = new URL(req.url);
-  const ticker = url.searchParams.get('ticker');
+  const ticker = url.searchParams.get('ticker')?.toUpperCase();
   if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-  const t = ticker.toUpperCase();
-
   try {
-    const [mbData, finraOTC] = await Promise.all([
-      scrapeMarketBeat(t),
-      getFinraOTC(t),
-    ]);
+    const [mbData, finraOTC] = await Promise.all([scrapeMarketBeat(ticker), getFinraOTC(ticker)]);
 
     let result = {
-      ticker: t,
+      ticker,
       shortShares: null, shortPercent: null, daysTocover: null,
       settleDate: null, changePercent: null, source: null,
       prevShortShares: null, outstandingShares: null, avgVolume: null,
       shortHistory: [],
       ftd: {
         ftdUrl: 'https://www.sec.gov/data/foiadocsfailsdatahtm',
-        fintelUrl: `https://fintel.io/fails-to-deliver/${t}`,
-        marketbeatUrl: `https://www.marketbeat.com/stocks/NASDAQ/${t}/short-interest/`,
+        fintelUrl: `https://fintel.io/fails-to-deliver/${ticker}`,
+        marketbeatUrl: `https://www.marketbeat.com/stocks/NASDAQ/${ticker}/short-interest/`,
       }
     };
 
     if (mbData) {
       Object.assign(result, mbData);
-    } else if (finraOTC && finraOTC.length > 0) {
-      const latest = finraOTC[0];
-      result.shortShares = latest.currentShortShareNumber;
-      result.settleDate = latest.settlementDate;
-      result.changePercent = latest.changePercent;
+      if (mbData.shortShares && mbData.prevShortShares) {
+        result.shortHistory = [
+          { date: mbData.settleDate, shares: mbData.shortShares },
+          { date: 'Prior period', shares: mbData.prevShortShares },
+        ];
+      }
+    } else if (finraOTC) {
+      const l = finraOTC[0];
+      result.shortShares = l.currentShortShareNumber;
+      result.settleDate = l.settlementDate;
+      result.changePercent = l.changePercent;
       result.source = 'FINRA OTC';
-      result.shortHistory = finraOTC.slice(0,6).map(d => ({
-        date: d.settlementDate,
-        shares: d.currentShortShareNumber,
-        change: d.changePercent,
-      }));
+      result.shortHistory = finraOTC.slice(0,6).map(d => ({ date: d.settlementDate, shares: d.currentShortShareNumber }));
     }
 
     return new Response(JSON.stringify(result), {
       headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' }
     });
-
   } catch(err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { ...cors, 'Content-Type': 'application/json' }
-    });
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } });
   }
 }
