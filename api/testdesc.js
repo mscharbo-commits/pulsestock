@@ -3,29 +3,38 @@ export const config = { runtime: 'edge' };
 export default async function handler(req) {
   const cors = {'Access-Control-Allow-Origin':'*'};
   try {
-    const cik = '0000320193';
-    const accession = '000032019325000079';
-
-    // Try the filing index to find a non-XBRL version
-    const idxUrl = `https://www.sec.gov/Archives/edgar/data/320193/${accession}/0000320193-25-000079-index.htm`;
-    const idxRes = await fetch(idxUrl, { headers: { 'User-Agent': 'PulseStock research@pulsestock.com' } });
-    const idxHtml = await idxRes.text();
-
-    // Find all document links in the index
-    const docLinks = [...idxHtml.matchAll(/href="([^"]*\.htm)"/gi)].map(m => m[1]).slice(0,10);
-
-    // Also try the R2.htm viewer which SEC uses for human-readable 10-K
-    const r2Url = `https://www.sec.gov/Archives/edgar/data/320193/${accession}/R2.htm`;
-    const r2Res = await fetch(r2Url, { headers: { 'User-Agent': 'PulseStock research@pulsestock.com' } });
+    const base = 'https://www.sec.gov/Archives/edgar/data/320193/000032019325000079';
     
-    // Try fetching the filing viewer page which has clean text
-    const viewerUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193&type=10-K&dateb=&owner=include&count=1&search_text=`;
+    // Fetch the main XBRL doc and strip tags to find Item 1
+    const docRes = await fetch(`${base}/aapl-20250927.htm`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    });
+    const html = await docRes.text();
     
+    // Strip all HTML tags to get plain text
+    const text = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&#\d+;/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    // Find Item 1. Business
+    const idx = text.search(/Item\s+1[\.\s]+Business/i);
+    const idx2 = text.search(/Item\s+1A[\.\s]+Risk/i); // ends before Item 1A
+
+    const businessSection = idx >= 0 
+      ? text.substring(idx, idx2 > idx ? Math.min(idx + 5000, idx2) : idx + 5000)
+      : 'NOT FOUND';
+
     return new Response(JSON.stringify({
-      idxStatus: idxRes.status,
-      docLinks,
-      r2Status: r2Res.status,
-      idxPreview: idxHtml.substring(0, 2000),
+      textLength: text.length,
+      item1idx: idx,
+      item1Aix: idx2,
+      businessSection: businessSection.substring(0, 2000),
     }), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch(e) {
     return new Response(JSON.stringify({ error: e.message }), { headers: { ...cors, 'Content-Type': 'application/json' } });
