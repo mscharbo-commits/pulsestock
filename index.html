@@ -150,9 +150,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .short-change-up{color:var(--red);font-weight:600;}
 .short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
-.quick-nav{display:flex;align-items:center;gap:4px;margin-bottom:16px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;overflow-x:auto;flex-wrap:nowrap;height:48px;}
+.quick-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
 .quick-nav::-webkit-scrollbar{height:0;}
-.qn-btn{font-size:11.5px;font-weight:500;padding:5px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;line-height:1;}
+.qn-btn{font-size:12px;font-weight:500;padding:5px 13px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
 .qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
 
 /* COMPANY PROFILE */
@@ -879,6 +879,23 @@ async function doAnalyze(){
   const above200=f.ma200?quote.price>parseFloat(f.ma200):true;
 
   el.innerHTML=`<div class="fade-in">
+  <!-- QUICK NAV - sticky sibling of main card, persists through all page sections -->
+  <div class="quick-nav" id="quick-nav-${ticker}">
+    <span style="font-size:11px;font-weight:600;color:var(--text3);flex-shrink:0;">Jump to:</span>
+    <button class="qn-btn" onclick="scrollToSection('chart-${ticker}')">📈 Chart</button>
+    <button class="qn-btn" onclick="scrollToSection('indicators-${ticker}')">📊 Indicators</button>
+    <button class="qn-btn" onclick="scrollToSection('marketdata-${ticker}')">⚖️ Level II & T&S</button>
+    <button class="qn-btn" onclick="scrollToSection('valuation-${ticker}')">💰 Valuation</button>
+    <button class="qn-btn" onclick="scrollToSection('fundamentals-${ticker}')">📋 Fundamentals</button>
+    <button class="qn-btn" onclick="scrollToSection('technical-${ticker}')">📉 Technical</button>
+    <button class="qn-btn" onclick="scrollToSection('short-${ticker}')">📊 Short Interest</button>
+    <button class="qn-btn" onclick="scrollToSection('profile-${ticker}')">🏢 Company</button>
+    <button class="qn-btn" onclick="scrollToSection('financials-${ticker}')">💵 Financials</button>
+    <button class="qn-btn" onclick="scrollToSection('filings-${ticker}')">📁 SEC Filings</button>
+    <button class="qn-btn" onclick="scrollToSection('news-${ticker}')">📰 News</button>
+    <button class="qn-btn" onclick="scrollToSection('ai-analysis-${ticker}')">🧠 AI Analysis</button>
+    <button class="qn-btn" onclick="scrollToSection('community-${ticker}')">💬 Community</button>
+  </div>
   <div class="card">
     <div class="stock-hdr">
       <div>
@@ -897,28 +914,6 @@ async function doAnalyze(){
         <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Prev close $${quote.prevClose.toFixed(2)}</div>
         <div style="margin-top:2px;font-size:11px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:4px;display:inline-block;float:right;">● Live</div>
       </div>
-    </div>
-
-    <!-- QUICK NAV -->
-    <div class="quick-nav" id="quick-nav-${ticker}">
-      <span style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;flex-shrink:0;margin-right:4px;">Jump to</span>
-      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin-right:4px;"></div>
-      <button class="qn-btn" onclick="scrollToSection('chart-${ticker}')">📈 Chart</button>
-      <button class="qn-btn" onclick="scrollToSection('indicators-${ticker}')">📊 Indicators</button>
-      <button class="qn-btn" onclick="scrollToSection('marketdata-${ticker}')">⚖️ Level II</button>
-      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 4px;"></div>
-      <button class="qn-btn" onclick="scrollToSection('valuation-${ticker}')">💰 Valuation</button>
-      <button class="qn-btn" onclick="scrollToSection('fundamentals-${ticker}')">📋 Fundamentals</button>
-      <button class="qn-btn" onclick="scrollToSection('technical-${ticker}')">📉 Technical</button>
-      <button class="qn-btn" onclick="scrollToSection('short-${ticker}')">📉 Short Interest</button>
-      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 4px;"></div>
-      <button class="qn-btn" onclick="scrollToSection('profile-${ticker}')">🏢 Company</button>
-      <button class="qn-btn" onclick="scrollToSection('financials-${ticker}')">💵 Financials</button>
-      <button class="qn-btn" onclick="scrollToSection('filings-${ticker}')">📁 Filings</button>
-      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0;margin:0 4px;"></div>
-      <button class="qn-btn" onclick="scrollToSection('news-${ticker}')">📰 News</button>
-      <button class="qn-btn" onclick="scrollToSection('ai-analysis-${ticker}')">🧠 AI</button>
-      <button class="qn-btn" onclick="scrollToSection('community-${ticker}')">💬 Community</button>
     </div>
 
     <!-- TradingView Chart -->
