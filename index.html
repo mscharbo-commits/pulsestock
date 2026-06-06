@@ -1606,17 +1606,33 @@ function renderCompanyProfile(ticker, data){
     + '</div>';
 
   // Build period headers from historical data
+  var _finPeriod = 'annual'; // 'annual' or 'quarterly'
+  function setFinPeriod(mode, btn) {
+    _finPeriod = mode;
+    document.querySelectorAll('.fin-period-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    // Rebuild all visible fin tables
+    var ticker = document.querySelector('.fin-tabs')?.dataset?.ticker;
+    if(ticker && window._lastFinData) renderFinancials(ticker, window._lastFinData);
+  }
+
   function buildHistTable(id, rows, display) {
     var annuals = fin.revenueHistory || [];
     var qtrs = fin.revenueQtrs || [];
-    var periods = qtrs.slice(0,4).concat(annuals.slice(0,4));
+    var periods = _finPeriod === 'quarterly' ? qtrs.slice(0,8) : annuals.slice(0,5);
+    if(!periods.length) {
+      // fallback: show both if preferred mode has no data
+      periods = (_finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
+    }
     if(!periods.length) {
       return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">'
         + '<tr><th>Metric</th><th style="text-align:right;">Latest</th></tr>'
         + rows.join('') + '</table>';
     }
     var hdrs = '<tr><th>Metric</th>' + periods.map(function(p){
-      var badge = p.type==='annual' ? '<span style="font-size:9px;opacity:.5;margin-left:2px;">A</span>' : '<span style="font-size:9px;opacity:.5;margin-left:2px;">Q</span>';
+      var badge = p.type==='annual'
+        ? '<span style="font-size:9px;opacity:.5;margin-left:2px;">A</span>'
+        : '<span style="font-size:9px;opacity:.5;margin-left:2px;">Q</span>';
       return '<th style="text-align:right;font-size:11px;">'+(p.label||p.period)+badge+'</th>';
     }).join('') + '</tr>';
     return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
@@ -1625,7 +1641,8 @@ function renderCompanyProfile(ticker, data){
   function histRow(label, latestVal, histArr, qtrArr, isPct) {
     var annuals = histArr || [];
     var qtrs = qtrArr || [];
-    var periods = qtrs.slice(0,4).concat(annuals.slice(0,4));
+    var periods = _finPeriod === 'quarterly' ? qtrs.slice(0,8) : annuals.slice(0,5);
+    if(!periods.length) periods = (_finPeriod === 'quarterly' ? annuals : qtrs).slice(0,5);
     if(!periods.length) return row(label, latestVal, isPct);
     var cells = periods.map(function(p) {
       var v = p.value;
@@ -1656,30 +1673,34 @@ function renderCompanyProfile(ticker, data){
     histRow('Total Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
     histRow('Cost of Revenue', fin.costOfRevenue, fin.costOfRevHistory, fin.costOfRevQtrs),
     histRow('Gross Profit', fin.grossProfit, fin.grossProfitHistory, fin.grossProfitQtrs),
-    histRow('R&D Expense', fin.rndExpense, [], []),
-    histRow('SG&A Expense', fin.sgaExpense, [], []),
+    histRow('R&D Expense', fin.rndExpense, fin.rndHistory, fin.rndQtrs),
+    histRow('SG&A Expense', fin.sgaExpense, fin.sgaHistory, fin.sgaQtrs),
     histRow('Operating Income', fin.operatingIncome, fin.opIncomeHistory, fin.opIncomeQtrs),
-    histRow('Pretax Income', fin.pretaxIncome, fin.pretaxHistory, []),
-    histRow('Tax Provision', fin.taxExpense, fin.taxHistory, []),
+    histRow('Pretax Income', fin.pretaxIncome, fin.pretaxHistory, fin.pretaxQtrs),
+    histRow('Tax Provision', fin.taxExpense, fin.taxHistory, fin.taxQtrs),
     histRow('Net Income', fin.netIncome, fin.netIncomeHistory, fin.netIncomeQtrs),
-    histRow('Basic EPS', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, []),
+    histRow('Basic EPS', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
     histRow('Diluted EPS', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
-    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, []),
+    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs),
     histRow('Gross Margin %', fin.grossMargin, [], [], true),
     histRow('Operating Margin %', fin.operatingMargin, [], [], true),
     histRow('Net Margin %', fin.profitMargin, [], [], true),
+    histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
+    histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
     histRow('Free Cash Flow', fin.freeCashflow, [], []),
-    histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, []),
-    histRow('CapEx', fin.capex, fin.capexHistory, []),
   ], 'table');
 
   var balanceHTML = buildHistTable('fin-balance-'+ticker, [
-    histRow('Total Assets', fin.totalAssets, [], []),
-    histRow('Cash & Equivalents', fin.cash, fin.cashHistory, []),
-    histRow('Total Debt', fin.totalDebt, fin.debtHistory, []),
-    histRow('Total Equity', fin.totalEquity, [], []),
+    histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, []),
     histRow('Current Assets', fin.currentAssets, [], []),
+    histRow('Cash & Equivalents', fin.cash, fin.cashHistory, []),
+    histRow('Total Liabilities', fin.totalLiabilities, fin.totalLiabHistory, []),
     histRow('Current Liabilities', fin.currentLiabilities, [], []),
+    histRow('Total Debt (Long Term)', fin.totalDebt, fin.debtHistory, []),
+    histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, []),
+    histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, fin.opCfQtrs),
+    histRow('CapEx', fin.capex, fin.capexHistory, fin.capexQtrs),
+    histRow('Free Cash Flow', fin.freeCashflow, [], []),
     row('Current Ratio', fin.currentRatio),
     row('Debt to Equity', fin.debtToEquity),
     row('Return on Equity', fin.roe),
@@ -1698,6 +1719,7 @@ function renderCompanyProfile(ticker, data){
     row('Shares Outstanding', fin.sharesOutstanding),
   ], 'none');
 
+  window._lastFinData = data;
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
 }
 

@@ -272,20 +272,33 @@ export default async function handler(req) {
     const costOfRevQtrs      = getQuarterlyValues(edgarFacts, corConcept);
     const grossProfitHistory = getHistoricalValues(edgarFacts, 'GrossProfit');
     const grossProfitQtrs    = getQuarterlyValues(edgarFacts, 'GrossProfit');
+    const rndHistory         = getHistoricalValues(edgarFacts, 'ResearchAndDevelopmentExpense');
+    const rndQtrs            = getQuarterlyValues(edgarFacts, 'ResearchAndDevelopmentExpense');
+    const sgaHistory         = getHistoricalValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
+    const sgaQtrs            = getQuarterlyValues(edgarFacts, 'SellingGeneralAndAdministrativeExpense');
     const opIncomeHistory    = getHistoricalValues(edgarFacts, 'OperatingIncomeLoss');
     const opIncomeQtrs       = getQuarterlyValues(edgarFacts, 'OperatingIncomeLoss');
     const pretaxHistory      = getHistoricalValues(edgarFacts, 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest');
+    const pretaxQtrs         = getQuarterlyValues(edgarFacts, 'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest');
     const taxHistory         = getHistoricalValues(edgarFacts, 'IncomeTaxExpenseBenefit');
+    const taxQtrs            = getQuarterlyValues(edgarFacts, 'IncomeTaxExpenseBenefit');
     const netIncomeHistory   = getHistoricalValues(edgarFacts, 'NetIncomeLoss');
     const netIncomeQtrs      = getQuarterlyValues(edgarFacts, 'NetIncomeLoss');
     const epsBasicHistory    = getHistoricalValues(edgarFacts, 'EarningsPerShareBasic', 'USD/shares');
+    const epsBasicQtrs       = getQuarterlyValues(edgarFacts, 'EarningsPerShareBasic', 'USD/shares');
     const epsDilutedHistory  = getHistoricalValues(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
     const epsQtrs            = getQuarterlyValues(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
     const sharesBasicHistory = getHistoricalValues(edgarFacts, 'WeightedAverageNumberOfSharesOutstandingBasic', 'shares');
+    const sharesBasicQtrs    = getQuarterlyValues(edgarFacts, 'WeightedAverageNumberOfSharesOutstandingBasic', 'shares');
     const cashHistory        = getHistoricalValues(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue');
+    const totalAssetsHistory = getHistoricalValues(edgarFacts, 'Assets');
+    const totalLiabHistory   = getHistoricalValues(edgarFacts, 'Liabilities');
+    const totalEquityHistory = getHistoricalValues(edgarFacts, 'StockholdersEquity');
     const debtHistory        = getHistoricalValues(edgarFacts, 'LongTermDebt');
     const opCfHistory        = getHistoricalValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
+    const opCfQtrs           = getQuarterlyValues(edgarFacts, 'NetCashProvidedByUsedInOperatingActivities');
     const capexHistory       = getHistoricalValues(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
+    const capexQtrs          = getQuarterlyValues(edgarFacts, 'PaymentsToAcquirePropertyPlantAndEquipment');
 
     return new Response(JSON.stringify({
       // Profile
@@ -333,26 +346,23 @@ export default async function handler(req) {
       grossMargin: grossMargin ? (grossMargin*100).toFixed(1)+'%' : null,
       operatingMargin: operatingMargin ? (operatingMargin*100).toFixed(1)+'%' : null,
       profitMargin: netMargin ? (netMargin*100).toFixed(1)+'%' : null,
-      revenueHistory,
-      revenueQtrs,
-      costOfRevHistory,
-      costOfRevQtrs,
-      grossProfitHistory,
-      grossProfitQtrs,
-      opIncomeHistory,
-      opIncomeQtrs,
-      pretaxHistory,
-      taxHistory,
-      netIncomeHistory,
-      netIncomeQtrs,
-      epsBasicHistory,
-      epsDilutedHistory,
-      epsQtrs,
-      sharesBasicHistory,
+      revenueHistory, revenueQtrs,
+      costOfRevHistory, costOfRevQtrs,
+      grossProfitHistory, grossProfitQtrs,
+      rndHistory, rndQtrs,
+      sgaHistory, sgaQtrs,
+      opIncomeHistory, opIncomeQtrs,
+      pretaxHistory, pretaxQtrs,
+      taxHistory, taxQtrs,
+      netIncomeHistory, netIncomeQtrs,
+      epsBasicHistory, epsBasicQtrs,
+      epsDilutedHistory, epsQtrs,
+      sharesBasicHistory, sharesBasicQtrs,
       cashHistory,
+      totalAssetsHistory, totalLiabHistory, totalEquityHistory,
       debtHistory,
-      opCfHistory,
-      capexHistory,
+      opCfHistory, opCfQtrs,
+      capexHistory, capexQtrs,
 
       // Balance Sheet (from EDGAR)
       totalAssets: fmt(totalAssets),
@@ -376,26 +386,23 @@ export default async function handler(req) {
       currentRatio: currentRatio ? currentRatio.toFixed(2) : null,
 
       // Historical financials
-      revenueHistory,
-      revenueQtrs,
-      costOfRevHistory,
-      costOfRevQtrs,
-      grossProfitHistory,
-      grossProfitQtrs,
-      opIncomeHistory,
-      opIncomeQtrs,
-      pretaxHistory,
-      taxHistory,
-      netIncomeHistory,
-      netIncomeQtrs,
-      epsBasicHistory,
-      epsDilutedHistory,
-      epsQtrs,
-      sharesBasicHistory,
+      revenueHistory, revenueQtrs,
+      costOfRevHistory, costOfRevQtrs,
+      grossProfitHistory, grossProfitQtrs,
+      rndHistory, rndQtrs,
+      sgaHistory, sgaQtrs,
+      opIncomeHistory, opIncomeQtrs,
+      pretaxHistory, pretaxQtrs,
+      taxHistory, taxQtrs,
+      netIncomeHistory, netIncomeQtrs,
+      epsBasicHistory, epsBasicQtrs,
+      epsDilutedHistory, epsQtrs,
+      sharesBasicHistory, sharesBasicQtrs,
       cashHistory,
+      totalAssetsHistory, totalLiabHistory, totalEquityHistory,
       debtHistory,
-      opCfHistory,
-      capexHistory,
+      opCfHistory, opCfQtrs,
+      capexHistory, capexQtrs,
 
       _source: 'edgar+finnhub+wiki',
       _edgarAvailable: !!edgarFacts,
