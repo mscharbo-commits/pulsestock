@@ -214,8 +214,17 @@ export default async function handler(req) {
     const debtToEquity = (totalDebt && totalEquity) ? totalDebt / totalEquity : null;
     const currentRatio = (currentAssets && currentLiabilities) ? currentAssets / currentLiabilities : null;
 
-    // Historical revenue for trend
-    const revenueHistory = getHistoricalValues(edgarFacts, 'Revenues') || getHistoricalValues(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax');
+    // Historical annual + quarterly data from EDGAR
+    const revConcept = getLatestValue(edgarFacts, 'Revenues') ? 'Revenues' : 'RevenueFromContractWithCustomerExcludingAssessedTax';
+    const revenueHistory   = getHistoricalValues(edgarFacts, revConcept);
+    const revenueQtrs      = getQuarterlyValues(edgarFacts, revConcept);
+    const netIncomeHistory = getHistoricalValues(edgarFacts, 'NetIncomeLoss');
+    const netIncomeQtrs    = getQuarterlyValues(edgarFacts, 'NetIncomeLoss');
+    const grossProfitHistory = getHistoricalValues(edgarFacts, 'GrossProfit');
+    const epsHistory       = getHistoricalValues(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
+    const epsQtrs          = getQuarterlyValues(edgarFacts, 'EarningsPerShareDiluted', 'USD/shares');
+    const cashHistory      = getHistoricalValues(edgarFacts, 'CashAndCashEquivalentsAtCarryingValue');
+    const debtHistory      = getHistoricalValues(edgarFacts, 'LongTermDebt');
 
     return new Response(JSON.stringify({
       // Profile
@@ -254,6 +263,14 @@ export default async function handler(req) {
       operatingMargin: operatingMargin ? (operatingMargin*100).toFixed(1)+'%' : null,
       profitMargin: netMargin ? (netMargin*100).toFixed(1)+'%' : null,
       revenueHistory,
+      revenueQtrs,
+      netIncomeHistory,
+      netIncomeQtrs,
+      grossProfitHistory,
+      epsHistory,
+      epsQtrs,
+      cashHistory,
+      debtHistory,
 
       // Balance Sheet (from EDGAR)
       totalAssets: fmt(totalAssets),
