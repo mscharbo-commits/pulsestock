@@ -181,10 +181,10 @@ export default async function handler(req) {
     const m = fhMetrics || {};
     const companyName = fh.name || ticker;
 
-    // Fetch EDGAR facts and Wikipedia in parallel
+    // Fetch EDGAR facts and 10-K description in parallel
     const [edgarFacts, edgarDesc] = await Promise.all([
       cik ? getEdgarFacts(cik) : null,
-      getWikipediaDesc(companyName),
+      getEdgarDescription(cik),
     ]);
 
     // Extract financials from EDGAR XBRL
