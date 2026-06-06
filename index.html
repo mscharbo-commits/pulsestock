@@ -1640,7 +1640,7 @@ function renderCompanyProfile(ticker, data){
     return '<table class="fin-table" id="'+id+'" style="display:'+(display||'none')+';">' + hdrs + rows.join('') + '</table>';
   }
 
-  function histRow(label, latestVal, histArr, qtrArr, isPct, isShares) {
+  function histRow(label, latestVal, histArr, qtrArr, isPct, isShares, isRatio) {
     var annuals = histArr || [];
     var qtrs = qtrArr || [];
     var periods = (window._finPeriod === 'quarterly') ? qtrs.slice(0,8) : annuals.slice(0,5);
@@ -1662,6 +1662,9 @@ function renderCompanyProfile(ticker, data){
           else if(abs >= 1e9) formatted = neg+(abs/1e9).toFixed(2)+'B';
           else if(abs >= 1e6) formatted = neg+(abs/1e6).toFixed(2)+'M';
           else formatted = neg+abs.toLocaleString();
+        } else if(isRatio) {
+          // Plain ratio (e.g. D/E = 1.23) - no $ prefix
+          formatted = neg + abs.toFixed(2);
         } else if(abs < 1000 && abs > 0) {
           // EPS and per-share values (small numbers)
           formatted = neg + '$' + abs.toFixed(2);
@@ -1745,21 +1748,21 @@ function renderCompanyProfile(ticker, data){
     histRow('EPS (Diluted)', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
     histRow('EPS (Basic)', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, fin.epsBasicQtrs),
     histRow('Shares (Basic)', fin.sharesBasic, fin.sharesBasicHistory, fin.sharesBasicQtrs, false, true),
-    makeSpanRow('Shares Outstanding', (function(){ var s=parseFloat(fin.sharesOutstanding); if(!s) return fin.sharesOutstanding; if(s>=1e12) return (s/1e12).toFixed(2)+'T'; if(s>=1e9) return (s/1e9).toFixed(2)+'B'; if(s>=1e6) return (s/1e6).toFixed(2)+'M'; return s.toLocaleString(); })()),
+    histRow('Shares Outstanding', null, fin.sharesBasicHistory, fin.sharesBasicQtrs, false, true),
     makeSpanRow('Dividend Yield', fin.dividendYield),
     makeSectionRow('Profitability'),
     histRow('Gross Margin %', fin.grossMargin, deriveMargin(fin.grossProfitHistory, fin.revenueHistory), deriveMargin(fin.grossProfitQtrs, fin.revenueQtrs), true),
     histRow('Operating Margin %', fin.operatingMargin, deriveMargin(fin.opIncomeHistory, fin.revenueHistory), deriveMargin(fin.opIncomeQtrs, fin.revenueQtrs), true),
     histRow('Net Margin %', fin.profitMargin, deriveMargin(fin.netIncomeHistory, fin.revenueHistory), deriveMargin(fin.netIncomeQtrs, fin.revenueQtrs), true),
-    makeSpanRow('Return on Equity', fin.roe),
-    makeSpanRow('Return on Assets', fin.roa),
+    histRow('Return on Equity', fin.roe, deriveRatio(fin.netIncomeHistory, fin.totalEquityHistory), deriveRatio(fin.netIncomeQtrs, fin.totalEquityQtrs), true),
+    histRow('Return on Assets', fin.roa, deriveRatio(fin.netIncomeHistory, fin.totalAssetsHistory), deriveRatio(fin.netIncomeQtrs, fin.totalAssetsQtrs), true),
     makeSectionRow('Financial Health'),
     histRow('Total Assets', fin.totalAssets, fin.totalAssetsHistory, fin.totalAssetsQtrs),
     histRow('Total Debt', fin.totalDebt, fin.debtHistory, fin.debtQtrs),
     histRow('Total Equity', fin.totalEquity, fin.totalEquityHistory, fin.totalEquityQtrs),
     histRow('Free Cash Flow', fin.freeCashflow, deriveFCF(fin.opCfHistory, fin.capexHistory), deriveFCF(fin.opCfQtrs, fin.capexQtrs)),
     makeSpanRow('Current Ratio', fin.currentRatio),
-    makeSpanRow('Debt to Equity', fin.debtToEquity),
+    histRow('Debt to Equity', fin.debtToEquity, deriveRatio(fin.debtHistory, fin.totalEquityHistory), deriveRatio(fin.debtQtrs, fin.totalEquityQtrs), false, false, true),
     makeSectionRow('Market Data'),
     makeSpanRow('Beta', fin.beta),
     makeSpanRow('52-Week High', fin.week52High ? '$'+parseFloat(fin.week52High).toFixed(2) : null),
@@ -1771,6 +1774,16 @@ function renderCompanyProfile(ticker, data){
   finEl.innerHTML = finTabsHTML + incomeHTML + balanceHTML + ratiosHTML;
 }
 
+
+function deriveRatio(numArr, denomArr, label) {
+  // Like deriveMargin but for ratios expressed as decimals (e.g. ROE = NI/Equity)
+  if (!numArr || !denomArr || !numArr.length || !denomArr.length) return [];
+  return numArr.map(function(n) {
+    var d = denomArr.find(function(x){ return x.end === n.end; });
+    if (!d || !d.value || !n.value) return null;
+    return { period: n.period, label: n.label, value: n.value / d.value, type: n.type, end: n.end };
+  }).filter(Boolean);
+}
 
 function deriveMargin(numArr, denomArr) {
   if (!numArr || !denomArr || !numArr.length || !denomArr.length) return [];
