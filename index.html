@@ -483,7 +483,7 @@ const FUNDAMENTALS={
   JPM:{pe:"11.2",fwdPe:"12.8",peg:"1.4",ps:"3.4",evEbitda:"—",roe:"17%",gm:"—",om:"35.4%",nm:"28.1%",rev:"$165B",rg:"21.5%",eg:"9.4%",fcf:"$48B",cash:"$312B",debt:"$400B",beta:"1.12",div:"2.35%",bb:"$12B/yr",atp:"$295",abuy:16,ahold:10,asell:3,rsi:"55",macd:"1.4",msig:"0.9",ma50:"194.22",ma200:"178.44",atr:"3.1",s1:"255",s2:"240",r1:"280",r2:"295",sector:"Finance",capR:"mega",peR:"low",divR:"med",score:79},
 };
 
-let portfolio=[{ticker:"AAPL",shares:10,avg:165},{ticker:"NVDA",shares:5,avg:480},{ticker:"MSFT",shares:8,avg:310},{ticker:"AMZN",shares:12,avg:135}];
+let portfolio=[{ticker:"AAPL",shares:10,avg:165,date:"2023-01-15"},{ticker:"NVDA",shares:5,avg:480,date:"2023-03-20"},{ticker:"MSFT",shares:8,avg:310,date:"2022-11-10"},{ticker:"AMZN",shares:12,avg:135,date:"2023-06-01"}];
 let quoteCache={};
 
 function showPage(id,btn){
@@ -1556,13 +1556,16 @@ async function renderPortfolio(){
     <div class="port-stat"><div class="port-stat-label">Total Return</div><div class="port-stat-value ${ret>=0?'up':'down'}">${ret>=0?'+':''}${ret.toFixed(2)}%</div></div>`;
 
   document.getElementById('holdings-table').innerHTML=`
-    <div class="holdings-header"><span>Holding</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
+    <div class="holdings-header" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;"><span>Holding</span><span>Entry Date</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
     ${portfolio.map(h=>{
       const q=quotes[h.ticker];
       const price=q?q.price:0;
       const val=h.shares*price,cost=h.shares*h.avg,pnl=val-cost,pp=(pnl/cost)*100,day=q?h.shares*price*(q.pct/100):0;
-      return `<div class="holding-row">
+      const holdDays = h.date ? Math.floor((Date.now()-new Date(h.date).getTime())/86400000) : null;
+      const holdLabel = holdDays!==null ? (holdDays>=365 ? (holdDays/365).toFixed(1)+'y' : holdDays+'d') : '—';
+      return `<div class="holding-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;">
         <div><div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;cursor:pointer;" onclick="goAnalyze('${h.ticker}')">${h.ticker}</div><div style="font-size:12px;color:var(--text3);">${h.ticker}</div></div>
+        <div class="hr-cell"><div style="font-family:'DM Sans',sans-serif;font-size:12px;">${h.date||'—'}</div><div style="font-size:11px;color:var(--text3);">${holdLabel}</div></div>
         <div class="hr-cell">${h.shares.toLocaleString()}</div>
         <div class="hr-cell">$${h.avg.toLocaleString()}</div>
         <div class="hr-cell ${q?(q.pct>=0?'up':'down'):''}">${q?'$'+price.toFixed(2):'Loading…'}</div>
@@ -1577,11 +1580,13 @@ function addHolding(){
   if(!t) return;
   const sharesRaw=(prompt('Number of shares (e.g. 100000):')||'').replace(/,/g,'');
   const avgRaw=(prompt('Average cost per share ($):')||'').replace(/[$,]/g,'');
+  const dateRaw=(prompt('Entry date (YYYY-MM-DD, or leave blank for today):')||'').trim();
   const shares=parseFloat(sharesRaw)||0;
   const avg=parseFloat(avgRaw)||0;
   if(!shares||!avg) return;
+  const date=dateRaw||new Date().toISOString().slice(0,10);
   const ex=portfolio.find(h=>h.ticker===t);
-  if(ex)ex.shares+=shares;else portfolio.push({ticker:t,shares,avg});
+  if(ex){ex.shares+=shares;}else portfolio.push({ticker:t,shares,avg,date});
   renderPortfolio();
 }
 
@@ -2410,12 +2415,16 @@ async function runPortfolioAI() {
     const weight = ((val / totalValue) * 100).toFixed(1);
     const dayChg = q ? (q.pct >= 0 ? '+' : '') + q.pct.toFixed(2) + '%' : 'N/A';
     const f = FUNDAMENTALS[h.ticker] || {};
-    return h.ticker + ': ' + h.shares.toLocaleString() + ' shares @ avg $' + h.avg
-      + ' | Current $' + price.toFixed(2) + ' (' + dayChg + ' today)'
-      + ' | Value $' + (val/1e6).toFixed(2) + 'M'
-      + ' | P&L ' + pnlPct + '% ($' + (pnl/1e3).toFixed(0) + 'K)'
-      + ' | Weight ' + weight + '%'
-      + ' | P/E ' + (f.pe||'N/A') + 'x | Beta ' + (f.beta||'N/A') + ' | Sector ' + (f.sector||'N/A');
+    const entryDate = h.date || 'unknown';
+    const holdDays = h.date ? Math.floor((Date.now()-new Date(h.date).getTime())/86400000) : null;
+    const holdLabel = holdDays!==null ? (holdDays>=365 ? (holdDays/365).toFixed(1)+' years' : holdDays+' days') : 'unknown';
+    return h.ticker + ': ' + h.shares.toLocaleString() + ' shares'
+      + ' | Entry: $' + h.avg + ' on ' + entryDate + ' (' + holdLabel + ' ago)'
+      + ' | Current: $' + price.toFixed(2) + ' (' + dayChg + ' today)'
+      + ' | Unrealized P&L: ' + pnlPct + '% ($' + (Math.abs(pnl)/1e3).toFixed(0) + 'K ' + (pnl>=0?'gain':'loss') + ')'
+      + ' | Portfolio weight: ' + weight + '%'
+      + ' | Value: $' + (val/1e6).toFixed(2) + 'M'
+      + ' | P/E: ' + (f.pe||'N/A') + 'x | Beta: ' + (f.beta||'N/A') + ' | Sector: ' + (f.sector||'N/A');
   }).join('\n');
 
   const prompt = 'You are a senior portfolio manager at an institutional asset management firm. Analyze this client\'s stock portfolio with professional rigor.\n\n'
@@ -2430,7 +2439,7 @@ async function runPortfolioAI() {
     + 'ALLOCATION ANALYSIS\n'
     + '[Analyze sector concentration, position sizing, top-heavy risks, and whether weights are appropriate]\n\n'
     + 'PERFORMANCE REVIEW\n'
-    + '[Analyze winners vs laggards, which positions are dragging returns, which are driving gains]\n\n'
+    + '[Analyze each holding\'s P&L since entry, holding period context (short vs long term), winners vs laggards, which positions to harvest losses/gains]\n\n'
     + 'RISK ASSESSMENT\n'
     + '[Analyze beta-weighted risk, correlation between holdings, concentration risk, and market exposure]\n\n'
     + 'DIVERSIFICATION GAPS\n'
