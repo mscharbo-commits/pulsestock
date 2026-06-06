@@ -952,28 +952,72 @@ async function doAnalyze(){
 
     <!-- LEVEL II & TIME & SALES -->
     <div id="marketdata-${ticker}" class="card" style="margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
         <div style="font-size:14px;font-weight:600;">⚖️ Level II & Time & Sales</div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
           <span class="live-badge" id="ba-status-${ticker}">● Live Bid/Ask</span>
           <span class="delayed-badge">T&S 15min Delayed</span>
+          <span style="font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text3);">MM Depth: Simulated</span>
         </div>
       </div>
-      <div class="market-data-grid">
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Best Bid / Ask</div>
-          <div class="bid-ask-display" id="bidask-${ticker}">
-            <div class="bid-side"><div class="ba-label" style="color:var(--green);">BID</div><div class="ba-price up" id="bid-price-${ticker}">—</div><div class="ba-size" id="bid-size-${ticker}">— shares</div></div>
-            <div class="ask-side"><div class="ba-label" style="color:var(--red);">ASK</div><div class="ba-price down" id="ask-price-${ticker}">—</div><div class="ba-size" id="ask-size-${ticker}">— shares</div></div>
+
+      <!-- TOP BAR: best bid/ask + spread -->
+      <div style="display:flex;gap:0;margin-bottom:10px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+        <div class="bid-side" style="flex:1;padding:10px 16px;">
+          <div class="ba-label" style="color:var(--green);">BEST BID</div>
+          <div class="ba-price up" id="bid-price-${ticker}">—</div>
+          <div class="ba-size" id="bid-size-${ticker}">— shares</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;background:var(--surface2);border-left:1px solid var(--border);border-right:1px solid var(--border);min-width:100px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Spread</div>
+          <div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;" id="spread-${ticker}">—</div>
+        </div>
+        <div class="ask-side" style="flex:1;padding:10px 16px;">
+          <div class="ba-label" style="color:var(--red);">BEST ASK</div>
+          <div class="ba-price down" id="ask-price-${ticker}">—</div>
+          <div class="ba-size" id="ask-size-${ticker}">— shares</div>
+        </div>
+      </div>
+
+      <!-- MONTAGE: MM depth + Time & Sales -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+
+        <!-- BID DEPTH -->
+        <div style="border-right:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:42px 1fr 68px;padding:6px 8px;background:rgba(13,155,107,.07);border-bottom:1.5px solid var(--border);">
+            <span style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;">MMID</span>
+            <span style="font-size:10px;font-weight:700;color:var(--green);text-align:center;text-transform:uppercase;letter-spacing:.05em;">Bid</span>
+            <span style="font-size:10px;font-weight:700;color:var(--green);text-align:right;text-transform:uppercase;letter-spacing:.05em;">Size</span>
           </div>
-          <div class="spread-row" id="spread-${ticker}">Spread: —</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Recent NBBO Quotes (Delayed)</div>
-          <div id="nbbo-list-${ticker}" style="font-size:13px;color:var(--text3);padding:10px 0;">Loading...</div>
+          <div id="l2-bid-${ticker}"><div style="padding:10px;font-size:12px;color:var(--text3);">Loading...</div></div>
         </div>
+
+        <!-- ASK DEPTH -->
+        <div style="border-right:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:42px 1fr 68px;padding:6px 8px;background:rgba(209,63,48,.06);border-bottom:1.5px solid var(--border);">
+            <span style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.05em;">MMID</span>
+            <span style="font-size:10px;font-weight:700;color:var(--red);text-align:center;text-transform:uppercase;letter-spacing:.05em;">Ask</span>
+            <span style="font-size:10px;font-weight:700;color:var(--red);text-align:right;text-transform:uppercase;letter-spacing:.05em;">Size</span>
+          </div>
+          <div id="l2-ask-${ticker}"><div style="padding:10px;font-size:12px;color:var(--text3);">Loading...</div></div>
+        </div>
+
+        <!-- TIME & SALES -->
         <div>
-          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Time & Sales (Delayed)</div>
-          <div id="ts-list-${ticker}" style="font-size:13px;color:var(--text3);padding:10px 0;">Loading...</div>
+          <div style="display:grid;grid-template-columns:60px 1fr 60px 36px;padding:6px 8px;background:var(--surface2);border-bottom:1.5px solid var(--border);">
+            <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Time</span>
+            <span style="font-size:10px;font-weight:700;color:var(--text3);text-align:center;text-transform:uppercase;letter-spacing:.05em;">Price</span>
+            <span style="font-size:10px;font-weight:700;color:var(--text3);text-align:right;text-transform:uppercase;letter-spacing:.05em;">Size</span>
+            <span style="font-size:10px;font-weight:700;color:var(--text3);text-align:right;text-transform:uppercase;letter-spacing:.05em;">Ex</span>
+          </div>
+          <div id="ts-list-${ticker}" style="max-height:320px;overflow-y:auto;"><div style="padding:10px;font-size:12px;color:var(--text3);">Loading...</div></div>
         </div>
+      </div>
+
+      <!-- NBBO below montage -->
+      <div style="margin-top:10px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Recent NBBO Quotes (Delayed)</div>
+        <div id="nbbo-list-${ticker}" style="font-size:13px;color:var(--text3);">Loading...</div>
       </div>
     </div>
 
@@ -2006,7 +2050,61 @@ async function loadBidAsk(ticker){
   if(askEl) askEl.textContent = '$' + ask.toFixed(2);
   if(bidSzEl) bidSzEl.textContent = (data.bidSize||0) + ' shares';
   if(askSzEl) askSzEl.textContent = (data.askSize||0) + ' shares';
-  if(spreadEl) spreadEl.textContent = 'Spread: $' + spread.toFixed(3) + ' (' + spreadPct + '%)';
+  if(spreadEl) spreadEl.textContent = '$' + spread.toFixed(3) + ' (' + spreadPct + '%)';
+
+  // Render MM depth montage (simulated until paid L2 feed)
+  renderMMDepth(ticker, bid, ask);
+}
+
+function renderMMDepth(ticker, bestBid, bestAsk) {
+  var bidEl = document.getElementById('l2-bid-' + ticker);
+  var askEl = document.getElementById('l2-ask-' + ticker);
+  if(!bidEl || !askEl || !bestBid) return;
+
+  var MMs = ['NSDQ','ARCA','BATS','EDGX','CBOE','NYSE','MEMX','IEX','PHLX','BATY','EDGA','MIAX','CINN','SUSP','LTSE'];
+  function randMM() { return MMs[Math.floor(Math.random() * MMs.length)]; }
+
+  // Build bid rows: best bid at top, descending price
+  var bidRows = [];
+  for(var i = 0; i < 10; i++) {
+    bidRows.push({
+      mm: randMM(),
+      price: parseFloat((bestBid - i * 0.01 - Math.random() * 0.004).toFixed(2)),
+      size: (Math.floor(Math.random() * 9 + 1) * 100)
+    });
+  }
+  bidRows[0].price = bestBid; // pin best to actual
+
+  // Build ask rows: best ask at top, ascending price
+  var askRows = [];
+  for(var i = 0; i < 10; i++) {
+    askRows.push({
+      mm: randMM(),
+      price: parseFloat((bestAsk + i * 0.01 + Math.random() * 0.004).toFixed(2)),
+      size: (Math.floor(Math.random() * 9 + 1) * 100)
+    });
+  }
+  askRows[0].price = bestAsk; // pin best to actual
+
+  var maxBid = Math.max.apply(null, bidRows.map(function(r){return r.size;}));
+  var maxAsk = Math.max.apply(null, askRows.map(function(r){return r.size;}));
+
+  function mmRow(r, side, maxSz, isBest) {
+    var pct = Math.round(r.size / maxSz * 100);
+    var barColor = side === 'bid' ? 'rgba(13,155,107,.14)' : 'rgba(209,63,48,.11)';
+    var priceColor = side === 'bid' ? 'var(--green)' : 'var(--red)';
+    var bold = isBest ? 'font-weight:700;' : '';
+    var rowBg = isBest ? (side === 'bid' ? 'background:rgba(13,155,107,.06);' : 'background:rgba(209,63,48,.05);') : '';
+    return '<div style="display:grid;grid-template-columns:42px 1fr 68px;align-items:center;padding:3px 8px;border-bottom:1px solid var(--border);position:relative;' + rowBg + '">'
+      + '<div style="position:absolute;' + (side==='bid'?'right':'left') + ':0;top:0;height:100%;width:' + pct + '%;background:' + barColor + ';pointer-events:none;"></div>'
+      + '<span style="position:relative;font-size:11px;font-family:DM Mono,monospace;color:var(--text3);' + bold + '">' + r.mm + '</span>'
+      + '<span style="position:relative;font-size:12px;font-family:DM Mono,monospace;text-align:center;color:' + priceColor + ';' + bold + '">$' + r.price.toFixed(2) + '</span>'
+      + '<span style="position:relative;font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);' + bold + '">' + r.size.toLocaleString() + '</span>'
+      + '</div>';
+  }
+
+  bidEl.innerHTML = bidRows.map(function(r,i){ return mmRow(r,'bid',maxBid,i===0); }).join('');
+  askEl.innerHTML = askRows.map(function(r,i){ return mmRow(r,'ask',maxAsk,i===0); }).join('');
 }
 
 async function loadTrades(ticker){
@@ -2014,21 +2112,23 @@ async function loadTrades(ticker){
   if(!el) return;
   var data = await fetchTrades(ticker, 'trades');
   if(!data || !data.trades || !data.trades.length){
-    el.innerHTML = '<div style="color:var(--text3);padding:10px 0;font-size:13px;">No recent trades available. Market may be closed.</div>';
+    el.innerHTML = '<div style="color:var(--text3);padding:10px 0;font-size:13px;">No recent trades. Market may be closed.</div>';
     return;
   }
-  var trades = data.trades.slice(0, 20);
+  var trades = data.trades.slice(0, 40);
   var prevPrice = null;
-  el.innerHTML = '<div style="font-size:11px;color:var(--amber);margin-bottom:6px;">⏱ 15-minute delayed data</div>'
+  el.innerHTML = '<div style="font-size:10px;color:var(--amber);padding:4px 8px;border-bottom:1px solid var(--border);">⏱ 15-min delayed</div>'
     + trades.map(function(t){
         var time = t.timestamp ? new Date(t.timestamp/1000000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
-        var dir = prevPrice !== null ? (t.price > prevPrice ? 'ts-up' : t.price < prevPrice ? 'ts-down' : '') : '';
+        var dir = prevPrice !== null ? (t.price > prevPrice ? 'up' : t.price < prevPrice ? 'down' : '') : '';
+        var priceColor = dir==='up' ? 'var(--green)' : dir==='down' ? 'var(--red)' : 'var(--text)';
+        var rowBg = dir==='up' ? 'rgba(13,155,107,.04)' : dir==='down' ? 'rgba(209,63,48,.04)' : '';
         prevPrice = t.price;
-        return '<div class="ts-row">'
-          + '<span class="ts-time">' + time + '</span>'
-          + '<span class="ts-price ' + dir + '">$' + (t.price||0).toFixed(2) + '</span>'
-          + '<span class="ts-size">' + (t.size||0).toLocaleString() + '</span>'
-          + '<span class="ts-exch">' + (t.exchange||'') + '</span>'
+        return '<div style="display:grid;grid-template-columns:60px 1fr 60px 36px;padding:3px 8px;border-bottom:1px solid var(--border);font-size:11.5px;font-family:DM Mono,monospace;background:' + rowBg + ';">'
+          + '<span style="color:var(--text3);font-size:10.5px;">' + time + '</span>'
+          + '<span style="text-align:center;font-weight:600;color:' + priceColor + ';">$' + (t.price||0).toFixed(2) + '</span>'
+          + '<span style="text-align:right;color:var(--text2);">' + (t.size||0).toLocaleString() + '</span>'
+          + '<span style="text-align:right;font-size:10px;color:var(--text3);">' + (t.exchange||'') + '</span>'
           + '</div>';
       }).join('');
 }
