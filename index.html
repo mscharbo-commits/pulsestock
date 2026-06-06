@@ -457,6 +457,25 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <button class="btn-primary" id="port-ai-btn" onclick="runPortfolioAI()" style="font-size:14px;padding:12px 28px;">Analyze My Portfolio →</button>
     </div>
     <div id="port-ai-output"></div>
+
+    <!-- PORTFOLIO LEVEL II & T&S -->
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:14px;font-weight:600;">⚖️ Level II & Time &amp; Sales</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="delayed-badge">15min Delayed</span>
+          <select id="port-l2-ticker" onchange="loadPortfolioL2(this.value)" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);color:var(--text2);background:var(--surface);cursor:pointer;">
+            <option value="">Select holding...</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="port-l2-content">
+        <div style="text-align:center;padding:32px 0;color:var(--text3);font-size:13.5px;">
+          Select a holding above to view Level II & Time &amp; Sales data
+        </div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -1555,6 +1574,7 @@ async function renderPortfolio(){
     <div class="port-stat"><div class="port-stat-label">Total Gain</div><div class="port-stat-value ${gain>=0?'up':'down'}">${gain>=0?'+':'-'}$${Math.abs(gain).toLocaleString('en-US',{maximumFractionDigits:0})}</div></div>
     <div class="port-stat"><div class="port-stat-label">Total Return</div><div class="port-stat-value ${ret>=0?'up':'down'}">${ret>=0?'+':''}${ret.toFixed(2)}%</div></div>`;
 
+  populatePortL2Select();
   document.getElementById('holdings-table').innerHTML=`
     <div class="holdings-header" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;"><span>Holding</span><span>Entry Date</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
     ${portfolio.map(h=>{
@@ -2383,6 +2403,122 @@ async function loadTickerBar(){
 loadTickerBar();
 // Refresh every 60 seconds
 setInterval(loadTickerBar, 60000);
+
+// ── PORTFOLIO LEVEL II ──
+function populatePortL2Select() {
+  var sel = document.getElementById('port-l2-ticker');
+  if(!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">Select holding...</option>';
+  portfolio.forEach(function(h) {
+    var opt = document.createElement('option');
+    opt.value = h.ticker;
+    opt.textContent = h.ticker + ' (' + h.shares.toLocaleString() + ' shares)';
+    if(h.ticker === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+var portL2Interval = null;
+
+async function loadPortfolioL2(ticker) {
+  var el = document.getElementById('port-l2-content');
+  if(!el) return;
+  if(!ticker) {
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--text3);font-size:13.5px;">Select a holding above to view Level II & Time &amp; Sales data</div>';
+    if(portL2Interval) { clearInterval(portL2Interval); portL2Interval = null; }
+    return;
+  }
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="port-l2-grid">'
+    + '<div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Best Bid / Ask — ' + ticker + '</div>'
+    + '<div class="bid-ask-display" id="pl2-bidask-' + ticker + '">'
+    + '<div class="bid-side"><div class="ba-label" style="color:var(--green);">BID</div><div class="ba-price up" id="pl2-bid-' + ticker + '">—</div><div class="ba-size" id="pl2-bidsz-' + ticker + '">— shares</div></div>'
+    + '<div class="ask-side"><div class="ba-label" style="color:var(--red);">ASK</div><div class="ba-price down" id="pl2-ask-' + ticker + '">—</div><div class="ba-size" id="pl2-asksz-' + ticker + '">— shares</div></div>'
+    + '</div>'
+    + '<div class="spread-row" id="pl2-spread-' + ticker + '">Spread: loading...</div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px;">NBBO Quotes (Delayed)</div>'
+    + '<div id="pl2-nbbo-' + ticker + '" style="font-size:13px;color:var(--text3);">Loading...</div>'
+    + '</div>'
+    + '<div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Time &amp; Sales (Delayed)</div>'
+    + '<div id="pl2-ts-' + ticker + '" style="font-size:13px;color:var(--text3);">Loading...</div>'
+    + '</div>'
+    + '</div>';
+
+  if(portL2Interval) { clearInterval(portL2Interval); portL2Interval = null; }
+
+  await refreshPortL2(ticker);
+  portL2Interval = setInterval(function(){ refreshPortL2(ticker); }, 8000);
+}
+
+async function refreshPortL2(ticker) {
+  // Bid/Ask
+  var quote = await fetchTrades(ticker, 'quote');
+  if(quote && quote.price) {
+    var bid = quote.bid || 0;
+    var ask = quote.ask || 0;
+    var spread = (ask - bid).toFixed(3);
+    var spreadPct = bid > 0 ? ((ask-bid)/bid*100).toFixed(3) : '0';
+    var bidEl = document.getElementById('pl2-bid-' + ticker);
+    var askEl = document.getElementById('pl2-ask-' + ticker);
+    var bidSzEl = document.getElementById('pl2-bidsz-' + ticker);
+    var askSzEl = document.getElementById('pl2-asksz-' + ticker);
+    var spreadEl = document.getElementById('pl2-spread-' + ticker);
+    if(bidEl) bidEl.textContent = '$' + bid.toFixed(2);
+    if(askEl) askEl.textContent = '$' + ask.toFixed(2);
+    if(bidSzEl) bidSzEl.textContent = (quote.bidSize||0) + ' shares';
+    if(askSzEl) askSzEl.textContent = (quote.askSize||0) + ' shares';
+    if(spreadEl) spreadEl.textContent = 'Spread: $' + spread + ' (' + spreadPct + '%)';
+  }
+
+  // NBBO
+  var nbboData = await fetchTrades(ticker, 'quotes');
+  var nbboEl = document.getElementById('pl2-nbbo-' + ticker);
+  if(nbboEl) {
+    if(!nbboData || !nbboData.quotes || !nbboData.quotes.length) {
+      nbboEl.innerHTML = '<div style="color:var(--text3);font-size:13px;">No quote data available</div>';
+    } else {
+      var qs = nbboData.quotes.slice(0,8);
+      nbboEl.innerHTML = '<div style="font-size:11px;color:var(--amber);margin-bottom:6px;">⏱ 15-minute delayed</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:11px;font-weight:600;color:var(--text3);padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px;">'
+        + '<span>Bid</span><span>BidSz</span><span>Ask</span><span>AskSz</span></div>'
+        + qs.map(function(q){
+            return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:12.5px;font-family:DM Mono,monospace;padding:4px 0;border-bottom:1px solid var(--border);">'
+              + '<span style="color:var(--green);">$' + (q.bid||0).toFixed(2) + '</span>'
+              + '<span>' + (q.bidSize||0) + '</span>'
+              + '<span style="color:var(--red);">$' + (q.ask||0).toFixed(2) + '</span>'
+              + '<span>' + (q.askSize||0) + '</span>'
+              + '</div>';
+          }).join('');
+    }
+  }
+
+  // Time & Sales
+  var tradesData = await fetchTrades(ticker, 'trades');
+  var tsEl = document.getElementById('pl2-ts-' + ticker);
+  if(tsEl) {
+    if(!tradesData || !tradesData.trades || !tradesData.trades.length) {
+      tsEl.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0;">No recent trades available. Market may be closed.</div>';
+    } else {
+      var trades = tradesData.trades.slice(0,20);
+      var prevPrice = null;
+      tsEl.innerHTML = '<div style="font-size:11px;color:var(--amber);margin-bottom:6px;">⏱ 15-minute delayed</div>'
+        + trades.map(function(t){
+            var time = t.timestamp ? new Date(t.timestamp/1000000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+            var dir = prevPrice !== null ? (t.price > prevPrice ? 'ts-up' : t.price < prevPrice ? 'ts-down' : '') : '';
+            prevPrice = t.price;
+            return '<div class="ts-row">'
+              + '<span class="ts-time">' + time + '</span>'
+              + '<span class="ts-price ' + dir + '">$' + (t.price||0).toFixed(2) + '</span>'
+              + '<span class="ts-size">' + (t.size||0).toLocaleString() + '</span>'
+              + '<span class="ts-exch">' + (t.exchange||'') + '</span>'
+              + '</div>';
+          }).join('');
+    }
+  }
+}
 
 // ── AI PORTFOLIO ANALYSIS ──
 async function runPortfolioAI() {
