@@ -1634,27 +1634,43 @@ function renderCompanyProfile(ticker, data){
       if(isPct) {
         formatted = (v*100).toFixed(1)+'%';
         cls = v >= 0 ? 'fin-positive' : 'fin-negative';
-      } else if(Math.abs(v) >= 1e12) { formatted = '$'+(v/1e12).toFixed(2)+'T'; }
-      else if(Math.abs(v) >= 1e9) { formatted = '$'+(v/1e9).toFixed(2)+'B'; }
-      else if(Math.abs(v) >= 1e6) { formatted = '$'+(v/1e6).toFixed(2)+'M'; }
-      else if(Math.abs(v) < 100) { formatted = '$'+parseFloat(v).toFixed(2); }
-      else { formatted = '$'+v.toFixed(0); }
+      } else {
+        var abs = Math.abs(v);
+        var neg = v < 0 ? '-' : '';
+        // EPS and per-share values (small numbers)
+        if(abs < 1000 && abs > 0) {
+          formatted = neg + '$' + abs.toFixed(2);
+        } else if(abs >= 1e12) { formatted = neg+'$'+(abs/1e12).toFixed(2)+'T'; }
+        else if(abs >= 1e9)  { formatted = neg+'$'+(abs/1e9).toFixed(2)+'B'; }
+        else if(abs >= 1e6)  { formatted = neg+'$'+(abs/1e6).toFixed(2)+'M'; }
+        else if(abs >= 1e3)  { formatted = neg+'$'+(abs/1e3).toFixed(1)+'K'; }
+        else { formatted = neg+'$'+abs.toFixed(2); }
+        if(v < 0) cls = 'fin-negative';
+      }
       return '<td style="text-align:right;" class="'+cls+'">'+formatted+'</td>';
     }).join('');
     return '<tr><td style="font-weight:500;">'+label+'</td>'+cells+'</tr>';
   }
 
   var incomeHTML = buildHistTable('fin-income-'+ticker, [
-    histRow('Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
-    histRow('Gross Profit', fin.grossProfit, fin.grossProfitHistory, []),
-    histRow('Operating Income', fin.operatingIncome, [], []),
+    histRow('Total Revenue', fin.revenue, fin.revenueHistory, fin.revenueQtrs),
+    histRow('Cost of Revenue', fin.costOfRevenue, fin.costOfRevHistory, fin.costOfRevQtrs),
+    histRow('Gross Profit', fin.grossProfit, fin.grossProfitHistory, fin.grossProfitQtrs),
+    histRow('R&D Expense', fin.rndExpense, [], []),
+    histRow('SG&A Expense', fin.sgaExpense, [], []),
+    histRow('Operating Income', fin.operatingIncome, fin.opIncomeHistory, fin.opIncomeQtrs),
+    histRow('Pretax Income', fin.pretaxIncome, fin.pretaxHistory, []),
+    histRow('Tax Provision', fin.taxExpense, fin.taxHistory, []),
     histRow('Net Income', fin.netIncome, fin.netIncomeHistory, fin.netIncomeQtrs),
-    histRow('EPS (Diluted)', fin.eps, fin.epsHistory, fin.epsQtrs),
+    histRow('Basic EPS', fin.epsBasic ? '$'+fin.epsBasic : null, fin.epsBasicHistory, []),
+    histRow('Diluted EPS', fin.epsDiluted ? '$'+fin.epsDiluted : null, fin.epsDilutedHistory, fin.epsQtrs),
+    histRow('Shares Basic', fin.sharesBasic, fin.sharesBasicHistory, []),
     histRow('Gross Margin %', fin.grossMargin, [], [], true),
     histRow('Operating Margin %', fin.operatingMargin, [], [], true),
     histRow('Net Margin %', fin.profitMargin, [], [], true),
     histRow('Free Cash Flow', fin.freeCashflow, [], []),
-    histRow('Operating Cash Flow', fin.operatingCashflow, [], []),
+    histRow('Operating Cash Flow', fin.operatingCashflow, fin.opCfHistory, []),
+    histRow('CapEx', fin.capex, fin.capexHistory, []),
   ], 'table');
 
   var balanceHTML = buildHistTable('fin-balance-'+ticker, [
