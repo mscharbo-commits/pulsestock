@@ -690,8 +690,11 @@ async function fetchWithTimeout(url, ms){
   }catch(e){ clearTimeout(id); return null; }
 }
 
-async function fetchFTD(ticker){
-  return fetchWithTimeout('/api/ftd?ticker='+encodeURIComponent(ticker), 25000);
+async function fetchFTD(ticker, shortPct, dtc){
+  var params = '/api/ftd?ticker='+encodeURIComponent(ticker);
+  if(shortPct) params += '&shortPct=' + encodeURIComponent(shortPct);
+  if(dtc) params += '&dtc=' + encodeURIComponent(dtc);
+  return fetchWithTimeout(params, 20000);
 }
 
 async function fetchShortInterest(ticker){
@@ -766,14 +769,77 @@ function renderEdgar(ticker, data){
 
 function renderFTD(ticker, ftd){
   var el = document.getElementById('ftd-inline-' + ticker);
-  if(!el || !ftd || !ftd.totalFTD) return;
-  function fmt(n){ if(!n&&n!==0) return '—'; if(n>=1e6) return (n/1e6).toFixed(2)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return n.toLocaleString(); }
-  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">'
-    + '<div class="short-tile"><div class="short-label">Latest FTD</div><div class="short-value">' + fmt(ftd.latestFTD) + '</div><div class="short-sub">' + (ftd.latestDate||'') + '</div></div>'
-    + '<div class="short-tile"><div class="short-label">Period Total</div><div class="short-value">' + fmt(ftd.totalFTD) + '</div><div class="short-sub">' + (ftd.period||'') + '</div></div>'
-    + '<div class="short-tile"><div class="short-label">Peak Day</div><div class="short-value">' + fmt(ftd.maxFTD) + '</div><div class="short-sub">highest single day</div></div>'
+  if(!el) return;
+
+  if(!ftd || ftd.error) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Reg SHO data unavailable</div>';
+    return;
+  }
+
+  var onList = ftd.onRegSHO;
+  var days = ftd.consecutiveDays || 0;
+  var score = ftd.settlementPressureScore || 0;
+  var level = ftd.pressureLevel || 'Low';
+  var history = ftd.history || [];
+
+  // Score color
+  var scoreColor = level==='Critical' ? 'var(--red)' : level==='Elevated' ? 'var(--amber)' : level==='Moderate' ? '#F59E0B' : 'var(--green)';
+  var statusBg   = onList ? 'rgba(209,63,48,.08)' : 'rgba(13,155,107,.06)';
+  var statusColor = onList ? 'var(--red)' : 'var(--green)';
+  var statusText  = onList ? '⚠ On Reg SHO Threshold List' : '✓ Not on Reg SHO List';
+
+  // History dots (last 10 days)
+  var dots = history.slice(0,10).map(function(h) {
+    var color = h.onList ? 'var(--red)' : (h.source ? 'var(--green)' : 'var(--border)');
+    var tip = h.date + (h.onList ? ' — ON LIST' : ' — Clear');
+    return '<span title="'+tip+'" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+color+';margin-right:3px;"></span>';
+  }).join('');
+
+  el.innerHTML =
+    // Status banner
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:'+statusBg+';border-radius:6px;margin-bottom:12px;">'
+    + '<span style="font-size:13px;font-weight:600;color:'+statusColor+';">'+statusText+'</span>'
+    + '<span style="font-size:11px;color:var(--text3);">'+ftd.source+' · Daily</span>'
     + '</div>'
-    + '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Source: ' + (ftd.zipFile||'SEC EDGAR') + '</div>';
+
+    // Settlement Pressure Score
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;">'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:700;color:'+scoreColor+';">'+score+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Pressure Score</div>'
+    + '<div style="font-size:11px;font-weight:600;color:'+scoreColor+';margin-top:2px;">'+level+'</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:700;color:'+(onList?'var(--red)':'var(--text)')+';">'+days+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Consecutive Days</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:22px;font-weight:700;color:var(--text);">'+ftd.daysOnListLast10+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Of Last 10 Days</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;">Last 10 Days</div>'
+    + '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:2px;">'+dots+'</div>'
+    + '</div>'
+    + '</div>'
+
+    // Score breakdown bar
+    + '<div style="margin-bottom:12px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+    + '<span style="font-size:11px;color:var(--text3);">Settlement Pressure Score</span>'
+    + '<span style="font-size:11px;font-weight:700;color:'+scoreColor+';">'+score+'/100 · '+level+'</span>'
+    + '</div>'
+    + '<div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">'
+    + '<div style="height:100%;width:'+score+'%;background:'+scoreColor+';border-radius:3px;transition:width .5s;"></div>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;margin-top:6px;">'
+    + '<span style="font-size:10px;color:var(--text3);">Score factors: Reg SHO days (40) · Short % (25) · Days-to-Cover (20) · History (15)</span>'
+    + '</div>'
+    + '</div>'
+
+    // Source note
+    + '<div style="font-size:11px;color:var(--text3);">Latest: '+( ftd.latestDate||'—')+' · Reg SHO = persistent settlement failures (5+ consecutive days) · '+
+    '<a href="https://www.sec.gov/data-research/sec-markets-data/fails-deliver-data" target="_blank" style="color:var(--accent);">SEC EDGAR ↗</a></div>';
 }
 
 function renderShortInterest(ticker, data){
@@ -894,7 +960,10 @@ async function doAnalyze(){
     renderShortInterest(ticker, d);
     // Start FTD after short interest renders (ensures ftd-inline div exists in DOM)
     setTimeout(function(){
-      fetchFTD(ticker).then(function(ftd){ renderFTD(ticker, ftd); });
+      // Pass short interest data to FTD API for Settlement Pressure Score
+      var shortPct = d && d.shortPercentFloat ? parseFloat(d.shortPercentFloat) : 0;
+      var dtc = d && d.daysTocover ? parseFloat(d.daysTocover) : 0;
+      fetchFTD(ticker, shortPct, dtc).then(function(ftd){ renderFTD(ticker, ftd); });
     }, 100);
   });
   window._currentProfile = profile;

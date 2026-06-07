@@ -1,123 +1,162 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 30 };
 
-async function getSecFTD(ticker) {
-  // Most recent available files first — skip current month (2-week lag)
-  const now = new Date();
-  const files = [];
-  for (let i = 1; i <= 5; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth()+1).padStart(2,'0');
-    files.push(`https://www.sec.gov/files/data/fails-deliver-data/cnsfails${yr}${mo}b.zip`);
-    files.push(`https://www.sec.gov/files/data/fails-deliver-data/cnsfails${yr}${mo}a.zip`);
-  }
-
-  for (const zipUrl of files) {
-    try {
-      // 20s timeout per file so we don't burn the whole 60s on one
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
-
-      const res = await fetch(zipUrl, {
-        headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' },
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) continue;
-
-      const arrayBuffer = await res.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      const view = new DataView(arrayBuffer);
-
-      // Find EOCD signature
-      let eocdOffset = -1;
-      for (let i = bytes.length - 22; i >= 0; i--) {
-        if (bytes[i]===0x50&&bytes[i+1]===0x4B&&bytes[i+2]===0x05&&bytes[i+3]===0x06) {
-          eocdOffset = i; break;
-        }
-      }
-      if (eocdOffset < 0) continue;
-
-      const cdOffset = view.getUint32(eocdOffset + 16, true);
-      const numEntries = view.getUint16(eocdOffset + 10, true);
-      let cdPos = cdOffset;
-      let entry = null;
-
-      for (let i = 0; i < numEntries; i++) {
-        if (bytes[cdPos]!==0x50||bytes[cdPos+1]!==0x4B||bytes[cdPos+2]!==0x01||bytes[cdPos+3]!==0x02) break;
-        const compSize   = view.getUint32(cdPos + 20, true);
-        const nameLen    = view.getUint16(cdPos + 28, true);
-        const extraLen   = view.getUint16(cdPos + 30, true);
-        const commentLen = view.getUint16(cdPos + 32, true);
-        const localOff   = view.getUint32(cdPos + 42, true);
-        const name       = new TextDecoder().decode(bytes.slice(cdPos+46, cdPos+46+nameLen));
-        if (name.endsWith('.txt')) { entry = { compSize, localOffset: localOff, name }; break; }
-        cdPos += 46 + nameLen + extraLen + commentLen;
-      }
-      if (!entry) continue;
-
-      const lNameLen  = view.getUint16(entry.localOffset + 26, true);
-      const lExtraLen = view.getUint16(entry.localOffset + 28, true);
-      const dataStart = entry.localOffset + 30 + lNameLen + lExtraLen;
-      const compData  = bytes.slice(dataStart, dataStart + entry.compSize);
-
-      const ds     = new DecompressionStream('deflate-raw');
-      const writer = ds.writable.getWriter();
-      const reader = ds.readable.getReader();
-      writer.write(compData);
-      writer.close();
-
-      const chunks = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-      reader.cancel();
-
-      const combined = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
-      let pos = 0;
-      for (const c of chunks) { combined.set(c, pos); pos += c.length; }
-      const txt = new TextDecoder().decode(combined);
-
-      const tickerLines = txt.split('\n').filter(l => l.split('|')[2] === ticker);
-      if (tickerLines.length === 0) continue;
-
-      const ftdData = tickerLines.map(l => {
-        const [date, cusip, sym, qty, desc, price] = l.split('|');
-        return {
-          date: date ? `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}` : null,
-          quantity: qty ? parseInt(qty) : 0,
-          price: price ? parseFloat(price) : null,
-        };
-      }).filter(d => d.date && d.quantity > 0);
-
-      if (ftdData.length === 0) continue;
-
-      const totalFTD  = ftdData.reduce((a, b) => a + b.quantity, 0);
-      const latestFTD = ftdData[ftdData.length - 1];
-      const maxFTD    = Math.max(...ftdData.map(d => d.quantity));
-      const m         = zipUrl.match(/cnsfails(\d{4})(\d{2})(a|b)\.zip/);
-      const period    = m ? `${m[1]}-${m[2]} ${m[3]==='a'?'1st half':'2nd half'}` : null;
-
-      return {
-        totalFTD,
-        latestFTD:   latestFTD?.quantity || 0,
-        maxFTD,
-        latestDate:  latestFTD?.date,
-        latestPrice: latestFTD?.price,
-        period,
-        dailyData:   ftdData,
-        source:      'SEC EDGAR',
-        zipFile:     zipUrl.split('/').pop(),
-      };
-    } catch (e) {
-      // Timeout or fetch error — try next file
-      continue;
+// Get last N business days (skip weekends)
+function getRecentTradeDates(n) {
+  const dates = [];
+  const d = new Date();
+  while (dates.length < n) {
+    d.setDate(d.getDate() - 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) { // skip Sun/Sat
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth()+1).padStart(2,'0');
+      const dt = String(d.getDate()).padStart(2,'0');
+      dates.push({ iso: `${yr}-${mo}-${dt}`, yr, mo, dt });
     }
   }
-  return null;
+  return dates;
+}
+
+async function checkNasdaqRegSHO(ticker, date) {
+  // nasdaqplaYYYYMMDD.txt format
+  const url = `https://www.nasdaqtrader.com/dynamic/symdir/regsho/nasdaqpla${date.yr}${date.mo}${date.dt}.txt`;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const txt = await res.text();
+    const lines = txt.split('\n');
+    const match = lines.find(l => l.startsWith(ticker + '|'));
+    if (!match) return { onList: false, date: date.iso };
+    const parts = match.split('|');
+    return { onList: parts[3] === 'Y', date: date.iso, market: parts[2], name: parts[1] };
+  } catch { return null; }
+}
+
+async function checkNYSERegSHO(ticker, date) {
+  // NYSE API: ?selectedDate=DD-Mon-YYYY
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mon = months[parseInt(date.mo)-1];
+  const selectedDate = `${date.dt}-${mon}-${date.yr}`;
+  const url = `https://www.nyse.com/api/regulatory/threshold-securities/download?selectedDate=${selectedDate}`;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const txt = await res.text();
+    const lines = txt.split('\n');
+    const match = lines.find(l => l.startsWith(ticker + '|'));
+    if (!match) return { onList: false, date: date.iso };
+    const parts = match.split('|');
+    return { onList: parts[3] === 'Y', date: date.iso, market: parts[2], name: parts[1] };
+  } catch { return null; }
+}
+
+async function checkFINRARegSHO(ticker, date) {
+  // FINRA OTC threshold list API
+  const url = 'https://api.finra.org/data/group/otcMarket/name/ThresholdList';
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'PulseStock/1.0 research@pulsestock.com',
+      },
+      body: JSON.stringify({
+        compareFilters: [
+          { compareType: 'EQUAL', fieldName: 'issueSymbolIdentifier', fieldValue: ticker },
+          { compareType: 'EQUAL', fieldName: 'tradeDate', fieldValue: date.iso },
+        ]
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.length) return { onList: false, date: date.iso };
+    const row = data[0];
+    return {
+      onList: row.regShoThresholdFlag === 'Y' || row.thresholdListFlag === 'Y',
+      date: date.iso,
+      market: row.marketCategoryDescription,
+      name: row.issueName,
+      rule4320: row.rule4320Flag === 'Y',
+    };
+  } catch { return null; }
+}
+
+async function getRegSHOHistory(ticker, numDays) {
+  const dates = getRecentTradeDates(numDays);
+  const results = [];
+
+  // Try all three sources in parallel for the most recent date first
+  for (const date of dates) {
+    const [nasdaq, nyse, finra] = await Promise.all([
+      checkNasdaqRegSHO(ticker, date),
+      checkNYSERegSHO(ticker, date),
+      checkFINRARegSHO(ticker, date),
+    ]);
+
+    const found = nasdaq || nyse || finra;
+    if (found) {
+      results.push({
+        date: date.iso,
+        onList: found.onList,
+        market: found.market || 'Unknown',
+        source: nasdaq ? 'Nasdaq' : nyse ? 'NYSE' : 'FINRA',
+      });
+    } else {
+      // No data for this date (might be holiday or file not yet published)
+      results.push({ date: date.iso, onList: false, market: null, source: null });
+    }
+  }
+
+  return results;
+}
+
+function calcSettlementPressureScore(history, shortPct, daysTocover) {
+  // Score 0-100 based on:
+  // - Consecutive Reg SHO days (0-40 pts): 5+ days = max
+  // - Short interest % of float (0-25 pts): >20% = max  
+  // - Days to cover (0-20 pts): >10 = max
+  // - Recent trend (0-15 pts): increasing consecutive days
+
+  const onListDays = history.filter(h => h.onList);
+  const consecutiveDays = (() => {
+    let count = 0;
+    for (const h of history) {
+      if (h.onList) count++;
+      else break;
+    }
+    return count;
+  })();
+
+  const regShoScore    = Math.min(40, consecutiveDays * 8);  // 5 days = 40pts
+  const shortScore     = Math.min(25, (shortPct || 0) * 1.25); // 20% = 25pts
+  const coverScore     = Math.min(20, (daysTocover || 0) * 2); // 10d = 20pts
+  const trendScore     = onListDays.length > consecutiveDays ? 10 : 0; // was on list before = pressure building
+  const totalScore     = Math.round(regShoScore + shortScore + coverScore + trendScore);
+
+  let level, color;
+  if (totalScore >= 70) { level = 'Critical'; color = 'red'; }
+  else if (totalScore >= 45) { level = 'Elevated'; color = 'orange'; }
+  else if (totalScore >= 20) { level = 'Moderate'; color = 'yellow'; }
+  else { level = 'Low'; color = 'green'; }
+
+  return { score: totalScore, level, color, consecutiveDays, onListDays: onListDays.length };
 }
 
 export default async function handler(req) {
@@ -128,29 +167,48 @@ export default async function handler(req) {
   };
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-  // Safe URL parsing — req.url may be relative on some runtimes
-  let ticker;
+  let ticker, shortPct, daysTocover;
   try {
     const base = req.url.startsWith('http') ? '' : 'https://x.com';
-    ticker = new URL(base + req.url).searchParams.get('ticker')?.toUpperCase();
+    const u = new URL(base + req.url);
+    ticker      = u.searchParams.get('ticker')?.toUpperCase();
+    shortPct    = parseFloat(u.searchParams.get('shortPct') || '0');
+    daysTocover = parseFloat(u.searchParams.get('dtc') || '0');
   } catch {
     const qs = (req.url.split('?')[1] || '');
-    ticker = Object.fromEntries(qs.split('&').map(p => p.split('=')))['ticker']?.toUpperCase();
+    const p  = Object.fromEntries(qs.split('&').map(x => x.split('=')));
+    ticker      = p.ticker?.toUpperCase();
+    shortPct    = parseFloat(p.shortPct || '0');
+    daysTocover = parseFloat(p.dtc || '0');
   }
 
-  if (!ticker) {
-    return new Response(JSON.stringify({ error: 'ticker required' }), {
-      status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
-    });
-  }
+  if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), {
+    status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
+  });
 
   try {
-    const data = await getSecFTD(ticker);
-    return new Response(JSON.stringify(data || { error: 'No FTD data found', ticker }), {
+    // Check last 10 trading days for Reg SHO history
+    const history = await getRegSHOHistory(ticker, 10);
+    const latestOnList = history[0]?.onList || false;
+    const sps = calcSettlementPressureScore(history, shortPct, daysTocover);
+    const latestDate = history.find(h => h.source)?.date;
+
+    return new Response(JSON.stringify({
+      ticker,
+      onRegSHO: latestOnList,
+      consecutiveDays: sps.consecutiveDays,
+      daysOnListLast10: sps.onListDays,
+      settlementPressureScore: sps.score,
+      pressureLevel: sps.level,
+      history: history.slice(0, 10),
+      latestDate,
+      source: history[0]?.source || 'Multi-exchange',
+      note: 'Reg SHO Threshold List — daily, free. Shows persistent settlement failures.',
+    }), {
       headers: {
         ...cors,
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=21600', // 6hr cache
+        'Cache-Control': 'public, max-age=3600', // 1hr cache
       },
     });
   } catch (err) {
