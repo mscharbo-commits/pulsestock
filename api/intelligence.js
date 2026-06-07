@@ -31,9 +31,11 @@ async function getDarkPool(ticker) {
   for (const date of dates) {
     const txt = await safeFetch(`https://cdn.finra.org/equity/regsho/daily/CNMSshvol${date}.txt`);
     if (!txt || typeof txt !== 'string') continue;
-    const line = txt.split('\n').find(l => l.startsWith(ticker + '|'));
+    // Format: DATE|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market
+    const line = txt.split('\n').find(l => { const p = l.split('|'); return p[1] === ticker; });
     if (!line) continue;
-    const [, shortVol, shortExempt, totalVol] = line.split('|');
+    const parts = line.split('|');
+    const [, , shortVol, shortExempt, totalVol] = parts;
     const sv = parseInt(shortVol) || 0;
     const tv = parseInt(totalVol) || 0;
     if (!tv) continue;
