@@ -1075,6 +1075,7 @@ async function doAnalyze(){
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
+  fetchInsiderTransactions(ticker);
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
     // Start FTD after short interest renders (ensures ftd-inline div exists in DOM)
@@ -1356,6 +1357,20 @@ async function doAnalyze(){
   <div id="financials-${ticker}" class="card" style="margin-bottom:16px;">
     <div class="card-title">💵 Financial Statements</div>
     <div id="financials-content-${ticker}"><div style="display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13.5px;padding:8px 0;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading financial statements...</div></div>
+  </div>
+
+  <!-- INSIDER TRADING -->
+  <div id="insider-${ticker}" class="card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:600;">🧑‍💼 Insider Transactions</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="delayed-badge">SEC Form 4</span>
+        <a id="insider-sec-link-${ticker}" href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4&dateb=&owner=include&count=20" target="_blank" style="font-size:11px;color:var(--accent);">SEC EDGAR ↗</a>
+      </div>
+    </div>
+    <div id="insider-content-${ticker}">
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Loading insider transactions...</div>
+    </div>
   </div>
 
   <!-- SEC FILINGS -->
@@ -3046,6 +3061,112 @@ function renderBuyInTable(data, loading) {
 }
 
 // goAnalyze already defined above
+
+
+// ── INSIDER TRANSACTIONS ──
+async function fetchInsiderTransactions(ticker) {
+  var el = document.getElementById('insider-content-' + ticker);
+  if(!el) return;
+  try {
+    var data = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 12000);
+    renderInsider(ticker, data);
+  } catch(e) {
+    if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Insider data unavailable</div>';
+  }
+}
+
+function renderInsider(ticker, data) {
+  var el = document.getElementById('insider-content-' + ticker);
+  if(!el) return;
+  if(!data || !data.transactions || !data.transactions.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px 0;">No recent insider transactions found.</div>';
+    return;
+  }
+
+  var txns = data.transactions.slice(0, 30);
+
+  // Summary stats
+  var buys  = txns.filter(function(t){return t.type==='buy';});
+  var sells = txns.filter(function(t){return t.type==='sell';});
+  var buyVal  = buys.reduce(function(s,t){return s+(t.value||0);},0);
+  var sellVal = sells.reduce(function(s,t){return s+(t.value||0);},0);
+  var netSentiment = buyVal - sellVal;
+  var sentColor = netSentiment > 0 ? 'var(--green)' : netSentiment < 0 ? 'var(--red)' : 'var(--text3)';
+  var sentLabel = netSentiment > 0 ? '🟢 Net Buying' : netSentiment < 0 ? '🔴 Net Selling' : '⚪ Neutral';
+
+  function fmtVal(n) {
+    if(!n) return '—';
+    var abs = Math.abs(n);
+    if(abs>=1e9) return '$'+(n/1e9).toFixed(2)+'B';
+    if(abs>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+    if(abs>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+    return '$'+n.toLocaleString();
+  }
+
+  var html = '';
+
+  // Summary bar
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px;">'
+    + '<div style="background:rgba(13,155,107,.07);border:1px solid rgba(13,155,107,.2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:18px;font-weight:700;color:var(--green);">'+buys.length+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Buy Transactions</div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--green);margin-top:2px;">'+fmtVal(buyVal)+'</div>'
+    + '</div>'
+    + '<div style="background:rgba(209,63,48,.07);border:1px solid rgba(209,63,48,.2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:18px;font-weight:700;color:var(--red);">'+sells.length+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Sell Transactions</div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--red);margin-top:2px;">'+fmtVal(sellVal)+'</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:18px;font-weight:700;color:'+sentColor+';">'+fmtVal(Math.abs(netSentiment))+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Net Value</div>'
+    + '<div style="font-size:12px;font-weight:600;color:'+sentColor+';margin-top:2px;">'+sentLabel+'</div>'
+    + '</div>'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center;">'
+    + '<div style="font-size:18px;font-weight:700;color:var(--text);">'+txns.length+'</div>'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Total (12 months)</div>'
+    + '<div style="font-size:12px;color:var(--text3);margin-top:2px;">'+(data.source||'SEC Form 4')+'</div>'
+    + '</div>'
+    + '</div>';
+
+  // Transactions table
+  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+    + '<div style="display:grid;grid-template-columns:2fr 1fr 80px 90px 90px 90px;padding:8px 12px;background:var(--surface2);border-bottom:1.5px solid var(--border);">'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Insider</span>'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Title</span>'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:center;">Type</span>'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Shares</span>'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Price</span>'
+    + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Value</span>'
+    + '</div>';
+
+  txns.forEach(function(t, i) {
+    var isBuy = t.type === 'buy';
+    var typeBg    = isBuy ? 'rgba(13,155,107,.1)' : 'rgba(209,63,48,.08)';
+    var typeColor = isBuy ? 'var(--green)' : 'var(--red)';
+    var typeLabel = isBuy ? 'BUY' : 'SELL';
+    var rowBg = i%2===0 ? '' : 'background:var(--surface2);';
+
+    html += '<div style="display:grid;grid-template-columns:2fr 1fr 80px 90px 90px 90px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:center;'+rowBg+'">'
+      + '<div>'
+      + '<div style="font-size:13px;font-weight:600;color:var(--text);">'+t.name+'</div>'
+      + '<div style="font-size:11px;color:var(--text3);">'+t.date+'</div>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--text2);">'+t.title+'</div>'
+      + '<div style="text-align:center;">'
+      + '<span style="font-size:11px;font-weight:700;color:'+typeColor+';background:'+typeBg+';padding:2px 8px;border-radius:4px;">'+typeLabel+'</span>'
+      + '</div>'
+      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.shares?Math.abs(t.shares).toLocaleString():'—')+'</div>'
+      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.price?'$'+parseFloat(t.price).toFixed(2):'—')+'</div>'
+      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;font-weight:600;color:'+typeColor+';">'+fmtVal(t.value)+'</div>'
+      + '</div>';
+  });
+
+  html += '</div>';
+  html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;">Source: SEC Form 4 filings · P=Open market purchase · S=Open market sale · Excludes options/awards</div>';
+
+  el.innerHTML = html;
+}
 
 loadTickerBar();
 // Refresh every 60 seconds
