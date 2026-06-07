@@ -1076,6 +1076,7 @@ async function doAnalyze(){
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
   setTimeout(function(){ fetchInsiderTransactions(ticker); }, 500);
+  setTimeout(function(){ fetchIntelligence(ticker); }, 800);
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
     // Start FTD after short interest renders (ensures ftd-inline div exists in DOM)
@@ -1359,6 +1360,20 @@ async function doAnalyze(){
     <div id="financials-content-${ticker}"><div style="display:flex;align-items:center;gap:8px;color:var(--text3);font-size:13.5px;padding:8px 0;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading financial statements...</div></div>
   </div>
 
+  <!-- MARKET INTELLIGENCE -->
+  <div id="intelligence-${ticker}" class="card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:600;">🔬 Market Intelligence</div>
+      <div style="display:flex;gap:8px;">
+        <span class="live-badge">FINRA Daily</span>
+        <span class="delayed-badge">SEC 13F Quarterly</span>
+      </div>
+    </div>
+    <div id="intel-content-${ticker}">
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Loading intelligence data...</div>
+    </div>
+  </div>
+
   <!-- INSIDER TRADING -->
   <div id="insider-${ticker}" class="card" style="margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
@@ -1451,6 +1466,7 @@ async function doAnalyze(){
       {label:'📊 Short Interest', target:'short-'+t},
       {label:'🏢 Company', target:'profile-'+t},
       {label:'💵 Financials', target:'financials-'+t},
+      {label:'🔬 Intelligence', target:'intelligence-'+t},
       {label:'🧑‍💼 Insider', target:'insider-'+t},
       {label:'📁 SEC Filings', target:'filings-'+t},
       {label:'📰 News', target:'news-'+t},
@@ -3200,6 +3216,215 @@ function renderInsider(ticker, data) {
 
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;">Source: SEC Form 4 filings · P=Open market purchase · S=Open market sale · Excludes options/awards</div>';
+
+  el.innerHTML = html;
+}
+
+
+// ── MARKET INTELLIGENCE ──
+async function fetchIntelligence(ticker) {
+  var el = document.getElementById('intel-content-' + ticker);
+  if(!el) return;
+  try {
+    var data = await fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&feature=all', 15000);
+    if(data && !data.error) renderIntelligence(ticker, data);
+    else el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Intelligence data unavailable</div>';
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Intelligence data unavailable</div>';
+  }
+}
+
+function renderIntelligence(ticker, data) {
+  var el = document.getElementById('intel-content-' + ticker);
+  if(!el) return;
+
+  function fmt(n) { if(!n&&n!==0) return '—'; var a=Math.abs(n); if(a>=1e9) return '$'+(n/1e9).toFixed(2)+'B'; if(a>=1e6) return '$'+(n/1e6).toFixed(1)+'M'; if(a>=1e3) return '$'+(n/1e3).toFixed(0)+'K'; return n.toLocaleString(); }
+  function pctColor(p) { return p>55?'var(--red)':p>45?'var(--amber)':'var(--green)'; }
+  function sentBadge(s,good,bad) {
+    var isGood = s&&s.toLowerCase().includes(good.toLowerCase());
+    var isBad  = s&&s.toLowerCase().includes(bad.toLowerCase());
+    var bg = isGood?'rgba(13,155,107,.1)':isBad?'rgba(209,63,48,.08)':'var(--surface2)';
+    var color = isGood?'var(--green)':isBad?'var(--red)':'var(--text2)';
+    return '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:'+bg+';color:'+color+';">'+(s||'—')+'</span>';
+  }
+
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">';
+
+  // ── DARK POOL ──
+  var dp = data.darkpool;
+  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+    + '<div style="padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-size:12px;font-weight:700;">🌑 Short Sale Volume</span>'
+    + '<span style="font-size:10px;color:var(--text3);">FINRA Daily</span>'
+    + '</div>';
+  if(dp && dp.latest) {
+    html += '<div style="padding:12px;">'
+      + '<div style="font-size:28px;font-weight:700;color:'+pctColor(dp.latest.shortSalePct)+';margin-bottom:2px;">'+dp.latest.shortSalePct+'%</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">of total volume is short selling · '+dp.latest.date+'</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
+      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+      + '<div style="font-size:10px;color:var(--text3);">Short Vol</div>'
+      + '<div style="font-size:12px;font-weight:600;">'+dp.latest.shortVolume.toLocaleString()+'</div>'
+      + '</div>'
+      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+      + '<div style="font-size:10px;color:var(--text3);">Total Vol</div>'
+      + '<div style="font-size:12px;font-weight:600;">'+dp.latest.totalVolume.toLocaleString()+'</div>'
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+      + sentBadge(dp.sentiment,'Low','Heavy')
+      + '<span style="font-size:11px;color:var(--text3);">5d avg: '+dp.avg5Day+'%  <span style="color:'+(dp.trend==='Rising'?'var(--red)':'var(--green)')+';">'+dp.trend+'</span></span>'
+      + '</div>'
+      // Mini sparkline bars
+      + '<div style="display:flex;gap:2px;margin-top:10px;align-items:flex-end;height:28px;">'
+      + (dp.history||[]).slice(0,5).reverse().map(function(h) {
+          var ht = Math.round(h.shortSalePct / 70 * 28);
+          var c = pctColor(h.shortSalePct);
+          return '<div title="'+h.date+': '+h.shortSalePct+'%" style="flex:1;height:'+ht+'px;background:'+c+';border-radius:2px 2px 0 0;opacity:.7;"></div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  } else {
+    html += '<div style="padding:16px;font-size:12px;color:var(--text3);">No data available</div>';
+  }
+  html += '</div>';
+
+  // ── BORROW RATE ──
+  var br = data.borrow;
+  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+    + '<div style="padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-size:12px;font-weight:700;">💸 Short Borrow Rate</span>'
+    + '<span style="font-size:10px;color:var(--text3);">iborrowdesk</span>'
+    + '</div>';
+  if(br && br.latest) {
+    var rateColor = br.latest.fee > 50 ? 'var(--red)' : br.latest.fee > 10 ? 'var(--amber)' : 'var(--green)';
+    html += '<div style="padding:12px;">'
+      + '<div style="font-size:28px;font-weight:700;color:'+rateColor+';margin-bottom:2px;">'+(br.latest.fee||0).toFixed(2)+'%</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">annual borrow fee · '+br.latest.date+'</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
+      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+      + '<div style="font-size:10px;color:var(--text3);">Available</div>'
+      + '<div style="font-size:12px;font-weight:600;">'+(br.latest.available||0).toLocaleString()+'</div>'
+      + '</div>'
+      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+      + '<div style="font-size:10px;color:var(--text3);">30d Avg</div>'
+      + '<div style="font-size:12px;font-weight:600;">'+(br.avg30Day||0).toFixed(2)+'%</div>'
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+      + sentBadge(br.level,'Easy','Hard')
+      + '<span style="font-size:11px;color:var(--text3);"><span style="color:'+(br.trend==='Rising'?'var(--red)':'var(--green)')+';">'+br.trend+'</span> 30d</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:2px;margin-top:10px;align-items:flex-end;height:28px;">'
+      + (br.history||[]).slice(0,10).reverse().map(function(h) {
+          var maxFee = Math.max.apply(null, (br.history||[]).map(function(x){return x.fee||0;})) || 1;
+          var ht = Math.max(2, Math.round((h.fee||0) / maxFee * 28));
+          var c = h.fee > 50 ? 'var(--red)' : h.fee > 10 ? 'var(--amber)' : 'var(--green)';
+          return '<div title="'+h.date+': '+h.fee+'%" style="flex:1;height:'+ht+'px;background:'+c+';border-radius:2px 2px 0 0;opacity:.7;"></div>';
+        }).join('')
+      + '</div>'
+      + '</div>';
+  } else {
+    html += '<div style="padding:16px;font-size:12px;color:var(--text3);">No data available</div>';
+  }
+  html += '</div>';
+
+  // ── INSTITUTIONAL 13F ──
+  var inst = data.institutional;
+  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+    + '<div style="padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
+    + '<span style="font-size:12px;font-weight:700;">🏛 Institutional 13F</span>'
+    + '<span style="font-size:10px;color:var(--text3);">SEC EDGAR</span>'
+    + '</div>';
+  if(inst && inst.totalFilers) {
+    html += '<div style="padding:12px;">'
+      + '<div style="font-size:28px;font-weight:700;color:var(--accent);margin-bottom:2px;">'+inst.totalFilers.toLocaleString()+'</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">institutions filed 13F referencing '+ticker+' since Oct 2025</div>'
+      + '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Recent Filers</div>'
+      + (inst.recentFilers||[]).slice(0,6).map(function(f) {
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">'
+            + '<span style="color:var(--text);font-weight:500;">'+f.name+'</span>'
+            + '<span style="color:var(--text3);font-size:11px;">'+( f.filingDate||'')+'</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+  } else {
+    html += '<div style="padding:16px;font-size:12px;color:var(--text3);">No 13F data available</div>';
+  }
+  html += '</div>';
+
+  html += '</div>'; // close grid
+
+  // ── ANALYST RATINGS (bottom row) ──
+  var opt = data.options;
+  if(opt && opt.analystRatings) {
+    var ar = opt.analystRatings;
+    var pt = opt.priceTarget;
+    html += '<div style="margin-top:16px;padding:14px;border:1px solid var(--border);border-radius:8px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+      + '<span style="font-size:12px;font-weight:700;">📊 Analyst Ratings & Price Targets</span>'
+      + '<span style="font-size:11px;color:var(--text3);">'+ar.period+'  ·  '+ar.total+' analysts</span>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
+      + '<div>'
+      // Rating bar
+      + '<div style="display:flex;height:12px;border-radius:6px;overflow:hidden;margin-bottom:8px;">'
+      + (ar.strongBuy  ? '<div style="flex:'+ar.strongBuy+';background:#0DB56B;" title="Strong Buy: '+ar.strongBuy+'"></div>' : '')
+      + (ar.buy        ? '<div style="flex:'+ar.buy+';background:#4ADE80;" title="Buy: '+ar.buy+'"></div>' : '')
+      + (ar.hold       ? '<div style="flex:'+ar.hold+';background:#F59E0B;" title="Hold: '+ar.hold+'"></div>' : '')
+      + (ar.sell       ? '<div style="flex:'+ar.sell+';background:#F87171;" title="Sell: '+ar.sell+'"></div>' : '')
+      + (ar.strongSell ? '<div style="flex:'+ar.strongSell+';background:#D13F30;" title="Strong Sell: '+ar.strongSell+'"></div>' : '')
+      + '</div>'
+      + '<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+      + ['strongBuy:Strong Buy:#0DB56B','buy:Buy:#4ADE80','hold:Hold:#F59E0B','sell:Sell:#F87171','strongSell:Strong Sell:#D13F30'].map(function(s){
+          var p=s.split(':'); var val=ar[p[0]];
+          return val?'<span style="font-size:11px;color:'+p[2]+';font-weight:600;">'+p[1]+': '+val+'</span>':'';
+        }).join('')
+      + '</div>'
+      + '<div style="margin-top:10px;">'
+      + sentBadge(ar.consensus,'Buy','Sell')
+      + ' <span style="font-size:12px;color:var(--text3);margin-left:6px;">'+ar.bullishPct+'% bullish · '+ar.bearishPct+'% bearish</span>'
+      + '</div>'
+      + '</div>'
+      + (pt ? '<div style="border-left:1px solid var(--border);padding-left:16px;">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        + '<div style="background:var(--surface2);border-radius:6px;padding:8px 10px;">'
+        + '<div style="font-size:10px;color:var(--text3);">Target (Mean)</div>'
+        + '<div style="font-size:16px;font-weight:700;color:var(--accent);">$'+(pt.current||0).toFixed(2)+'</div>'
+        + '</div>'
+        + '<div style="background:var(--surface2);border-radius:6px;padding:8px 10px;">'
+        + '<div style="font-size:10px;color:var(--text3);">Target Range</div>'
+        + '<div style="font-size:13px;font-weight:600;">$'+(pt.low||0).toFixed(0)+' – $'+(pt.high||0).toFixed(0)+'</div>'
+        + '</div>'
+        + '</div>'
+        + '</div>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  // ── CONGRESSIONAL (placeholder or data) ──
+  var cong = data.congressional;
+  if(cong && !cong.unavailable && cong.trades) {
+    html += '<div style="margin-top:16px;padding:14px;border:1px solid var(--border);border-radius:8px;">'
+      + '<div style="font-size:12px;font-weight:700;margin-bottom:10px;">🏛 Congressional Trading</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:6px;">'
+      + cong.trades.slice(0,6).map(function(t){
+          var isBuy = t.transaction && t.transaction.toLowerCase().includes('purchase');
+          var color = isBuy ? 'var(--green)' : 'var(--red)';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--surface2);border-radius:6px;">'
+            + '<div><div style="font-size:12px;font-weight:600;">'+t.name+'</div>'
+            + '<div style="font-size:11px;color:var(--text3);">'+t.chamber+' · '+(t.party||'')+'</div></div>'
+            + '<div style="text-align:right;"><div style="font-size:11px;font-weight:600;color:'+color+';">'+(isBuy?'BUY':'SELL')+'</div>'
+            + '<div style="font-size:11px;color:var(--text3);">'+(t.amount||'')+'</div></div>'
+            + '</div>';
+        }).join('')
+      + '</div></div>';
+  } else if(cong && cong.unavailable) {
+    html += '<div style="margin-top:16px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">'
+      + '<span style="font-size:12px;font-weight:600;">🏛 Congressional Trading  </span>'
+      + '<span style="font-size:12px;color:var(--text3);">Free signup at <a href="https://quiverquant.com" target="_blank" style="color:var(--accent);">quiverquant.com</a> → add QUIVER_KEY to Vercel env vars to enable</span>'
+      + '</div>';
+  }
 
   el.innerHTML = html;
 }

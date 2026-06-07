@@ -1,24 +1,23 @@
 export const config = { runtime: 'edge' };
+
+const FINNHUB_KEY   = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+const QUIVER_KEY    = process.env.QUIVER_KEY || '';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
-async function ff(url, opts) {
+async function safeFetch(url, opts) {
   try {
     const r = await fetch(url, opts || {});
-    if (!r.ok) return { _status: r.status };
-    const ct = r.headers.get('content-type')||'';
-    if (ct.includes('json')) return await r.json();
-    return { _text: (await r.text()).slice(0, 200) };
-  } catch(e) { return { _error: e.message }; }
+    if (!r.ok) return null;
+    const ct = r.headers.get('content-type') || '';
+    return ct.includes('json') ? await r.json() : await r.text();
+  } catch(e) { return null; }
 }
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
-  const ticker = new URL(req.url).searchParams.get('ticker')?.toUpperCase() || 'AAPL';
-
-  // Get last 3 trading day dates
+// ── 1. DARK POOL / SHORT SALE VOLUME (FINRA CDN) ──────────────────────────
+async function getDarkPool(ticker) {
   const dates = [];
   const d = new Date();
-  while (dates.length < 3) {
+  while (dates.length < 5) {
     d.setDate(d.getDate() - 1);
     if (d.getDay() !== 0 && d.getDay() !== 6) {
       const yr = d.getFullYear();
@@ -28,36 +27,198 @@ export default async function handler(req) {
     }
   }
 
-  const tests = await Promise.all([
-    // FINRA short sale volume - correct URL formats
-    ff(`https://www.finra.org/sites/default/files/short-sale-volume-files/CNMSshvol${dates[0]}.txt`)
-      .then(d => ['finra_shortvol_consolidated', d._status||d._text?.slice(0,100)||'ok', d._error||'']),
-    ff(`https://cdn.finra.org/equity/regsho/daily/CNMSshvol${dates[0]}.txt`)
-      .then(d => ['finra_cdn', d._status||d._text?.slice(0,80)||'ok', d._error||'']),
-    // SEC EDGAR 13F - search for institutional filings
-    ff(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=13F-HR&dateRange=custom&startdt=2025-10-01&enddt=2026-06-06&hits.hits.total.value=true&hits.hits._source.period_of_report=true`, {headers:{'User-Agent':'PulseStock research@pulsestock.com'}})
-      .then(d => ['sec_13f_search', d._status||(d.hits?`${d.hits.total?.value||0} filings`:'empty'), d._error||'']),
-    // SEC EDGAR full text search for 13F
-    ff(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=13F-HR&dateRange=custom&startdt=2026-01-01&enddt=2026-06-06`, {headers:{'User-Agent':'PulseStock research@pulsestock.com'}})
-      .then(d => ['sec_13f_v2', d._status||(d.hits?'has hits':'empty'), d._error||'']),
-    // SEC EDGAR company search
-    ff(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=SC+13G`, {headers:{'User-Agent':'PulseStock research@pulsestock.com'}})
-      .then(d => ['sec_sc13g', d._status||(d.hits?'has hits':'empty'), d._error||'']),
-    // FINRA OTC short vol (different API)
-    ff(`https://api.finra.org/data/group/otcMarket/name/weeklySummary?compareFilters=[{"compareType":"EQUAL","fieldName":"issueSymbolIdentifier","fieldValue":"${ticker}"}]&limit=5`)
-      .then(d => ['finra_otc_weekly', d._status||(Array.isArray(d)?`${d.length} records`:'obj'), d._error||'']),
-    // Quiver free endpoints (no auth)
-    ff(`https://api.quiverquant.com/beta/live/congresstrading/${ticker}`)
-      .then(d => ['quiver_congress_ticker', d._status||(Array.isArray(d)?`${d.length} trades`:'obj'), d._error||d._text?.slice(0,80)||'']),
-    // iborrowdesk full data
-    ff(`https://iborrowdesk.com/api/ticker/${ticker}`)
-      .then(d => ['iborrowdesk_full', d._status||(d.daily?`${d.daily.length} days`:'obj'), d._error||'']),
-    // OpenInsider free JSON API
-    ff(`https://openinsider.com/screener?s=${ticker}&o=fdates&cn=20&itype=&bf=1&fd=-1&fdr=&td=0&tdr=&fdlyl=&fdlyh=&daysago=&xp=1&vl=&vh=&ocl=&och=&sic1=-1&sicl=100&sich=9999&iscob=&isceo=&ispres=&isvp=&iscfo=&isgc=&isdirector=&istenpercent=&grp=0&nfl=&nfh=&nil=&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=20&action=getdata`)
-      .then(d => ['openinsider', d._status||(d.data?`${d.data.length} rows`:'empty'), d._error||'']),
+  const history = [];
+  for (const date of dates) {
+    const txt = await safeFetch(`https://cdn.finra.org/equity/regsho/daily/CNMSshvol${date}.txt`);
+    if (!txt || typeof txt !== 'string') continue;
+    const line = txt.split('\n').find(l => l.startsWith(ticker + '|'));
+    if (!line) continue;
+    const [, shortVol, shortExempt, totalVol] = line.split('|');
+    const sv = parseInt(shortVol) || 0;
+    const tv = parseInt(totalVol) || 0;
+    if (!tv) continue;
+    const pct = parseFloat((sv / tv * 100).toFixed(1));
+    history.push({
+      date: `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
+      shortVolume: sv,
+      totalVolume: tv,
+      shortSalePct: pct,
+    });
+  }
+
+  if (!history.length) return null;
+  const latest = history[0];
+  const avg5   = parseFloat((history.reduce((s,h)=>s+h.shortSalePct,0)/history.length).toFixed(1));
+  const trend  = history.length >= 2 ? (history[0].shortSalePct > history[history.length-1].shortSalePct ? 'Rising' : 'Falling') : 'Stable';
+  const sentiment = latest.shortSalePct > 55 ? 'Heavy Short Selling' : latest.shortSalePct > 45 ? 'Elevated' : latest.shortSalePct > 35 ? 'Normal' : 'Low';
+
+  return { latest, history, avg5Day: avg5, trend, sentiment, source: 'FINRA CNMS Daily Short Sale Volume' };
+}
+
+// ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
+async function getBorrowRate(ticker) {
+  const d = await safeFetch(`https://iborrowdesk.com/api/ticker/${ticker}`);
+  if (!d || !d.daily) return null;
+
+  const history = (d.daily || []).slice(0, 30).map(row => ({
+    date:      row.date,
+    fee:       row.fee,
+    available: row.available,
+  }));
+  const latest  = history[0];
+  const avg30   = parseFloat((history.reduce((s,h)=>s+(h.fee||0),0)/history.length).toFixed(2));
+  const trend   = history.length >= 2 ? (history[0].fee > history[history.length-1].fee ? 'Rising' : 'Falling') : 'Stable';
+  const level   = latest?.fee > 50 ? 'Extremely Hard to Borrow' : latest?.fee > 10 ? 'Hard to Borrow' : latest?.fee > 1 ? 'Moderate' : 'Easy to Borrow';
+
+  return { latest, history: history.slice(0, 10), avg30Day: avg30, trend, level, source: 'iborrowdesk' };
+}
+
+// ── 3. INSTITUTIONAL 13F (SEC EDGAR) ──────────────────────────────────────
+async function get13F(ticker) {
+  const headers = { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'application/json' };
+
+  // Search for recent 13F-HR filings mentioning this ticker
+  const search = await safeFetch(
+    `https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=13F-HR&dateRange=custom&startdt=2025-10-01&enddt=2026-06-06&hits.hits._source.period_of_report=true&hits.hits._source.entity_name=true`,
+    { headers }
+  );
+  if (!search || !search.hits?.hits?.length) return null;
+
+  // Get top 15 unique filers
+  const seen = new Set();
+  const filers = [];
+  for (const hit of search.hits.hits) {
+    const name = hit._source?.entity_name || hit._source?.display_names?.[0] || 'Unknown';
+    if (!seen.has(name) && !name.includes('AAPL') && !name.includes('Apple')) {
+      seen.add(name);
+      filers.push({
+        name,
+        filingDate: hit._source?.file_date,
+        period: hit._source?.period_of_report,
+        accession: hit._source?.file_num,
+      });
+    }
+    if (filers.length >= 15) break;
+  }
+
+  const total = search.hits.total?.value || 0;
+  return {
+    totalFilers: total,
+    recentFilers: filers,
+    source: 'SEC EDGAR 13F-HR Filings',
+    note: `${total} institutional filings reference ${ticker} since Oct 2025`,
+  };
+}
+
+// ── 4. CONGRESSIONAL TRADING (Quiver Quant — needs free API key) ──────────
+async function getCongressional(ticker) {
+  if (!QUIVER_KEY) {
+    return {
+      unavailable: true,
+      message: 'Add QUIVER_KEY env var (free at quiverquant.com) to enable congressional trading data',
+    };
+  }
+  const d = await safeFetch(
+    `https://api.quiverquant.com/beta/historical/congresstrading/${ticker}`,
+    { headers: { 'Accept': 'application/json', 'Authorization': `Token ${QUIVER_KEY}` } }
+  );
+  if (!d || !Array.isArray(d)) return null;
+
+  const trades = d.slice(0, 20).map(t => ({
+    name:        t.Representative || t.Senator,
+    chamber:     t.Chamber,
+    party:       t.Party,
+    transaction: t.Transaction,
+    amount:      t.Range,
+    date:        t.TransactionDate,
+    ticker:      t.Ticker,
+  }));
+  const buys  = trades.filter(t => t.transaction?.toLowerCase().includes('purchase'));
+  const sells = trades.filter(t => t.transaction?.toLowerCase().includes('sale'));
+  return { trades, buys: buys.length, sells: sells.length, sentiment: buys.length > sells.length ? 'Bullish' : 'Bearish', source: 'Quiver Quant / Capitol Trades' };
+}
+
+// ── 5. OPTIONS SENTIMENT (Finnhub — derive from available data) ───────────
+async function getOptionsSentiment(ticker) {
+  // Finnhub option-chain is premium. Use what we have:
+  // - Basic metrics include put/call data via market sentiment
+  // - Use recommendation trends as proxy for options sentiment
+  const [rec, peers] = await Promise.all([
+    safeFetch(`https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${FINNHUB_KEY}`),
+    safeFetch(`https://finnhub.io/api/v1/stock/peers?symbol=${ticker}&token=${FINNHUB_KEY}`),
   ]);
 
-  const result = {};
-  for (const [name, status, detail] of tests) result[name] = {status, detail};
-  return new Response(JSON.stringify(result, null, 2), { headers: cors });
+  // Recommendation data gives analyst sentiment
+  let analystData = null;
+  if (rec && Array.isArray(rec) && rec.length) {
+    const latest = rec[0];
+    const total  = (latest.strongBuy||0) + (latest.buy||0) + (latest.hold||0) + (latest.sell||0) + (latest.strongSell||0);
+    const bullish = (latest.strongBuy||0) + (latest.buy||0);
+    const bearish = (latest.sell||0) + (latest.strongSell||0);
+    analystData = {
+      period: latest.period,
+      strongBuy:   latest.strongBuy  || 0,
+      buy:         latest.buy        || 0,
+      hold:        latest.hold       || 0,
+      sell:        latest.sell       || 0,
+      strongSell:  latest.strongSell || 0,
+      total,
+      bullishPct:  total ? parseFloat((bullish/total*100).toFixed(1)) : null,
+      bearishPct:  total ? parseFloat((bearish/total*100).toFixed(1)) : null,
+      consensus:   bullish > bearish ? 'Buy' : bearish > bullish ? 'Sell' : 'Hold',
+    };
+  }
+
+  // Price target
+  const pt = await safeFetch(`https://finnhub.io/api/v1/stock/price-target?symbol=${ticker}&token=${FINNHUB_KEY}`);
+
+  return {
+    analystRatings:  analystData,
+    priceTarget: pt ? {
+      current:  pt.targetMean,
+      high:     pt.targetHigh,
+      low:      pt.targetLow,
+      median:   pt.targetMedian,
+      analysts: pt.lastUpdated,
+    } : null,
+    note: 'Options P/C ratio requires Finnhub premium. Showing analyst ratings & price targets as proxy.',
+    source: 'Finnhub Analyst Data',
+  };
+}
+
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+  let ticker, feature;
+  try {
+    const u = new URL(req.url);
+    ticker  = u.searchParams.get('ticker')?.toUpperCase();
+    feature = u.searchParams.get('feature') || 'all';
+  } catch(e) {
+    return new Response(JSON.stringify({error:'bad request'}), {status:400,headers:cors});
+  }
+  if (!ticker) return new Response(JSON.stringify({error:'ticker required'}),{status:400,headers:cors});
+
+  try {
+    let result;
+    if (feature === 'all') {
+      const [darkpool, borrow, institutional, congressional, options] = await Promise.all([
+        getDarkPool(ticker),
+        getBorrowRate(ticker),
+        get13F(ticker),
+        getCongressional(ticker),
+        getOptionsSentiment(ticker),
+      ]);
+      result = { darkpool, borrow, institutional, congressional, options };
+    } else {
+      const map = { darkpool: getDarkPool, borrow: getBorrowRate, institutional: get13F, congressional: getCongressional, options: getOptionsSentiment };
+      result = await (map[feature] || (() => ({error:'unknown feature'})))(ticker);
+    }
+
+    return new Response(JSON.stringify({ ticker, ...result }), {
+      headers: { ...cors, 'Cache-Control': 'public, max-age=1800' }
+    });
+  } catch(err) {
+    return new Response(JSON.stringify({error:err.message}),{status:500,headers:cors});
+  }
 }
