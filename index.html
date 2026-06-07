@@ -390,7 +390,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     <nav class="header-nav">
       <button class="nav-tab active" onclick="showPage('analyze',this)">Analyze</button>
       <button class="nav-tab" onclick="showPage('screener',this)">Screener</button>
-      <button class="nav-tab" onclick="showPage('buyin',this);loadBuyInList()">🎯 Buy-In</button>
+      <button class="nav-tab" onclick="showPage('buyin',this);refreshRegSHOCache();loadBuyInList()">🎯 Buy-In</button>
       <button class="nav-tab" onclick="showPage('portfolio',this)">Portfolio</button>
       <a href="/community.html" class="nav-tab-link">💬 Community</a>
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
@@ -2798,6 +2798,53 @@ function resetBuyInList() {
   buyInTickers = ['GME','AMC','BBBY','SPCE','LCID','RIVN','SNDL','CLOV','WISH','IRBT','BYND','NKLA','RIDE','WKHS','MVIS','ATER','GREE','CTRM','EXPR','KOSS','NAKD'];
   buyInData = [];
   loadBuyInList();
+}
+
+async function refreshRegSHOCache() {
+  // Browser fetches Reg SHO (no CORS issues), saves to Gist via /api/ftd-save
+  // Only runs once per day
+  const lastRefresh = localStorage.getItem('regsho_refresh');
+  const today = new Date().toISOString().slice(0,10);
+  if(lastRefresh === today) return;
+
+  try {
+    // Get last trading day
+    const d = new Date();
+    d.setDate(d.getDate()-1);
+    while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()-1);
+    const yr=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), dt=String(d.getDate()).padStart(2,'0');
+    const date = yr+'-'+mo+'-'+dt;
+
+    // Fetch from FINRA (browser has no CORS issues)
+    var finraTickers = [];
+    try {
+      const res = await fetch('https://api.finra.org/data/group/otcMarket/name/ThresholdList', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify({ limit: 5000, compareFilters: [{compareType:'EQUAL',fieldName:'tradeDate',fieldValue:date}] })
+      });
+      if(res.ok) { const data = await res.json(); finraTickers = data.map(function(d){return d.issueSymbolIdentifier;}).filter(Boolean); }
+    } catch(e) {}
+
+    // Fetch from Nasdaq
+    var nasdaqTickers = [];
+    try {
+      const res2 = await fetch('https://www.nasdaqtrader.com/dynamic/symdir/regsho/nasdaqpla'+yr+mo+dt+'.txt');
+      if(res2.ok) { const txt = await res2.text(); nasdaqTickers = txt.split('\n').filter(function(l){return l.includes('|Y|');}).map(function(l){return l.split('|')[0];}).filter(Boolean); }
+    } catch(e) {}
+
+    const allTickers = [...new Set([...finraTickers, ...nasdaqTickers])];
+    if(!allTickers.length) return; // no data yet, don't overwrite
+
+    // Save to Gist via Vercel endpoint
+    const saveRes = await fetch('/api/ftd-save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ date, tickers: allTickers, counts: { finra: finraTickers.length, nasdaq: nasdaqTickers.length, total: allTickers.length } })
+    });
+    if(saveRes.ok) localStorage.setItem('regsho_refresh', today);
+    console.log('Reg SHO cache refreshed:', allTickers.length, 'tickers for', date);
+  } catch(e) { console.log('Reg SHO refresh error:', e.message); }
 }
 
 async function loadBuyInList() {
