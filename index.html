@@ -3068,8 +3068,43 @@ async function fetchInsiderTransactions(ticker) {
   var el = document.getElementById('insider-content-' + ticker);
   if(!el) return;
   try {
-    var data = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 12000);
-    renderInsider(ticker, data);
+    // Call Finnhub directly from browser — faster, no Vercel timeout
+    var res = await fetchWithTimeout(
+      'https://finnhub.io/api/v1/stock/insider-transactions?symbol=' + encodeURIComponent(ticker) + '&token=' + FINNHUB_KEY,
+      10000
+    );
+    if(!res || res.error) throw new Error(res ? res.error : 'No data');
+
+    // Parse raw Finnhub response
+    var raw = (res.data || []).filter(function(t) {
+      return t.transactionCode === 'P' || t.transactionCode === 'S';
+    });
+    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
+    var cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
+    var recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
+
+    var titleMap = {'Chief Executive Officer':'CEO','Chief Financial Officer':'CFO','Chief Operating Officer':'COO','Chief Technology Officer':'CTO','President':'President','Director':'Director','Chairman':'Chairman','General Counsel':'Gen. Counsel'};
+    function cleanTitle(t) {
+      if(!t) return '';
+      for(var k in titleMap) { if(t.indexOf(k)!==-1) return titleMap[k]; }
+      return t.split(' ').slice(0,3).join(' ');
+    }
+
+    var transactions = recent.map(function(t) {
+      var shares = Math.abs(t.change || 0);
+      var price  = t.transactionPrice || 0;
+      return {
+        name:  t.name || 'Unknown',
+        title: cleanTitle(t.officerTitle || ''),
+        type:  t.transactionCode === 'P' ? 'buy' : 'sell',
+        shares: shares,
+        price:  price || null,
+        value:  shares * price || null,
+        date:   t.transactionDate,
+      };
+    });
+
+    renderInsider(ticker, { ticker: ticker, transactions: transactions, source: 'SEC Form 4 / Finnhub' });
   } catch(e) {
     if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Insider data unavailable</div>';
   }
