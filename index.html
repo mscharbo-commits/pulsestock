@@ -1080,8 +1080,8 @@ async function doAnalyze(){
     // Start FTD after short interest renders (ensures ftd-inline div exists in DOM)
     setTimeout(function(){
       // Pass short interest data to FTD API for Settlement Pressure Score
-      var shortPct = d && d.shortPercentFloat ? parseFloat(d.shortPercentFloat) : 0;
-      var dtc = d && d.daysTocover ? parseFloat(d.daysTocover) : 0;
+      var shortPct = d ? parseFloat(d.shortPercent || d.shortPercentFloat || 0) : 0;
+      var dtc = d ? parseFloat(d.daysTocover || d.daysToCover || 0) : 0;
       fetchFTD(ticker, shortPct, dtc).then(function(ftd){ renderFTD(ticker, ftd); });
     }, 100);
   });
@@ -2766,7 +2766,13 @@ async function loadTickerBar(){
 // ── BUY-IN CANDIDATES ──
 
 // Default watchlist — known high short interest / Reg SHO candidates
-var buyInTickers = ['GME','AMC','BBBY','SPCE','LCID','RIVN','SNDL','CLOV','WISH','IRBT','BYND','NKLA','RIDE','WKHS','MVIS','ATER','GREE','CTRM','EXPR','KOSS','NAKD'];
+var buyInTickers = [
+  // Current high short interest / meme / squeeze candidates (2025-2026)
+  'GME','AMC','SPCE','LCID','RIVN','BYND','NKLA','MVIS','ATER',
+  'UPST','CVNA','OPEN','HIMS','IONQ','SOUN','JOBY','ACHR','RKLB',
+  'SMCI','WOLF','FFIE','COCO','CLSK','MSTR','HOOD','SOFI','CHWY',
+  'COIN','AFRM','DKNG','PENN','PLTR','SNOW','PATH','AI','MNDY'
+];
 var buyInData = [];
 var buyInLoading = false;
 
@@ -2839,12 +2845,19 @@ async function fetchBuyInData(ticker, dates) {
       fetchQuote(ticker).catch(function(){return null;})
     ]);
 
-    var shortPct   = si ? parseFloat(si.shortPercentFloat||0) : 0;
-    var dtc        = si ? parseFloat(si.daysTocover||0) : 0;
-    var shortShares = si ? si.sharesShort : null;
-    var shortChg   = si ? si.shortPercentChange : null;
-    var price      = quote ? quote.price : null;
-    var pct        = quote ? quote.pct : null;
+    var shortPct    = 0;
+    var dtc         = 0;
+    var shortShares = null;
+    var shortChg    = null;
+    if(si) {
+      // API returns: shortPercent, daysTocover, shortShares, changePercent
+      shortPct    = parseFloat(si.shortPercent || si.shortPercentFloat || 0);
+      dtc         = parseFloat(si.daysTocover || si.daysToCover || 0);
+      shortShares = si.shortShares || si.sharesShort || null;
+      shortChg    = si.changePercent || si.shortPercentChange || null;
+    }
+    var price = quote ? quote.price : null;
+    var pct   = quote ? quote.pct   : null;
 
     // Check Reg SHO for last 5 days
     var regShoHistory = [];
@@ -2879,11 +2892,13 @@ async function fetchBuyInData(ticker, dates) {
     var onRegSHO = regShoHistory[0] && regShoHistory[0].onList;
 
     // Settlement Pressure Score
-    var regShoScore = Math.min(40, consecutiveDays*8);
-    var shortScore  = Math.min(25, shortPct*1.25);
-    var coverScore  = Math.min(20, dtc*2);
-    var trendScore  = (daysOnList>consecutiveDays) ? 10 : 0;
-    var score = Math.round(regShoScore + shortScore + coverScore + trendScore);
+    var regShoScore = Math.min(40, consecutiveDays * 8);   // 5 days on list = 40pts
+    var shortScore  = Math.min(25, shortPct * 1.25);        // 20% short float = 25pts
+    var coverScore  = Math.min(20, dtc * 2);                // 10 DTC = 20pts
+    var trendScore  = (daysOnList > consecutiveDays) ? 10 : 0;
+    // Bonus: short change trending up = more pressure
+    var chgBonus    = (shortChg && parseFloat(shortChg) > 10) ? 5 : 0;
+    var score = Math.round(regShoScore + shortScore + coverScore + trendScore + chgBonus);
     var level = score>=70?'Critical':score>=45?'Elevated':score>=20?'Moderate':'Low';
 
     return {
@@ -2930,10 +2945,11 @@ function renderBuyInTable(data, loading) {
       return '<span title="'+h.date+(h.onList?' ON LIST':' Clear')+'" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+col+';margin:0 1px;"></span>';
     }).join('');
 
-    var shortPctStr = d.shortPct ? d.shortPct.toFixed(1)+'%' : '—';
-    var dtcStr = d.dtc ? d.dtc.toFixed(1)+'d' : '—';
-    var chgStr = d.shortChg ? (parseFloat(d.shortChg)>=0?'+':'')+parseFloat(d.shortChg).toFixed(1)+'%' : '—';
-    var chgColor = d.shortChg ? (parseFloat(d.shortChg)>=0?'var(--red)':'var(--green)') : 'var(--text3)';
+    var shortPctStr = (d.shortPct && d.shortPct > 0) ? d.shortPct.toFixed(1)+'%' : '—';
+    var dtcStr      = (d.dtc && d.dtc > 0) ? d.dtc.toFixed(1)+'d' : '—';
+    var chgVal      = d.shortChg ? parseFloat(d.shortChg) : null;
+    var chgStr      = chgVal !== null ? (chgVal>=0?'+':'')+chgVal.toFixed(1)+'%' : '—';
+    var chgColor    = chgVal !== null ? (chgVal>=0?'var(--red)':'var(--green)') : 'var(--text3)';
     var priceStr = d.price ? '$'+d.price.toFixed(2) : '—';
     var dayChg = d.pct!=null ? (d.pct>=0?'+':'')+d.pct.toFixed(2)+'%' : '';
     var dayColor = d.pct>=0 ? 'var(--green)' : 'var(--red)';
