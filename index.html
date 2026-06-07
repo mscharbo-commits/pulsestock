@@ -2767,11 +2767,18 @@ async function loadTickerBar(){
 
 // Default watchlist — known high short interest / Reg SHO candidates
 var buyInTickers = [
-  // Current high short interest / meme / squeeze candidates (2025-2026)
-  'GME','AMC','SPCE','LCID','RIVN','BYND','NKLA','MVIS','ATER',
+  // High short interest large/mid caps
+  'GME','AMC','SPCE','LCID','RIVN','BYND','NKLA','MVIS',
   'UPST','CVNA','OPEN','HIMS','IONQ','SOUN','JOBY','ACHR','RKLB',
-  'SMCI','WOLF','FFIE','COCO','CLSK','MSTR','HOOD','SOFI','CHWY',
-  'COIN','AFRM','DKNG','PENN','PLTR','SNOW','PATH','AI','MNDY'
+  'SMCI','WOLF','CLSK','MSTR','HOOD','SOFI','COIN','AFRM',
+  'DKNG','PLTR','SNOW','PATH','AI','MNDY','ATER',
+  // Small caps / frequent Reg SHO candidates
+  'FFIE','NKLA','WKHS','GOEV','PTRA','HYZN','ELMS','XELA',
+  'MEGL','JXJT','SNAL','BNXG','HPNN','BTBT','MARA','RIOT',
+  // Leveraged ETFs often on threshold list
+  'LABD','SQQQ','SPXS','FAZ','YANG','UVXY','SVXY',
+  // Recent IPOs / high short
+  'IONQ','ARRY','GTLB','CWAN','INST','BRZE','MNDY'
 ];
 var buyInData = [];
 var buyInLoading = false;
@@ -2899,7 +2906,7 @@ async function fetchBuyInData(ticker, dates) {
     // Bonus: short change trending up = more pressure
     var chgBonus    = (shortChg && parseFloat(shortChg) > 10) ? 5 : 0;
     var score = Math.round(regShoScore + shortScore + coverScore + trendScore + chgBonus);
-    var level = score>=70?'Critical':score>=45?'Elevated':score>=20?'Moderate':'Low';
+    var level = score>=70?'Critical':score>=40?'Elevated':score>=20?'Moderate':'Low';
 
     return {
       ticker, score, level, onRegSHO, consecutiveDays, daysOnList,
