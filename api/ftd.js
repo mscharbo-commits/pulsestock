@@ -1,60 +1,71 @@
-export const config = { maxDuration: 20 };
+// Reads pre-fetched Reg SHO data from Edge Config (instant, no external fetch)
+// Data is refreshed daily by /api/cron-regsho
+
+export const config = { maxDuration: 10 };
+
+async function readFromEdgeConfig() {
+  const edgeConfigId = process.env.EDGE_CONFIG_ID;
+  const ecToken = process.env.EDGE_CONFIG_TOKEN;
+
+  if (!edgeConfigId || !ecToken) return null;
+
+  const res = await fetch(
+    `https://edge-config.vercel.com/${edgeConfigId}/item/regsho?token=${ecToken}`
+  );
+  if (!res.ok) return null;
+  return res.json();
+}
 
 export default async function handler(req) {
-  const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
-  
-  // Get last 3 trading days
-  const dates = [];
-  const d = new Date();
-  while(dates.length < 3) {
-    d.setDate(d.getDate()-1);
-    if(d.getDay()!==0 && d.getDay()!==6) {
-      const yr=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), dt=String(d.getDate()).padStart(2,'0');
-      dates.push(`${yr}-${mo}-${dt}`);
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+  if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+
+  let ticker;
+  try {
+    const base = req.url.startsWith('http') ? '' : 'https://x.com';
+    ticker = new URL(base + req.url).searchParams.get('ticker')?.toUpperCase();
+  } catch {
+    const qs = (req.url.split('?')[1] || '');
+    ticker = Object.fromEntries(qs.split('&').map(p => p.split('='))).ticker?.toUpperCase();
+  }
+
+  if (!ticker) return new Response(JSON.stringify({ error: 'ticker required' }), {
+    status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
+  });
+
+  try {
+    const cached = await readFromEdgeConfig();
+
+    if (!cached || !cached.tickers) {
+      return new Response(JSON.stringify({
+        ticker, onRegSHO: false, consecutiveDays: 0, daysOnListLast10: 0,
+        error: 'Cache not populated yet — run /api/cron-regsho to initialize',
+        source: 'Edge Config (empty)',
+      }), { headers: { ...cors, 'Content-Type': 'application/json' } });
     }
-  }
 
-  const results = {};
-  
-  // Try FINRA - get ALL stocks on the list for the most recent date
-  for(const date of dates) {
-    try {
-      const ctrl = new AbortController();
-      setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch('https://api.finra.org/data/group/otcMarket/name/ThresholdList', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json','Accept':'application/json','User-Agent':'PulseStock/1.0'},
-        body: JSON.stringify({ limit: 100, compareFilters: [{compareType:'EQUAL', fieldName:'tradeDate', fieldValue: date}] }),
-        signal: ctrl.signal,
-      });
-      if(res.ok) {
-        const data = await res.json();
-        results[date] = { count: data.length, tickers: data.slice(0,30).map(d=>d.issueSymbolIdentifier) };
-        break;
-      } else {
-        results[date] = { error: res.status };
-      }
-    } catch(e) { results[date] = { error: e.message }; }
-  }
+    const onList = cached.tickers.includes(ticker);
 
-  // Try Nasdaq threshold list
-  for(const date of dates) {
-    try {
-      const [yr,mo,dt] = date.split('-');
-      const url = `https://www.nasdaqtrader.com/dynamic/symdir/regsho/nasdaqpla${yr}${mo}${dt}.txt`;
-      const ctrl = new AbortController();
-      setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch(url, { headers:{'User-Agent':'PulseStock/1.0'}, signal: ctrl.signal });
-      if(res.ok) {
-        const txt = await res.text();
-        const onList = txt.split('\n').filter(l=>l.includes('|Y|')).map(l=>l.split('|')[0]);
-        results['nasdaq_'+date] = { count: onList.length, tickers: onList.slice(0,30) };
-        break;
-      } else {
-        results['nasdaq_'+date] = { error: res.status };
-      }
-    } catch(e) { results['nasdaq_'+date] = { error: e.message }; }
+    return new Response(JSON.stringify({
+      ticker,
+      onRegSHO: onList,
+      consecutiveDays: onList ? 1 : 0, // single-day snapshot; history tracked by cron
+      daysOnListLast10: onList ? 1 : 0,
+      date: cached.date,
+      fetchedAt: cached.fetchedAt,
+      totalOnList: cached.counts?.total,
+      source: 'FINRA + Nasdaq + NYSE (cached)',
+      note: 'Refreshed daily at 6 AM ET via cron job',
+    }), {
+      headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...cors, 'Content-Type': 'application/json' },
+    });
   }
-
-  return new Response(JSON.stringify(results, null, 2), { headers: cors });
 }
