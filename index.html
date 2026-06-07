@@ -690,11 +690,89 @@ async function fetchWithTimeout(url, ms){
   }catch(e){ clearTimeout(id); return null; }
 }
 
-async function fetchFTD(ticker, shortPct, dtc){
-  var params = '/api/ftd?ticker='+encodeURIComponent(ticker);
-  if(shortPct) params += '&shortPct=' + encodeURIComponent(shortPct);
-  if(dtc) params += '&dtc=' + encodeURIComponent(dtc);
-  return fetchWithTimeout(params, 20000);
+async function fetchFTD(ticker, shortPct, dtc) {
+  // Fetch Reg SHO threshold data directly from FINRA API (public, CORS-enabled)
+  // and Nasdaq directly - both work from the browser
+  var results = [];
+  var today = new Date();
+
+  // Get last 10 trading days
+  var dates = [];
+  var d = new Date(today);
+  while(dates.length < 10) {
+    d.setDate(d.getDate() - 1);
+    var day = d.getDay();
+    if(day !== 0 && day !== 6) {
+      var yr = d.getFullYear();
+      var mo = String(d.getMonth()+1).padStart(2,'0');
+      var dt = String(d.getDate()).padStart(2,'0');
+      dates.push({ iso: yr+'-'+mo+'-'+dt, yr, mo, dt });
+    }
+  }
+
+  // Try FINRA API for each date (supports all exchange-listed + OTC)
+  var history = [];
+  for(var i = 0; i < dates.length; i++) {
+    try {
+      var res = await fetch('https://api.finra.org/data/group/otcMarket/name/ThresholdList', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          compareFilters: [
+            { compareType: 'EQUAL', fieldName: 'issueSymbolIdentifier', fieldValue: ticker },
+            { compareType: 'EQUAL', fieldName: 'tradeDate', fieldValue: dates[i].iso }
+          ]
+        })
+      });
+      if(res.ok) {
+        var data = await res.json();
+        var onList = data && data.length > 0 && (data[0].regShoThresholdFlag === 'Y' || data[0].thresholdListFlag === 'Y');
+        history.push({ date: dates[i].iso, onList: onList, source: 'FINRA' });
+        continue;
+      }
+    } catch(e) {}
+
+    // Fallback: try Nasdaq direct
+    try {
+      var nasdaqUrl = 'https://www.nasdaqtrader.com/dynamic/symdir/regsho/nasdaqpla'+dates[i].yr+dates[i].mo+dates[i].dt+'.txt';
+      var res2 = await fetch(nasdaqUrl);
+      if(res2.ok) {
+        var txt = await res2.text();
+        var onList2 = txt.split('\n').some(function(l){ return l.startsWith(ticker+'|') && l.split('|')[3]==='Y'; });
+        history.push({ date: dates[i].iso, onList: onList2, source: 'Nasdaq' });
+        continue;
+      }
+    } catch(e) {}
+
+    history.push({ date: dates[i].iso, onList: false, source: null });
+  }
+
+  // Calculate consecutive days on list
+  var consecutiveDays = 0;
+  for(var j = 0; j < history.length; j++) {
+    if(history[j].onList) consecutiveDays++;
+    else break;
+  }
+
+  var daysOnList = history.filter(function(h){ return h.onList; }).length;
+  var onRegSHO = history[0] && history[0].onList;
+
+  // Settlement Pressure Score
+  var regShoScore  = Math.min(40, consecutiveDays * 8);
+  var shortScore   = Math.min(25, (shortPct||0) * 1.25);
+  var coverScore   = Math.min(20, (dtc||0) * 2);
+  var trendScore   = (daysOnList > consecutiveDays) ? 10 : 0;
+  var score        = Math.round(regShoScore + shortScore + coverScore + trendScore);
+  var level        = score >= 70 ? 'Critical' : score >= 45 ? 'Elevated' : score >= 20 ? 'Moderate' : 'Low';
+
+  return {
+    ticker, onRegSHO,
+    consecutiveDays, daysOnListLast10: daysOnList,
+    settlementPressureScore: score, pressureLevel: level,
+    history: history,
+    latestDate: history.find(function(h){ return h.source; })?.date,
+    source: history[0]?.source || 'FINRA/Nasdaq'
+  };
 }
 
 async function fetchShortInterest(ticker){
