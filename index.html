@@ -390,6 +390,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     <nav class="header-nav">
       <button class="nav-tab active" onclick="showPage('analyze',this)">Analyze</button>
       <button class="nav-tab" onclick="showPage('screener',this)">Screener</button>
+      <button class="nav-tab" onclick="showPage('buyin',this);loadBuyInList()">🎯 Buy-In</button>
       <button class="nav-tab" onclick="showPage('portfolio',this)">Portfolio</button>
       <a href="/community.html" class="nav-tab-link">💬 Community</a>
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
@@ -464,7 +465,47 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     <div id="screen-result"></div>
   </div>
 
-  <!-- PORTFOLIO -->
+  <!-- BUY-IN CANDIDATES -->
+  <div class="page" id="page-buyin">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;">🎯 Buy-In Candidates</h2>
+        <p style="color:var(--text2);font-size:14px;max-width:600px;">Stocks most likely to face a forced buy-in, ranked by Settlement Pressure Score. High scores = persistent Reg SHO failures + high short interest + slow cover time.</p>
+      </div>
+      <button class="btn-primary" onclick="loadBuyInList()" id="buyin-refresh-btn" style="flex-shrink:0;">↻ Refresh</button>
+    </div>
+
+    <!-- Score legend -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block;"></span> Critical (70–100)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:var(--amber);display:inline-block;"></span> Elevated (45–69)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block;"></span> Moderate (20–44)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:6px;">
+        <span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block;"></span> Low (0–19)
+      </div>
+      <div style="margin-left:auto;font-size:11px;color:var(--text3);align-self:center;">Sources: FINRA Reg SHO · Nasdaq Threshold · Short Interest</div>
+    </div>
+
+    <!-- Add custom ticker -->
+    <div class="card" style="padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;font-weight:500;color:var(--text2);flex-shrink:0;">Add ticker:</span>
+      <input id="buyin-add-input" type="text" placeholder="e.g. GME, BBBY, AMC" maxlength="200"
+        style="flex:1;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:'DM Mono',monospace;background:var(--surface);color:var(--text);text-transform:uppercase;"
+        onkeydown="if(event.key==='Enter')addBuyInTickers()"/>
+      <button class="btn-primary" onclick="addBuyInTickers()" style="flex-shrink:0;padding:8px 16px;font-size:13px;">Add</button>
+      <button onclick="resetBuyInList()" style="flex-shrink:0;padding:8px 14px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text3);cursor:pointer;">Reset</button>
+    </div>
+
+    <div id="buyin-table-wrap"></div>
+  </div>
+
+<!-- PORTFOLIO -->
   <div class="page" id="page-portfolio">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
       <div>
@@ -2720,6 +2761,221 @@ async function loadTickerBar(){
     scroll.style.animationDuration = (valid.length * 4) + 's';
   }
 }
+
+
+// ── BUY-IN CANDIDATES ──
+
+// Default watchlist — known high short interest / Reg SHO candidates
+var buyInTickers = ['GME','AMC','BBBY','SPCE','LCID','RIVN','SNDL','CLOV','WISH','IRBT','BYND','NKLA','RIDE','WKHS','MVIS','ATER','GREE','CTRM','EXPR','KOSS','NAKD'];
+var buyInData = [];
+var buyInLoading = false;
+
+function addBuyInTickers() {
+  var input = document.getElementById('buyin-add-input');
+  var raw = (input.value||'').toUpperCase().split(/[\s,]+/).filter(Boolean);
+  raw.forEach(function(t) {
+    t = t.replace(/[^A-Z0-9.]/g,'');
+    if(t && !buyInTickers.includes(t)) buyInTickers.unshift(t);
+  });
+  input.value = '';
+  loadBuyInList();
+}
+
+function resetBuyInList() {
+  buyInTickers = ['GME','AMC','BBBY','SPCE','LCID','RIVN','SNDL','CLOV','WISH','IRBT','BYND','NKLA','RIDE','WKHS','MVIS','ATER','GREE','CTRM','EXPR','KOSS','NAKD'];
+  buyInData = [];
+  loadBuyInList();
+}
+
+async function loadBuyInList() {
+  if(buyInLoading) return;
+  buyInLoading = true;
+  var btn = document.getElementById('buyin-refresh-btn');
+  var wrap = document.getElementById('buyin-table-wrap');
+  if(btn) btn.textContent = '⏳ Loading...';
+  if(btn) btn.disabled = true;
+
+  // Show skeleton
+  if(wrap) wrap.innerHTML = renderBuyInSkeleton();
+
+  // Get last 5 trading days for Reg SHO check
+  var dates = [];
+  var d = new Date();
+  while(dates.length < 5) {
+    d.setDate(d.getDate()-1);
+    if(d.getDay()!==0 && d.getDay()!==6) {
+      var yr=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), dt=String(d.getDate()).padStart(2,'0');
+      dates.push({iso:yr+'-'+mo+'-'+dt, yr, mo, dt});
+    }
+  }
+
+  // Process in batches of 5 to avoid hammering APIs
+  buyInData = [];
+  var batches = [];
+  for(var i=0; i<buyInTickers.length; i+=5) batches.push(buyInTickers.slice(i,i+5));
+
+  for(var b=0; b<batches.length; b++) {
+    var batch = batches[b];
+    var results = await Promise.all(batch.map(function(ticker) {
+      return fetchBuyInData(ticker, dates);
+    }));
+    results.forEach(function(r){ if(r) buyInData.push(r); });
+    // Re-render after each batch so results appear progressively
+    buyInData.sort(function(a,b){ return b.score - a.score; });
+    if(wrap) wrap.innerHTML = renderBuyInTable(buyInData, true);
+  }
+
+  buyInData.sort(function(a,b){ return b.score - a.score; });
+  if(wrap) wrap.innerHTML = renderBuyInTable(buyInData, false);
+  if(btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+  buyInLoading = false;
+}
+
+async function fetchBuyInData(ticker, dates) {
+  try {
+    // Fetch short interest + quote in parallel
+    var [si, quote] = await Promise.all([
+      fetchShortInterest(ticker).catch(function(){return null;}),
+      fetchQuote(ticker).catch(function(){return null;})
+    ]);
+
+    var shortPct   = si ? parseFloat(si.shortPercentFloat||0) : 0;
+    var dtc        = si ? parseFloat(si.daysTocover||0) : 0;
+    var shortShares = si ? si.sharesShort : null;
+    var shortChg   = si ? si.shortPercentChange : null;
+    var price      = quote ? quote.price : null;
+    var pct        = quote ? quote.pct : null;
+
+    // Check Reg SHO for last 5 days
+    var regShoHistory = [];
+    for(var i=0; i<dates.length; i++) {
+      try {
+        var res = await fetch('https://api.finra.org/data/group/otcMarket/name/ThresholdList', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json','Accept':'application/json'},
+          body: JSON.stringify({
+            compareFilters: [
+              {compareType:'EQUAL', fieldName:'issueSymbolIdentifier', fieldValue:ticker},
+              {compareType:'EQUAL', fieldName:'tradeDate', fieldValue:dates[i].iso}
+            ]
+          })
+        });
+        if(res.ok) {
+          var data = await res.json();
+          var onList = data && data.length>0 && (data[0].regShoThresholdFlag==='Y'||data[0].thresholdListFlag==='Y');
+          regShoHistory.push({date:dates[i].iso, onList});
+        } else {
+          regShoHistory.push({date:dates[i].iso, onList:false});
+        }
+      } catch(e) { regShoHistory.push({date:dates[i].iso, onList:false}); }
+    }
+
+    var consecutiveDays = 0;
+    for(var j=0; j<regShoHistory.length; j++) {
+      if(regShoHistory[j].onList) consecutiveDays++;
+      else break;
+    }
+    var daysOnList = regShoHistory.filter(function(h){return h.onList;}).length;
+    var onRegSHO = regShoHistory[0] && regShoHistory[0].onList;
+
+    // Settlement Pressure Score
+    var regShoScore = Math.min(40, consecutiveDays*8);
+    var shortScore  = Math.min(25, shortPct*1.25);
+    var coverScore  = Math.min(20, dtc*2);
+    var trendScore  = (daysOnList>consecutiveDays) ? 10 : 0;
+    var score = Math.round(regShoScore + shortScore + coverScore + trendScore);
+    var level = score>=70?'Critical':score>=45?'Elevated':score>=20?'Moderate':'Low';
+
+    return {
+      ticker, score, level, onRegSHO, consecutiveDays, daysOnList,
+      shortPct, dtc, shortShares, shortChg, price, pct,
+      regShoHistory
+    };
+  } catch(e) { return null; }
+}
+
+function renderBuyInSkeleton() {
+  var rows = buyInTickers.slice(0,8).map(function(){
+    return '<tr><td colspan="9"><div style="height:36px;background:var(--surface2);border-radius:4px;animation:pulse 1.5s infinite;"></div></td></tr>';
+  }).join('');
+  return '<div class="card" style="padding:0;overflow:hidden;"><table style="width:100%;border-collapse:collapse;">' + rows + '</table></div>';
+}
+
+function renderBuyInTable(data, loading) {
+  if(!data.length) return '<div class="card" style="text-align:center;padding:40px;color:var(--text3);">No data yet — loading...</div>';
+
+  var scoreColors = {Critical:'var(--red)', Elevated:'var(--amber)', Moderate:'#F59E0B', Low:'var(--green)'};
+  var statusText = loading ? '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">⏳ Loading more tickers...</div>' : '';
+
+  var headerRow = '<tr style="background:var(--surface2);">'
+    + '<th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Ticker</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Score</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Reg SHO Days</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Short % Float</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Days to Cover</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Short Chg</th>'
+    + '<th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Price</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">5-Day History</th>'
+    + '<th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Action</th>'
+    + '</tr>';
+
+  var rows = data.map(function(d, i) {
+    var scoreColor = scoreColors[d.level] || 'var(--text3)';
+    var scoreBg = d.level==='Critical' ? 'rgba(209,63,48,.08)' : d.level==='Elevated' ? 'rgba(245,158,11,.08)' : '';
+    var rowBg = i%2===0 ? '' : 'background:var(--surface2);';
+
+    // 5-day dots
+    var dots = (d.regShoHistory||[]).slice(0,5).map(function(h) {
+      var col = h.onList ? 'var(--red)' : 'var(--green)';
+      return '<span title="'+h.date+(h.onList?' ON LIST':' Clear')+'" style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+col+';margin:0 1px;"></span>';
+    }).join('');
+
+    var shortPctStr = d.shortPct ? d.shortPct.toFixed(1)+'%' : '—';
+    var dtcStr = d.dtc ? d.dtc.toFixed(1)+'d' : '—';
+    var chgStr = d.shortChg ? (parseFloat(d.shortChg)>=0?'+':'')+parseFloat(d.shortChg).toFixed(1)+'%' : '—';
+    var chgColor = d.shortChg ? (parseFloat(d.shortChg)>=0?'var(--red)':'var(--green)') : 'var(--text3)';
+    var priceStr = d.price ? '$'+d.price.toFixed(2) : '—';
+    var dayChg = d.pct!=null ? (d.pct>=0?'+':'')+d.pct.toFixed(2)+'%' : '';
+    var dayColor = d.pct>=0 ? 'var(--green)' : 'var(--red)';
+
+    var regShoDisplay = d.onRegSHO
+      ? '<span style="color:var(--red);font-weight:700;">'+d.consecutiveDays+'d ⚠</span>'
+      : '<span style="color:var(--text3);">—</span>';
+
+    return '<tr style="'+rowBg+'border-bottom:1px solid var(--border);cursor:pointer;" onclick="goAnalyze(\''+d.ticker+'\')">'
+      + '<td style="padding:10px 12px;">'
+      + '<div style="font-size:14px;font-weight:700;font-family:DM Mono,monospace;color:var(--accent);">'+d.ticker+'</div>'
+      + '</td>'
+      + '<td style="padding:10px 12px;text-align:center;'+scoreBg+'">'
+      + '<div style="font-size:16px;font-weight:700;color:'+scoreColor+';">'+d.score+'</div>'
+      + '<div style="font-size:10px;color:'+scoreColor+';font-weight:600;">'+d.level+'</div>'
+      + '</td>'
+      + '<td style="padding:10px 12px;text-align:center;">'+regShoDisplay+'</td>'
+      + '<td style="padding:10px 12px;text-align:center;font-size:13px;font-weight:600;color:'+(d.shortPct>20?'var(--red)':d.shortPct>10?'var(--amber)':'var(--text)')+';">'+shortPctStr+'</td>'
+      + '<td style="padding:10px 12px;text-align:center;font-size:13px;color:'+(d.dtc>10?'var(--red)':d.dtc>5?'var(--amber)':'var(--text)')+';">'+dtcStr+'</td>'
+      + '<td style="padding:10px 12px;text-align:center;font-size:12px;color:'+chgColor+';">'+chgStr+'</td>'
+      + '<td style="padding:10px 12px;text-align:right;">'
+      + '<div style="font-size:13px;font-weight:600;">'+priceStr+'</div>'
+      + '<div style="font-size:11px;color:'+dayColor+';">'+dayChg+'</div>'
+      + '</td>'
+      + '<td style="padding:10px 12px;text-align:center;">'+dots+'</td>'
+      + '<td style="padding:10px 12px;text-align:center;">'
+      + '<button onclick="event.stopPropagation();goAnalyze(\''+d.ticker+'\')" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:var(--accent-light);cursor:pointer;font-weight:600;">Analyze</button>'
+      + '</td>'
+      + '</tr>';
+  }).join('');
+
+  return statusText
+    + '<div class="card" style="padding:0;overflow:hidden;">'
+    + '<table style="width:100%;border-collapse:collapse;">'
+    + '<thead>' + headerRow + '</thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:right;">Click any row to analyze · Reg SHO: FINRA/Nasdaq daily threshold lists · Short interest: FINRA bi-monthly</div>';
+}
+
+// goAnalyze already defined above
 
 loadTickerBar();
 // Refresh every 60 seconds
