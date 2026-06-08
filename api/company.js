@@ -19,64 +19,220 @@ async function getFinnhubMetrics(ticker) {
   } catch(e) { return null; }
 }
 
+async function getEdgarFacts(cik) {
+  try {
+    const paddedCik = cik.replace(/^0+/, '').padStart(10, '0');
+    const r = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'application/json' }
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+async function getEdgarCik(ticker) {
+  try {
+    const r = await fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    });
+    // Try tickers.json first - SEC provides a full mapping
+    const r2 = await fetch('https://www.sec.gov/files/company_tickers.json', {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    });
+    if (!r2.ok) return null;
+    const data = await r2.json();
+    const entry = Object.values(data).find(e => e.ticker?.toUpperCase() === ticker.toUpperCase());
+    return entry ? String(entry.cik_str).padStart(10,'0') : null;
+  } catch(e) { return null; }
+}
+
+function getLatestValue(facts, concept, unit = 'USD', preferEnd = null) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data || !data.length) return null;
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.start && d.end).sort((a,b) => b.end.localeCompare(a.end));
+    // If a preferred end date is given, try to match it first
+    if (preferEnd) {
+      const match = annuals.find(d => d.end === preferEnd);
+      if (match) return match.val;
+    }
+    // Filter to strict 1-year periods to avoid cumulative entries
+    const annual1yr = annuals.filter(d => {
+      const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+      return days >= 300 && days <= 400;
+    });
+    if (annual1yr.length) return annual1yr[0].val;
+    if (annuals.length) return annuals[0].val;
+    // Fall back to most recent quarterly
+    const qtrs = data.filter(d => d.form === '10-Q' && d.val != null).sort((a,b) => b.end.localeCompare(a.end));
+    return qtrs.length ? qtrs[0].val : null;
+  } catch(e) { return null; }
+}
+
+function getHistoricalValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    // Only keep 10-K annual filings with both start and end dates
+    // Duration must be ~1 year (300-400 days) to avoid cumulative multi-year entries
+    const annuals = data.filter(d => {
+      if (d.form !== '10-K' || d.val == null || !d.end || !d.start) return false;
+      const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+      return days >= 300 && days <= 400; // strictly 1-year periods only
+    });
+    
+    // Deduplicate by fiscal year end date (full date, not just year)
+    const seen = new Set();
+    const unique = annuals.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => ({ 
+        period: d.end.substring(0,4), 
+        label: 'FY ' + d.end.substring(0,4), 
+        value: d.val, 
+        type: 'annual',
+        end: d.end
+      }));
+  } catch(e) { return []; }
+}
+
+function getQuarterlyValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    // Quarterly: 10-Q filings with ~90 day duration
+    const qtrs = data
+      .filter(d => {
+        if ((d.form !== '10-Q') || d.val == null || !d.end || !d.start) return false;
+        const days = (new Date(d.end) - new Date(d.start)) / 86400000;
+        return days >= 75 && days <= 105;
+      });
+    
+    // Deduplicate by end date
+    const seen = new Set();
+    const unique = qtrs.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => {
+        const endDate = new Date(d.end);
+        const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
+        const yr = endDate.getFullYear();
+        return { period: d.end.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter', end: d.end };
+      });
+  } catch(e) { return []; }
+}
+
+function getInstantValues(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    // Balance sheet / instant items: 10-K filings, no start date required
+    // Each fiscal year-end filing has one value
+    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.end);
+    
+    const seen = new Set();
+    const unique = annuals.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => ({
+        period: d.end.substring(0,4),
+        label: 'FY ' + d.end.substring(0,4),
+        value: d.val,
+        type: 'annual',
+        end: d.end
+      }));
+  } catch(e) { return []; }
+}
+
+function getInstantQtrs(facts, concept, unit = 'USD', limit = 4) {
+  try {
+    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data) return [];
+    
+    const qtrs = data.filter(d => d.form === '10-Q' && d.val != null && d.end);
+    
+    const seen = new Set();
+    const unique = qtrs.filter(d => {
+      if (seen.has(d.end)) return false;
+      seen.add(d.end);
+      return true;
+    });
+    
+    return unique
+      .sort((a,b) => b.end.localeCompare(a.end))
+      .slice(0, limit)
+      .map(d => {
+        const endDate = new Date(d.end);
+        const qtr = 'Q' + Math.ceil((endDate.getMonth()+1)/3);
+        const yr = endDate.getFullYear();
+        return { period: d.end.substring(0,7), label: qtr + ' ' + yr, value: d.val, type: 'quarter', end: d.end };
+      });
+  } catch(e) { return []; }
+}
+
+function fmt(val, type = 'currency') {
+  if (val === null || val === undefined) return null;
+  const n = parseFloat(val);
+  if (isNaN(n)) return null;
+  if (type === 'currency') {
+    if (Math.abs(n) >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+    if (Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+    if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    return '$' + n.toFixed(0);
+  }
+  if (type === 'pct') return (n * 100).toFixed(1) + '%';
+  if (type === 'ratio') return n.toFixed(2) + 'x';
+  return n.toFixed(2);
+}
+
 async function getCompanyDescription(ticker, companyName) {
   try {
     const ua = 'PulseStock/1.0 research@pulsestock.com';
-
-    // Step 1: Search Wikidata for the company by name (more reliable than ticker)
     const searchTerm = companyName || ticker;
     const searchRes = await fetch(
       `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchTerm)}&language=en&format=json&limit=5`,
       { headers: { 'User-Agent': ua } }
     );
     if (!searchRes.ok) return null;
-    const searchData = await searchRes.json();
+    const hits = (await searchRes.json()).search || [];
+    const entity = hits.find(h => h.id && !(h.description||'').includes('disambiguation')) || hits[0];
+    if (!entity?.id) return null;
 
-    // Find best match — prefer result with a Wikipedia sitelink (real company article)
-    // Filter out disambiguation pages and non-company results
-    let entityId = null;
-    const hits = searchData.search || [];
-    for (const hit of hits) {
-      const desc = (hit.description || '').toLowerCase();
-      // Skip if clearly not a company
-      if (desc.includes('disambiguation') || desc.includes('given name') || desc.includes('surname')) continue;
-      // Prefer if description mentions company/corporation/business
-      if (hit.id) { entityId = hit.id; break; }
-    }
-    if (!entityId) return null;
-
-    // Step 2: Get entity data to find Wikipedia article title
-    const entityRes = await fetch(
-      `https://www.wikidata.org/wiki/Special:EntityData/${entityId}.json`,
-      { headers: { 'User-Agent': ua } }
-    );
+    const entityRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${entity.id}.json`, { headers: { 'User-Agent': ua } });
     if (!entityRes.ok) return null;
-    const entityData = await entityRes.json();
-    const entity = entityData.entities?.[entityId];
-    const wikiTitle = entity?.sitelinks?.enwiki?.title;
-    if (!wikiTitle) {
-      // No Wikipedia article — fall back to Wikidata short description
-      const shortDesc = entity?.descriptions?.en?.value;
-      return shortDesc ? { description: shortDesc } : null;
+    const wikiTitle = (await entityRes.json()).entities?.[entity.id]?.sitelinks?.enwiki?.title;
+
+    if (wikiTitle) {
+      const wikiRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`, { headers: { 'User-Agent': ua } });
+      if (wikiRes.ok) {
+        const wiki = await wikiRes.json();
+        if (wiki.type !== 'disambiguation' && wiki.extract) return wiki.extract;
+      }
     }
-
-    // Step 3: Get full Wikipedia summary
-    const wikiRes = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`,
-      { headers: { 'User-Agent': ua } }
-    );
-    if (!wikiRes.ok) return null;
-    const wiki = await wikiRes.json();
-    if (wiki.type === 'disambiguation' || !wiki.extract) return null;
-
-    return {
-      description: wiki.extract,
-      wikiTitle: wiki.title,
-      wikiUrl: wiki.content_urls?.desktop?.page || null,
-    };
+    return entity.description || null;
   } catch(e) { return null; }
 }
-
 
 async function getEdgarDescription(cik) {
   try {
@@ -146,17 +302,17 @@ export default async function handler(req) {
       getFinnhubMetrics(ticker),
       getEdgarCik(ticker),
     ]);
-    const fh = fhProfile || {};
-    const companyName = fh.name || ticker;
-    // Fetch EDGAR facts and Wikipedia description in parallel
-    const [edgarFacts, wikiProfile] = await Promise.all([
-      cik ? getEdgarFacts(cik) : null,
-      getCompanyDescription(ticker, companyName),
-    ]);
 
     const m = fhMetrics || {};
 
-    const edgarDesc = null; // using Wikipedia now
+    // Fetch EDGAR facts and 10-K description in parallel
+    const fh = fhProfile || {};
+    const companyName = fh.name || ticker;
+    const [edgarFacts, edgarDesc, wikiDesc] = await Promise.all([
+      cik ? getEdgarFacts(cik) : null,
+      getEdgarDescription(cik),
+      getCompanyDescription(ticker, companyName),
+    ]);
 
     // Extract financials from EDGAR XBRL
     const revenue = getLatestValue(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax') || getLatestValue(edgarFacts, 'Revenues') || getLatestValue(edgarFacts, 'SalesRevenueNet');
@@ -278,16 +434,14 @@ export default async function handler(req) {
     const capexQtrs          = _getCapexHist(getQuarterlyValues);
 
     return new Response(JSON.stringify({
-      // Profile — Wikipedia description + Finnhub metadata
+      // Profile
       name: companyName,
-      description: wikiProfile?.description || null,
-      wikiUrl: wikiProfile?.wikiUrl || null,
+      description: wikiDesc || edgarDesc,
       sector: fh.finnhubIndustry || null,
       industry: fh.finnhubIndustry || null,
       website: fh.weburl || null,
       phone: fh.phone || null,
       employees: fh.employeeTotal || null,
-      country: fh.country || null,
       exchange: fh.exchange || null,
       marketCap: fh.marketCapitalization ? fmt(fh.marketCapitalization * 1e6) : null,
       logo: fh.logo || null,
@@ -391,7 +545,7 @@ export default async function handler(req) {
       opCfHistory, opCfQtrs,
       capexHistory, capexQtrs,
 
-      _source: 'edgar+finnhub+wikipedia',
+      _source: 'edgar+finnhub+wiki',
       _edgarAvailable: !!edgarFacts,
     }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
 
