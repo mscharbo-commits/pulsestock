@@ -1034,7 +1034,9 @@ function renderNews(ticker, articles){
     el.innerHTML = '<div class="news-loading">No recent news found for ' + ticker + '</div>';
     return;
   }
-  el.innerHTML = articles.map(function(a){
+  // Paginate news — 10 per page
+  function renderNewsItems(slice) {
+    return slice.map(function(a){
     var ago = timeAgo(a.datetime);
     var sentClass = 'news-neu';
     var sentLabel = '';
@@ -1062,6 +1064,8 @@ function renderNews(ticker, articles){
       + '</div>'
     + '</a>';
   }).join('');
+  }
+  makePaginator(articles, 10, renderNewsItems, 'news-list-' + ticker);
 }
 
 async function fetchAnalyst(ticker){
