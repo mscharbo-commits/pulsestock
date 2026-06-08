@@ -5,5 +5,15 @@
       "path": "/api/cron-regsho",
       "schedule": "0 10 * * 1-5"
     }
+  ],
+  "routes": [
+    {
+      "src": "/signin",
+      "dest": "/signin.html"
+    },
+    {
+      "src": "/signin.html",
+      "dest": "/signin.html"
+    }
   ]
 }
