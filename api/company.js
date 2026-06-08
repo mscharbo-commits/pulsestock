@@ -20,43 +20,64 @@ async function getFinnhubMetrics(ticker) {
 }
 
 async function getYahooProfile(ticker) {
+  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   try {
-    // Step 1: Get crumb (required for Yahoo Finance API auth)
+    // Step 1: Get crumb + cookie together
     const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-      }
+      headers: { 'User-Agent': ua, 'Accept': '*/*' }
     });
     if (!crumbRes.ok) return null;
-    const crumb = await crumbRes.text();
-    if (!crumb || crumb.length > 50) return null;
+    const crumb = (await crumbRes.text()).trim();
+    if (!crumb || crumb.length > 100 || crumb.includes('<')) return null;
+    const cookie = crumbRes.headers.get('set-cookie') || '';
 
-    // Step 2: Fetch asset profile with crumb
-    const profileRes = await fetch(
-      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb)}`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-        }
-      }
-    );
-    if (!profileRes.ok) return null;
-    const data = await profileRes.json();
-    const profile = data?.quoteSummary?.result?.[0]?.assetProfile;
-    if (!profile) return null;
+    // Step 2: Try query1 first, then query2 as fallback
+    for (const host of ['query1', 'query2']) {
+      try {
+        const url = `https://${host}.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb)}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': ua, 'Accept': 'application/json', 'Cookie': cookie }
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const profile = data?.quoteSummary?.result?.[0]?.assetProfile;
+        if (!profile?.longBusinessSummary) continue;
+        return {
+          description: profile.longBusinessSummary,
+          sector:      profile.sector || null,
+          industry:    profile.industry || null,
+          employees:   profile.fullTimeEmployees || null,
+          website:     profile.website || null,
+          country:     profile.country || null,
+          city:        profile.city || null,
+          state:       profile.state || null,
+        };
+      } catch(e2) { continue; }
+    }
 
-    return {
-      description: profile.longBusinessSummary || null,
-      sector:      profile.sector || null,
-      industry:    profile.industry || null,
-      employees:   profile.fullTimeEmployees || null,
-      website:     profile.website || null,
-      country:     profile.country || null,
-      city:        profile.city || null,
-      state:       profile.state || null,
-    };
+    // Step 3: Fallback — scrape Yahoo Finance profile page
+    const pageRes = await fetch(`https://finance.yahoo.com/quote/${ticker}/profile/`, {
+      headers: { 'User-Agent': ua, 'Accept': 'text/html' }
+    });
+    if (!pageRes.ok) return null;
+    const html = await pageRes.text();
+    // Yahoo embeds profile data in a JSON blob in the page
+    const match = html.match(/"longBusinessSummary":"((?:[^"\\]|\\.)*)"/);
+    const sector = html.match(/"sector":\{"raw":"([^"]+)"/);
+    const industry = html.match(/"industry":\{"raw":"([^"]+)"/);
+    const employees = html.match(/"fullTimeEmployees":\{"raw":(\d+)/);
+    const website = html.match(/"website":"([^"]+)"/);
+    if (match) {
+      return {
+        description: match[1].replace(/\\n/g,' ').replace(/\\u[\da-f]{4}/gi, '').trim() || null,
+        sector:      sector?.[1] || null,
+        industry:    industry?.[1] || null,
+        employees:   employees ? parseInt(employees[1]) : null,
+        website:     website?.[1] || null,
+        country:     null, city: null, state: null,
+      };
+    }
+    return null;
   } catch(e) { return null; }
 }
 
