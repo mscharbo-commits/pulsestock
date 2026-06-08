@@ -20,57 +20,61 @@ async function getFinnhubMetrics(ticker) {
 }
 
 async function getCompanyDescription(ticker, companyName) {
-  // Strategy 1: Wikipedia REST API using company name from Finnhub
-  // Convert "Apple Inc" -> "Apple_Inc" for Wikipedia lookup
-  async function tryWikipedia(searchTerm) {
-    try {
-      // Search Wikipedia for the company
-      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(searchTerm)}&format=json&srlimit=5&srprop=snippet`;
-      const searchRes = await fetch(searchUrl, { headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' } });
-      if (!searchRes.ok) return null;
-      const searchData = await searchRes.json();
-      const hits = searchData?.query?.search || [];
+  try {
+    const ua = 'PulseStock/1.0 research@pulsestock.com';
 
-      // Find best match - prefer exact company name match
-      let bestTitle = null;
-      for (const hit of hits) {
-        const t = hit.title.toLowerCase();
-        const name = searchTerm.toLowerCase().replace(/[,\.]/g,'').trim();
-        if (t === name || t.startsWith(name.split(' ')[0])) {
-          bestTitle = hit.title;
-          break;
-        }
-      }
-      if (!bestTitle && hits.length) bestTitle = hits[0].title;
-      if (!bestTitle) return null;
+    // Step 1: Search Wikidata for the company by name (more reliable than ticker)
+    const searchTerm = companyName || ticker;
+    const searchRes = await fetch(
+      `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(searchTerm)}&language=en&format=json&limit=5`,
+      { headers: { 'User-Agent': ua } }
+    );
+    if (!searchRes.ok) return null;
+    const searchData = await searchRes.json();
 
-      // Fetch the summary for that article
-      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`;
-      const summaryRes = await fetch(summaryUrl, { headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' } });
-      if (!summaryRes.ok) return null;
-      const summary = await summaryRes.json();
-      if (summary.type === 'disambiguation' || !summary.extract) return null;
+    // Find best match — prefer result with a Wikipedia sitelink (real company article)
+    // Filter out disambiguation pages and non-company results
+    let entityId = null;
+    const hits = searchData.search || [];
+    for (const hit of hits) {
+      const desc = (hit.description || '').toLowerCase();
+      // Skip if clearly not a company
+      if (desc.includes('disambiguation') || desc.includes('given name') || desc.includes('surname')) continue;
+      // Prefer if description mentions company/corporation/business
+      if (hit.id) { entityId = hit.id; break; }
+    }
+    if (!entityId) return null;
 
-      return {
-        description: summary.extract,
-        wikiTitle: summary.title,
-        wikiUrl: summary.content_urls?.desktop?.page || null,
-      };
-    } catch(e) { return null; }
-  }
+    // Step 2: Get entity data to find Wikipedia article title
+    const entityRes = await fetch(
+      `https://www.wikidata.org/wiki/Special:EntityData/${entityId}.json`,
+      { headers: { 'User-Agent': ua } }
+    );
+    if (!entityRes.ok) return null;
+    const entityData = await entityRes.json();
+    const entity = entityData.entities?.[entityId];
+    const wikiTitle = entity?.sitelinks?.enwiki?.title;
+    if (!wikiTitle) {
+      // No Wikipedia article — fall back to Wikidata short description
+      const shortDesc = entity?.descriptions?.en?.value;
+      return shortDesc ? { description: shortDesc } : null;
+    }
 
-  // Try company name first, then ticker-based search
-  const searches = [
-    companyName,                                    // "Apple Inc"
-    companyName?.replace(/\s+(Inc|Corp|Ltd|Co|LLC|Group|Holdings)\.?$/i, '').trim(), // "Apple"
-    `${ticker} stock company`,                     // "AAPL stock company"
-  ].filter(Boolean);
+    // Step 3: Get full Wikipedia summary
+    const wikiRes = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`,
+      { headers: { 'User-Agent': ua } }
+    );
+    if (!wikiRes.ok) return null;
+    const wiki = await wikiRes.json();
+    if (wiki.type === 'disambiguation' || !wiki.extract) return null;
 
-  for (const term of searches) {
-    const result = await tryWikipedia(term);
-    if (result?.description && result.description.length > 50) return result;
-  }
-  return null;
+    return {
+      description: wiki.extract,
+      wikiTitle: wiki.title,
+      wikiUrl: wiki.content_urls?.desktop?.page || null,
+    };
+  } catch(e) { return null; }
 }
 
 
