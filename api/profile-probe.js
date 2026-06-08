@@ -3,72 +3,63 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 export default async function handler(req) {
   const ticker = new URL(req.url).searchParams.get('ticker') || 'AAPL';
-  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const results = {};
 
-  // Google Finance - try different URL formats and extract description
-  const googleUrls = [
-    `https://www.google.com/finance/quote/${ticker}:NASDAQ`,
-    `https://www.google.com/finance/quote/${ticker}:NYSE`,
-    `https://www.google.com/finance/quote/${ticker}:NYSEARCA`,
-  ];
+  // Step 1: Search Wikidata for the company
+  const searchRes = await fetch(
+    `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${ticker}&language=en&format=json&limit=3`,
+    { headers: { 'User-Agent': 'PulseStock/1.0 research@pulsestock.com' } }
+  );
+  const searchData = await searchRes.json();
+  const entity = searchData.search?.[0];
+  results.search = { id: entity?.id, label: entity?.label, shortDesc: entity?.description };
 
-  for (const url of googleUrls) {
-    try {
-      const r = await fetch(url, { headers: { 'User-Agent': ua, 'Accept-Language': 'en-US,en;q=0.9' } });
-      if (!r.ok) continue;
-      const html = await r.text();
+  if (entity?.id) {
+    // Step 2: Get full entity data including Wikipedia article link
+    const entityRes = await fetch(
+      `https://www.wikidata.org/wiki/Special:EntityData/${entity.id}.json`,
+      { headers: { 'User-Agent': 'PulseStock/1.0' } }
+    );
+    const entityData = await entityRes.json();
+    const e = entityData.entities?.[entity.id];
 
-      // Try multiple patterns for description in Google Finance HTML
-      const patterns = [
-        /data-attrid="description"[^>]*>\s*<span[^>]*>([\s\S]{50,1000}?)<\/span>/,
-        /"description":"([^"]{50,500})"/,
-        /class="bLLb2d[^>]*>([^<]{100,800})<\/span>/,
-        /class="[^"]*description[^"]*"[^>]*>([^<]{50,500})</,
-        /"about":"([^"]{50,500})"/,
-        /itemprop="description"[^>]*>([^<]{50,500})</,
-        // Google Finance specific
-        /"Biz":\{"description":"([^"]{50,500})"/,
-        /\["([A-Z][^"]{49,499})"\s*,\s*"About [^"]+"\]/,
-      ];
+    // Get English Wikipedia article title from sitelinks
+    const wikiTitle = e?.sitelinks?.enwiki?.title;
+    results.wikiTitle = wikiTitle;
 
-      for (const pat of patterns) {
-        const m = html.match(pat);
-        if (m) {
-          results[url.split('/').pop()] = { found: true, pattern: pat.source.slice(0,40), desc: m[1].slice(0,200) };
-          break;
-        }
+    // Get English description (longer one from claims if available)
+    const engDesc = e?.descriptions?.en?.value;
+    results.entityDesc = engDesc;
+
+    // Step 3: Get Wikipedia article summary using the title
+    if (wikiTitle) {
+      const wikiRes = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTitle)}`,
+        { headers: { 'User-Agent': 'PulseStock/1.0' } }
+      );
+      const wikiData = await wikiRes.json();
+      results.wikipedia = {
+        title: wikiData.title,
+        extract: wikiData.extract,
+        type: wikiData.type,
+      };
+    }
+
+    // Step 4: DBpedia with entity id (use Wikipedia title for DBpedia)
+    if (wikiTitle) {
+      const dbRes = await fetch(
+        `https://dbpedia.org/data/${encodeURIComponent(wikiTitle.replace(/ /g,'_'))}.json`,
+        { headers: { 'Accept': 'application/json', 'User-Agent': 'PulseStock/1.0' } }
+      );
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        const key = `http://dbpedia.org/resource/${wikiTitle.replace(/ /g,'_')}`;
+        const abstract = dbData[key]?.['http://dbpedia.org/ontology/abstract'];
+        const engAbstract = abstract?.find(a => a.lang === 'en');
+        results.dbpedia = { abstract: engAbstract?.value?.slice(0, 400) };
       }
-
-      if (!results[url.split('/').pop()]) {
-        // Show what's around "About" or "description" in the HTML
-        const aboutIdx = html.indexOf('About ' + ticker);
-        const descIdx = html.indexOf('"description"');
-        results[url.split('/').pop()] = {
-          found: false,
-          htmlSize: html.length,
-          aboutAt: aboutIdx,
-          descAt: descIdx,
-          descContext: descIdx > 0 ? html.slice(descIdx, descIdx+200) : 'none',
-          aboutContext: aboutIdx > 0 ? html.slice(aboutIdx, aboutIdx+200) : 'none',
-        };
-      }
-      break; // stop after first 200 response
-    } catch(e) { results[url.split('/').pop()] = { error: e.message }; }
+    }
   }
-
-  // Also try DBpedia (structured Wikipedia data as JSON)
-  try {
-    const r = await fetch(`https://dbpedia.org/data/${ticker}.json`, { headers: { 'Accept': 'application/json', 'User-Agent': 'PulseStock/1.0' } });
-    results.dbpedia_ticker = { status: r.status };
-  } catch(e) { results.dbpedia_ticker = { error: e.message }; }
-
-  // Try Wikidata for company description
-  try {
-    const r = await fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${ticker}&language=en&format=json&limit=3`, { headers: { 'User-Agent': 'PulseStock/1.0' } });
-    const d = await r.json();
-    results.wikidata = { hits: d.search?.slice(0,3).map(s => ({ id: s.id, label: s.label, description: s.description })) };
-  } catch(e) { results.wikidata = { error: e.message }; }
 
   return new Response(JSON.stringify(results, null, 2), { headers: cors });
 }
