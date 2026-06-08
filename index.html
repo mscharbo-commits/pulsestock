@@ -403,6 +403,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <a href="/community.html" class="nav-tab-link">💬 Community</a>
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
       <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
+      <button class="nav-tab" onclick="showPage('watchlist',this);renderWatchlist();">⭐ Watchlist</button>
     </nav>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="header-badge">AI-Powered · Live Data</div>
@@ -455,6 +456,15 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
       <div class="ind-legend" id="ind-legend"></div>
     </div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div class="page" id="page-watchlist">
+    <div style="margin-bottom:24px;">
+      <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;">⭐ Watchlist</h2>
+      <p style="color:var(--text2);font-size:14px;">Stocks you're tracking. Click ☆ Watch on any stock analysis to add it here.</p>
+    </div>
+    <div id="watchlist-content"></div>
   </div>
 
   <!-- SCREENER -->
@@ -581,7 +591,48 @@ const FUNDAMENTALS={
   JPM:{pe:"11.2",fwdPe:"12.8",peg:"1.4",ps:"3.4",evEbitda:"—",roe:"17%",gm:"—",om:"35.4%",nm:"28.1%",rev:"$165B",rg:"21.5%",eg:"9.4%",fcf:"$48B",cash:"$312B",debt:"$400B",beta:"1.12",div:"2.35%",bb:"$12B/yr",atp:"$295",abuy:16,ahold:10,asell:3,rsi:"55",macd:"1.4",msig:"0.9",ma50:"194.22",ma200:"178.44",atr:"3.1",s1:"255",s2:"240",r1:"280",r2:"295",sector:"Finance",capR:"mega",peR:"low",divR:"med",score:79},
 };
 
-let portfolio=[{ticker:"AAPL",shares:10,avg:165,date:"2023-01-15"},{ticker:"NVDA",shares:5,avg:480,date:"2023-03-20"},{ticker:"MSFT",shares:8,avg:310,date:"2022-11-10"},{ticker:"AMZN",shares:12,avg:135,date:"2023-06-01"}];
+let portfolio=(function(){
+  try{var s=localStorage.getItem('ps_portfolio');return s?JSON.parse(s):[{ticker:"AAPL",shares:10,avg:165,date:"2023-01-15"},{ticker:"NVDA",shares:5,avg:480,date:"2023-03-20"}];}
+  catch(e){return [{ticker:"AAPL",shares:10,avg:165,date:"2023-01-15"}];}
+})();
+function savePortfolio(){try{localStorage.setItem('ps_portfolio',JSON.stringify(portfolio));}catch(e){}}
+
+// ── WATCHLIST ──
+var watchlist=(function(){try{var s=localStorage.getItem('ps_watchlist');return s?JSON.parse(s):[];}catch(e){return [];}})();
+function saveWatchlist(){try{localStorage.setItem('ps_watchlist',JSON.stringify(watchlist));}catch(e){}}
+function isWatched(t){return watchlist.includes(t);}
+function toggleWatch(ticker){
+  if(isWatched(ticker)){watchlist=watchlist.filter(t=>t!==ticker);}
+  else{watchlist.unshift(ticker);if(watchlist.length>50)watchlist=watchlist.slice(0,50);}
+  saveWatchlist();
+  var btn=document.getElementById('watch-btn-'+ticker);
+  if(btn){var w=isWatched(ticker);btn.textContent=w?'★ Watching':'☆ Watch';btn.style.color=w?'var(--amber,#F59E0B)':'var(--text3)';btn.style.background=w?'rgba(245,158,11,.1)':'var(--surface2)';}
+  if(document.querySelector('#page-watchlist.active')) renderWatchlist();
+}
+function renderWatchlist(){
+  var el=document.getElementById('watchlist-content');
+  if(!el) return;
+  if(!watchlist.length){
+    el.innerHTML='<div class="card" style="text-align:center;padding:40px;color:var(--text3);">No stocks watched yet.<br>Click ☆ Watch on any stock analysis to add it here.</div>';
+    return;
+  }
+  var html='<div class="results-table"><div class="results-table-header"><span>Ticker</span><span></span></div>';
+  for(var i=0;i<watchlist.length;i++){
+    var t=watchlist[i];
+    html+='<div class="result-row" style="grid-template-columns:1fr auto;gap:12px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<span class="rr-ticker" style="cursor:pointer;" data-analyze="'+t+'">'+t+'</span>'
+      +'<button class="wl-analyze" data-ticker="'+t+'" style="padding:4px 10px;background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;">Analyze ↗</button>'
+      +'</div>'
+      +'<button class="wl-remove" data-ticker="'+t+'" style="padding:4px 8px;background:var(--red-bg,#FDECEA);color:var(--red);border:none;border-radius:5px;font-size:11px;cursor:pointer;">✕</button>'
+      +'</div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+  el.querySelectorAll('.wl-analyze').forEach(function(b){b.addEventListener('click',function(){goAnalyze(b.dataset.ticker);});});
+  el.querySelectorAll('.wl-remove').forEach(function(b){b.addEventListener('click',function(){toggleWatch(b.dataset.ticker);});});
+  el.querySelectorAll('[data-analyze]').forEach(function(b){b.addEventListener('click',function(){goAnalyze(b.dataset.analyze);});});
+}
 let quoteCache={};
 
 function showPage(id,btn){
@@ -1504,8 +1555,19 @@ async function doAnalyze(){
       el.onclick = function(){ scrollToSection(b.target); };
       return el;
     }
+    // Add Watch button to quick nav
+    var watchBtnEl = document.createElement('button');
+    watchBtnEl.id = 'watch-btn-'+t;
+    watchBtnEl.className = 'qn-btn';
+    var ww = isWatched(t);
+    watchBtnEl.textContent = ww ? '★ Watching' : '☆ Watch';
+    watchBtnEl.style.color = ww ? 'var(--amber,#F59E0B)' : 'var(--text3)';
+    watchBtnEl.style.background = ww ? 'rgba(245,158,11,.1)' : 'var(--surface2)';
+    watchBtnEl.onclick = function(){ toggleWatch(t); };
+
     var stage = document.getElementById('qn-stage-'+t);
     if(!stage) return;
+    stage.appendChild(watchBtnEl);
     var els = btns.map(function(b){ var el=makeBtn(b); stage.appendChild(el); return el; });
     requestAnimationFrame(function(){
       var GAP = 6;
@@ -1639,7 +1701,34 @@ async function runAIAnalysis(ticker, name, sector){
     ', RSI ' + (f.rsi||'N/A') + ', MACD ' + (f.macd||'N/A') + '/' + (f.msig||'N/A') +
     ', 50MA $' + (f.ma50||'N/A') + ', 200MA $' + (f.ma200||'N/A') +
     ', S1/S2 $' + (f.s1||'N/A') + '/$' + (f.s2||'N/A') + ', R1/R2 $' + (f.r1||'N/A') + '/$' + (f.r2||'N/A') +
-    ', Beta ' + (f.beta||'N/A') + ', Buybacks ' + (f.bb||'N/A') + '.';
+    ', Beta ' + (f.beta||'N/A') + ', Buybacks ' + (f.bb||'N/A') + '.' +
+    // Market Intelligence data
+    (function() {
+      var intel = window._currentIntelligence;
+      if (!intel) return '';
+      var parts = [];
+      // Short sale / dark pool flow
+      if (intel.darkPool && intel.darkPool.latest) {
+        var dp = intel.darkPool.latest;
+        var netDir = dp.netDollar >= 0 ? 'net buying' : 'net selling';
+        parts.push('Short Sale Vol: ' + dp.shortSalePct + '% of total volume is short selling (' + netDir + ' flow)');
+      }
+      // Borrow rate
+      if (intel.borrowRate && intel.borrowRate.rate !== undefined) {
+        var br = intel.borrowRate;
+        var ease = br.availability || '';
+        parts.push('Short Borrow Rate: ' + br.rate + '% annual (' + ease + ' to borrow, ' + (br.trend||'') + ' trend)');
+      }
+      // Institutional ownership
+      if (intel.institutional && intel.institutional.count) {
+        parts.push('Institutional 13F Filers: ' + intel.institutional.count + ' institutions');
+      }
+      // Net flow trend
+      if (intel.darkPool && intel.darkPool.netFlowTrend) {
+        parts.push('5-Day Flow Trend: ' + intel.darkPool.netFlowTrend);
+      }
+      return parts.length ? '\n    Intelligence: ' + parts.join('. ') + '.' : '';
+    })();
 
   output.style.display = 'block';
   output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
@@ -2026,14 +2115,14 @@ async function renderPortfolio(){
 
   populatePortL2Select();
   document.getElementById('holdings-table').innerHTML=`
-    <div class="holdings-header" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;"><span>Holding</span><span>Entry Date</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
+    <div class="holdings-header" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 40px;"><span>Holding</span><span>Entry Date</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
     ${portfolio.map(h=>{
       const q=quotes[h.ticker];
       const price=q?q.price:0;
       const val=h.shares*price,cost=h.shares*h.avg,pnl=val-cost,pp=(pnl/cost)*100,day=q?h.shares*price*(q.pct/100):0;
       const holdDays = h.date ? Math.floor((Date.now()-new Date(h.date).getTime())/86400000) : null;
       const holdLabel = holdDays!==null ? (holdDays>=365 ? (holdDays/365).toFixed(1)+'y' : holdDays+'d') : '—';
-      return `<div class="holding-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;">
+      return `<div class="holding-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 40px;">
         <div><div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;cursor:pointer;" onclick="goAnalyze('${h.ticker}')">${h.ticker}</div><div style="font-size:12px;color:var(--text3);">${h.ticker}</div></div>
         <div class="hr-cell"><div style="font-family:'DM Sans',sans-serif;font-size:12px;">${h.date||'—'}</div><div style="font-size:11px;color:var(--text3);">${holdLabel}</div></div>
         <div class="hr-cell">${h.shares.toLocaleString()}</div>
@@ -2041,8 +2130,16 @@ async function renderPortfolio(){
         <div class="hr-cell ${q?(q.pct>=0?'up':'down'):''}">${q?'$'+price.toFixed(2):'Loading…'}</div>
         <div class="hr-cell ${day>=0?'up':'down'}">${day>=0?'+':'-'}$${Math.abs(day).toFixed(0)}</div>
         <div class="hr-cell ${pnl>=0?'up':'down'}">${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(0)}<br/><span style="font-size:11px;opacity:.8;">${pnl>=0?'+':''}${pp.toFixed(1)}%</span></div>
+        <div class="hr-cell"><button onclick="removeHolding('${h.ticker}')" style="background:var(--red-bg,#FDECEA);color:var(--red);border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">✕</button></div>
       </div>`;
     }).join('')}`;
+}
+
+function removeHolding(ticker){
+  if(!confirm('Remove ' + ticker + ' from portfolio?')) return;
+  portfolio = portfolio.filter(h => h.ticker !== ticker);
+  savePortfolio();
+  renderPortfolio();
 }
 
 function addHolding(){
