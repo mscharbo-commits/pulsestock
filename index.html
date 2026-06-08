@@ -1034,9 +1034,7 @@ function renderNews(ticker, articles){
     el.innerHTML = '<div class="news-loading">No recent news found for ' + ticker + '</div>';
     return;
   }
-  // Paginate news — 10 per page
-  function renderNewsItems(slice) {
-    return slice.map(function(a){
+  el.innerHTML = articles.map(function(a){
     var ago = timeAgo(a.datetime);
     var sentClass = 'news-neu';
     var sentLabel = '';
@@ -1064,8 +1062,6 @@ function renderNews(ticker, articles){
       + '</div>'
     + '</a>';
   }).join('');
-  }
-  makePaginator(articles, 10, renderNewsItems, 'news-list-' + ticker);
 }
 
 async function fetchAnalyst(ticker){
@@ -1084,7 +1080,7 @@ async function doAnalyze(){
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
+  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 90),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
   setTimeout(function(){ fetchInsiderTransactions(ticker); }, 500);
@@ -2241,7 +2237,7 @@ async function renderFilings(ticker){
           + '</div>';
       }).join('');
     }
-    if(containerId && filings.length > 15) {
+    if(containerId) {
       setTimeout(function(){ makePaginator(filings, 15, renderFilingItems, containerId); }, 50);
       return '<div id="' + containerId + '"></div>';
     }
