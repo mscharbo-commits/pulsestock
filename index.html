@@ -220,6 +220,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ts-exch{font-size:10.5px;padding:1px 5px;background:var(--surface2);border-radius:3px;color:var(--text3);}
 .ts-up{color:var(--green);}
 .ts-down{color:var(--red);}
+
+  .pagination{display:flex;align-items:center;gap:6px;margin-top:14px;justify-content:center;flex-wrap:wrap;}
+  .pg-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:500;padding:5px 11px;border-radius:6px;cursor:pointer;min-width:32px;text-align:center;}
+  .pg-btn:hover{background:var(--surface2);color:var(--text);}
+  .pg-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .pg-info{font-size:12px;color:var(--text3);padding:0 4px;}
+
 .delayed-badge{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--amber-bg);color:var(--amber);margin-left:8px;}
 .live-badge{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--green-bg);color:var(--green);margin-left:8px;}
 
@@ -2211,22 +2219,29 @@ async function renderFilings(ticker){
   var cats = data.categories || {};
   var activeTab = '10-K';
 
-  function renderFilingList(filings){
+  function renderFilingList(filings, containerId){
     if(!filings || !filings.length) return '<div style="color:var(--text3);padding:12px 0;">No filings in this category</div>';
-    return filings.map(function(f){
-      var typeClass = f.type === '10-K' || f.type === '10-KSB' ? 'filing-type-10k'
-        : f.type === '10-Q' || f.type === '10-QSB' ? 'filing-type-10q'
-        : f.type === '8-K' ? 'filing-type-8k'
-        : f.type === 'DEF 14A' ? 'filing-type-def'
-        : f.type.startsWith('S-') || f.type.startsWith('F-') ? 'filing-type-s1'
-        : '';
-      return '<div class="filing-row">'
-        + '<span class="filing-type ' + typeClass + '">' + f.type + '</span>'
-        + '<span class="filing-desc">' + (f.description || 'Filing document') + '</span>'
-        + '<span class="filing-date">' + f.date + '</span>'
-        + '<a class="filing-link" href="' + f.url + '" target="_blank" rel="noopener">View ↗</a>'
-        + '</div>';
-    }).join('');
+    function renderFilingItems(slice) {
+      return slice.map(function(f){
+        var typeClass = f.type === '10-K' || f.type === '10-KSB' ? 'filing-type-10k'
+          : f.type === '10-Q' || f.type === '10-QSB' ? 'filing-type-10q'
+          : f.type === '8-K' ? 'filing-type-8k'
+          : f.type === 'DEF 14A' ? 'filing-type-def'
+          : f.type.startsWith('S-') || f.type.startsWith('F-') ? 'filing-type-s1'
+          : '';
+        return '<div class="filing-row">'
+          + '<span class="filing-type ' + typeClass + '">' + f.type + '</span>'
+          + '<span class="filing-desc">' + (f.description || 'Filing document') + '</span>'
+          + '<span class="filing-date">' + f.date + '</span>'
+          + '<a class="filing-link" href="' + f.url + '" target="_blank" rel="noopener">View ↗</a>'
+          + '</div>';
+      }).join('');
+    }
+    if(containerId && filings.length > 15) {
+      setTimeout(function(){ makePaginator(filings, 15, renderFilingItems, containerId); }, 50);
+      return '<div id="' + containerId + '"></div>';
+    }
+    return renderFilingItems(filings);
   }
 
   var tabDefs = [
@@ -2248,7 +2263,7 @@ async function renderFilings(ticker){
 
   var listsHTML = tabDefs.map(function(t, i){
     return '<div id="filing-list-' + t.key + '-' + ticker + '" style="display:' + (i===0?'block':'none') + ';">'
-      + renderFilingList(t.data)
+      + renderFilingList(t.data, 'filing-list-pg-' + t.key + '-' + ticker)
       + '</div>';
   }).join('');
 
@@ -3135,7 +3150,7 @@ function renderInsider(ticker, data) {
     return;
   }
 
-  var txns = data.transactions.slice(0, 30);
+  var txns = data.transactions; // full list, paginator handles slicing
 
   // Summary stats
   var buys  = txns.filter(function(t){return t.type==='buy';});
@@ -3192,28 +3207,28 @@ function renderInsider(ticker, data) {
     + '<span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Value</span>'
     + '</div>';
 
-  txns.forEach(function(t, i) {
-    var isBuy = t.type === 'buy';
-    var typeBg    = isBuy ? 'rgba(13,155,107,.1)' : 'rgba(209,63,48,.08)';
-    var typeColor = isBuy ? 'var(--green)' : 'var(--red)';
-    var typeLabel = isBuy ? 'BUY' : 'SELL';
-    var rowBg = i%2===0 ? '' : 'background:var(--surface2);';
+  // Paginated insider table — 15 per page
+  function renderInsiderRows(slice) {
+    return slice.map(function(t, i) {
+      var isBuy = t.type === 'buy';
+      var typeBg    = isBuy ? 'rgba(13,155,107,.1)' : 'rgba(209,63,48,.08)';
+      var typeColor = isBuy ? 'var(--green)' : 'var(--red)';
+      var typeLabel = isBuy ? 'BUY' : 'SELL';
+      var rowBg = i%2===0 ? '' : 'background:var(--surface2);';
+      return '<div style="display:grid;grid-template-columns:2fr 1fr 80px 90px 90px 90px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:center;'+rowBg+'">'
+        + '<div><div style="font-size:13px;font-weight:600;color:var(--text);">'+t.name+'</div>'
+        + '<div style="font-size:11px;color:var(--text3);">'+t.date+'</div></div>'
+        + '<div style="font-size:12px;color:var(--text2);">'+t.title+'</div>'
+        + '<div style="text-align:center;"><span style="font-size:11px;font-weight:700;color:'+typeColor+';background:'+typeBg+';padding:2px 8px;border-radius:4px;">'+typeLabel+'</span></div>'
+        + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.shares?Math.abs(t.shares).toLocaleString():'—')+'</div>'
+        + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.price?'$'+parseFloat(t.price).toFixed(2):'—')+'</div>'
+        + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;font-weight:600;color:'+typeColor+';">'+fmtVal(t.value)+'</div>'
+        + '</div>';
+    }).join('');
+  }
+  makePaginator(txns, 15, renderInsiderRows, 'insider-rows-' + ticker);
 
-    html += '<div style="display:grid;grid-template-columns:2fr 1fr 80px 90px 90px 90px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:center;'+rowBg+'">'
-      + '<div>'
-      + '<div style="font-size:13px;font-weight:600;color:var(--text);">'+t.name+'</div>'
-      + '<div style="font-size:11px;color:var(--text3);">'+t.date+'</div>'
-      + '</div>'
-      + '<div style="font-size:12px;color:var(--text2);">'+t.title+'</div>'
-      + '<div style="text-align:center;">'
-      + '<span style="font-size:11px;font-weight:700;color:'+typeColor+';background:'+typeBg+';padding:2px 8px;border-radius:4px;">'+typeLabel+'</span>'
-      + '</div>'
-      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.shares?Math.abs(t.shares).toLocaleString():'—')+'</div>'
-      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;color:var(--text2);">'+(t.price?'$'+parseFloat(t.price).toFixed(2):'—')+'</div>'
-      + '<div style="font-size:12px;font-family:DM Mono,monospace;text-align:right;font-weight:600;color:'+typeColor+';">'+fmtVal(t.value)+'</div>'
-      + '</div>';
-  });
-
+  html += '<div id="insider-rows-' + ticker + '"></div>';
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;">Source: SEC Form 4 filings · P=Open market purchase · S=Open market sale · Excludes options/awards</div>';
 
@@ -3463,6 +3478,67 @@ function renderIntelligence(ticker, data) {
   }
 
   el.innerHTML = html;
+}
+
+
+// ── PAGINATION UTILITY ──
+function makePaginator(items, perPage, renderFn, containerId) {
+  var state = { page: 0, items: items, perPage: perPage };
+
+  function render() {
+    var start = state.page * state.perPage;
+    var end   = start + state.perPage;
+    var slice = state.items.slice(start, end);
+    var total = Math.ceil(state.items.length / state.perPage);
+    var el    = document.getElementById(containerId);
+    if(!el) return;
+
+    var html = renderFn(slice, start);
+
+    // Pagination controls
+    if(total > 1) {
+      html += '<div class="pagination">';
+      // Prev
+      html += '<button class="pg-btn" ' + (state.page===0?'disabled':'') + ' onclick="window._paginators[\'' + containerId + '\'].go(' + (state.page-1) + ')">&#8592; Prev</button>';
+      
+      // Page numbers — show max 7 buttons
+      var pages = [];
+      if(total <= 7) {
+        for(var i=0;i<total;i++) pages.push(i);
+      } else {
+        pages.push(0);
+        var start2 = Math.max(1, state.page-2);
+        var end2   = Math.min(total-1, state.page+2);
+        if(start2 > 1) pages.push('...');
+        for(var i=start2;i<=end2;i++) pages.push(i);
+        if(end2 < total-1) pages.push('...');
+        pages.push(total-1);
+      }
+      pages.forEach(function(p) {
+        if(p==='...') { html += '<span class="pg-info">…</span>'; return; }
+        html += '<button class="pg-btn' + (p===state.page?' active':'') + '" onclick="window._paginators[\'' + containerId + '\'].go(' + p + ')">' + (p+1) + '</button>';
+      });
+
+      // Next
+      html += '<button class="pg-btn" ' + (state.page===total-1?'disabled':'') + ' onclick="window._paginators[\'' + containerId + '\'].go(' + (state.page+1) + ')">Next &#8594;</button>';
+      html += '<span class="pg-info">' + (start+1) + '–' + Math.min(end, state.items.length) + ' of ' + state.items.length + '</span>';
+      html += '</div>';
+    }
+
+    el.innerHTML = html;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  var paginator = {
+    go: function(page) { state.page = page; render(); },
+    update: function(items) { state.items = items; state.page = 0; render(); },
+    render: render,
+  };
+
+  window._paginators = window._paginators || {};
+  window._paginators[containerId] = paginator;
+  render();
+  return paginator;
 }
 
 loadTickerBar();
