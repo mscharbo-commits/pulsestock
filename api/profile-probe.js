@@ -3,61 +3,72 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 export default async function handler(req) {
   const ticker = new URL(req.url).searchParams.get('ticker') || 'AAPL';
-  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36';
+  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const results = {};
 
-  await Promise.all([
+  // Google Finance - try different URL formats and extract description
+  const googleUrls = [
+    `https://www.google.com/finance/quote/${ticker}:NASDAQ`,
+    `https://www.google.com/finance/quote/${ticker}:NYSE`,
+    `https://www.google.com/finance/quote/${ticker}:NYSEARCA`,
+  ];
 
-    // 1. Wikipedia - company article (not ticker disambiguation)
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/Apple_Inc`, { headers: { 'User-Agent': 'PulseStock/1.0' } })
-      .then(r => r.json()).then(d => { results.wikipedia_direct = { status: 200, extract: d.extract?.slice(0,200), type: d.type }; })
-      .catch(e => { results.wikipedia_direct = { error: e.message }; }),
+  for (const url of googleUrls) {
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': ua, 'Accept-Language': 'en-US,en;q=0.9' } });
+      if (!r.ok) continue;
+      const html = await r.text();
 
-    // 2. Wikipedia search by ticker -> company name
-    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${ticker}+corporation+company&format=json&srlimit=3`, { headers: { 'User-Agent': 'PulseStock/1.0' } })
-      .then(r => r.json()).then(d => { results.wikipedia_search = { hits: d.query?.search?.slice(0,3).map(s=>({title:s.title,snippet:s.snippet?.replace(/<[^>]+>/g,'').slice(0,80)})) }; })
-      .catch(e => { results.wikipedia_search = { error: e.message }; }),
+      // Try multiple patterns for description in Google Finance HTML
+      const patterns = [
+        /data-attrid="description"[^>]*>\s*<span[^>]*>([\s\S]{50,1000}?)<\/span>/,
+        /"description":"([^"]{50,500})"/,
+        /class="bLLb2d[^>]*>([^<]{100,800})<\/span>/,
+        /class="[^"]*description[^"]*"[^>]*>([^<]{50,500})</,
+        /"about":"([^"]{50,500})"/,
+        /itemprop="description"[^>]*>([^<]{50,500})</,
+        // Google Finance specific
+        /"Biz":\{"description":"([^"]{50,500})"/,
+        /\["([A-Z][^"]{49,499})"\s*,\s*"About [^"]+"\]/,
+      ];
 
-    // 3. OpenFIGI - free, maps ticker to company info
-    fetch('https://api.openfigi.com/v3/mapping', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([{ 'idType': 'TICKER', 'idValue': ticker, 'exchCode': 'US' }])
-    }).then(r => r.json()).then(d => { results.openfigi = { status: 200, data: JSON.stringify(d).slice(0,200) }; })
-      .catch(e => { results.openfigi = { error: e.message }; }),
+      for (const pat of patterns) {
+        const m = html.match(pat);
+        if (m) {
+          results[url.split('/').pop()] = { found: true, pattern: pat.source.slice(0,40), desc: m[1].slice(0,200) };
+          break;
+        }
+      }
 
-    // 4. Polygon.io company details (free tier has basic info)
-    fetch(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=demo`)
-      .then(r => r.json()).then(d => { results.polygon_free = { status: 200, name: d.results?.name, description: d.results?.description?.slice(0,150), sic_description: d.results?.sic_description }; })
-      .catch(e => { results.polygon_free = { error: e.message }; }),
+      if (!results[url.split('/').pop()]) {
+        // Show what's around "About" or "description" in the HTML
+        const aboutIdx = html.indexOf('About ' + ticker);
+        const descIdx = html.indexOf('"description"');
+        results[url.split('/').pop()] = {
+          found: false,
+          htmlSize: html.length,
+          aboutAt: aboutIdx,
+          descAt: descIdx,
+          descContext: descIdx > 0 ? html.slice(descIdx, descIdx+200) : 'none',
+          aboutContext: aboutIdx > 0 ? html.slice(aboutIdx, aboutIdx+200) : 'none',
+        };
+      }
+      break; // stop after first 200 response
+    } catch(e) { results[url.split('/').pop()] = { error: e.message }; }
+  }
 
-    // 5. IEX Cloud free (public/open) - company info
-    fetch(`https://api.iex.cloud/v1/data/core/COMPANY/${ticker}?token=pk_test_placeholder`)
-      .then(r => r.json()).then(d => { results.iex = { data: JSON.stringify(d).slice(0,150) }; })
-      .catch(e => { results.iex = { error: e.message }; }),
+  // Also try DBpedia (structured Wikipedia data as JSON)
+  try {
+    const r = await fetch(`https://dbpedia.org/data/${ticker}.json`, { headers: { 'Accept': 'application/json', 'User-Agent': 'PulseStock/1.0' } });
+    results.dbpedia_ticker = { status: r.status };
+  } catch(e) { results.dbpedia_ticker = { error: e.message }; }
 
-    // 6. SEC EDGAR company search - gets official company name + SIC
-    fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=10-K&dateRange=custom&startdt=2024-01-01&hits.hits._source.entity_name=true&hits.hits._source.file_date=true`, {
-      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
-    }).then(r => r.json()).then(d => { results.sec_search = { total: d.hits?.total?.value, first: d.hits?.hits?.[0]?._source?.entity_name }; })
-      .catch(e => { results.sec_search = { error: e.message }; }),
-
-    // 7. Finnhub - check all profile fields we get
-    fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0`)
-      .then(r => r.json()).then(d => { results.finnhub_all_fields = Object.keys(d); })
-      .catch(e => { results.finnhub_all_fields = { error: e.message }; }),
-
-    // 8. Clearbit Autocomplete (free, no key needed)
-    fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${ticker}`)
-      .then(r => r.json()).then(d => { results.clearbit_auto = { data: JSON.stringify(d).slice(0,200) }; })
-      .catch(e => { results.clearbit_auto = { error: e.message }; }),
-
-    // 9. Alpha Vantage OVERVIEW - free 25 req/day
-    fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=MDTO4RDRQK8BOEDT`)
-      .then(r => r.json()).then(d => { results.alpha_vantage = { description: d.Description?.slice(0,200), sector: d.Sector, industry: d.Industry, employees: d.FullTimeEmployees, note: d.Note?.slice(0,100) }; })
-      .catch(e => { results.alpha_vantage = { error: e.message }; }),
-
-  ]);
+  // Try Wikidata for company description
+  try {
+    const r = await fetch(`https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${ticker}&language=en&format=json&limit=3`, { headers: { 'User-Agent': 'PulseStock/1.0' } });
+    const d = await r.json();
+    results.wikidata = { hits: d.search?.slice(0,3).map(s => ({ id: s.id, label: s.label, description: s.description })) };
+  } catch(e) { results.wikidata = { error: e.message }; }
 
   return new Response(JSON.stringify(results, null, 2), { headers: cors });
 }
