@@ -43,7 +43,13 @@ export default async function handler(req) {
         filings.push({
           type: recent.form[i],
           date: recent.filingDate?.[i] || '',
-          description: recent.primaryDocument?.[i] || '',
+          description: (function() {
+            var doc = recent.primaryDocument?.[i] || '';
+            var reportDate = recent.reportDate?.[i] || '';
+            var formType = recent.form[i] || '';
+            if(reportDate) return formType + ' — Period: ' + reportDate;
+            return doc.replace(/[_-]/g,' ').replace(/\.htm.*$/,'') || formType;
+          })(),
           accession: accFormatted,
           url: `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accNum}/${recent.primaryDocument?.[i] || ''}`,
           indexUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=${recent.form[i]}&dateb=&owner=include&count=10`,
@@ -68,13 +74,13 @@ export default async function handler(req) {
       edgarUrl: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik}&type=&dateb=&owner=include&count=40`,
       totalFilings: filings.length,
       categories: {
-        annualReports: annualReports.slice(0, 10),
-        quarterlyReports: quarterlyReports.slice(0, 12),
-        currentReports: currentReports.slice(0, 20),
-        proxies: proxies.slice(0, 5),
-        registrations: registrations.slice(0, 5),
-        insiderFilings: insiderFilings.slice(0, 10),
-        other: other.slice(0, 10),
+        annualReports: annualReports.slice(0, 30),
+        quarterlyReports: quarterlyReports.slice(0, 30),
+        currentReports: currentReports.slice(0, 40),
+        proxies: proxies.slice(0, 20),
+        registrations: registrations.slice(0, 20),
+        insiderFilings: insiderFilings.slice(0, 30),
+        other: other.slice(0, 30),
       },
       recentFilings: filings.slice(0, 30),
     }), {
