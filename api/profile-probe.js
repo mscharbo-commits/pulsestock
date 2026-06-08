@@ -3,86 +3,61 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 export default async function handler(req) {
   const ticker = new URL(req.url).searchParams.get('ticker') || 'AAPL';
-  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36';
   const results = {};
 
-  // Test 1: Get crumb
-  try {
-    const r = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-      headers: { 'User-Agent': ua, 'Accept': '*/*' }
-    });
-    const crumb = await r.text();
-    const cookie = r.headers.get('set-cookie');
-    results.crumb = { status: r.status, crumb: crumb.slice(0,30), cookieLen: cookie?.length || 0 };
+  await Promise.all([
 
-    // Test 2: Use crumb with cookie
-    if (r.ok && crumb.trim()) {
-      const r2 = await fetch(
-        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb.trim())}`,
-        { headers: { 'User-Agent': ua, 'Accept': 'application/json', 'Cookie': cookie || '' } }
-      );
-      const d2 = await r2.json();
-      results.with_cookie = {
-        status: r2.status,
-        error: d2?.quoteSummary?.error || null,
-        hasProfile: !!d2?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary,
-        preview: d2?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary?.slice(0,80) || JSON.stringify(d2).slice(0,100)
-      };
+    // 1. Wikipedia - company article (not ticker disambiguation)
+    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/Apple_Inc`, { headers: { 'User-Agent': 'PulseStock/1.0' } })
+      .then(r => r.json()).then(d => { results.wikipedia_direct = { status: 200, extract: d.extract?.slice(0,200), type: d.type }; })
+      .catch(e => { results.wikipedia_direct = { error: e.message }; }),
 
-      // Test 3: Without cookie
-      const r3 = await fetch(
-        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb.trim())}`,
-        { headers: { 'User-Agent': ua, 'Accept': 'application/json' } }
-      );
-      const d3 = await r3.json();
-      results.without_cookie = {
-        status: r3.status,
-        error: d3?.quoteSummary?.error || null,
-        hasProfile: !!d3?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary,
-      };
-    }
-  } catch(e) { results.crumb = { error: e.message }; }
+    // 2. Wikipedia search by ticker -> company name
+    fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${ticker}+corporation+company&format=json&srlimit=3`, { headers: { 'User-Agent': 'PulseStock/1.0' } })
+      .then(r => r.json()).then(d => { results.wikipedia_search = { hits: d.query?.search?.slice(0,3).map(s=>({title:s.title,snippet:s.snippet?.replace(/<[^>]+>/g,'').slice(0,80)})) }; })
+      .catch(e => { results.wikipedia_search = { error: e.message }; }),
 
-  // Test 4: Yahoo page scrape for description
-  try {
-    const r = await fetch(`https://finance.yahoo.com/quote/${ticker}/profile/`, {
-      headers: { 'User-Agent': ua, 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' }
-    });
-    const html = await r.text();
-    const match = html.match(/"longBusinessSummary":"((?:[^"\\]|\\.)*)"/);
-    const appMatch = html.match(/longBusinessSummary['":\s]+"([^"]{50,}?)"/);
-    results.page_scrape = {
-      status: r.status,
-      htmlSize: html.length,
-      regexMatch: match ? match[1].slice(0,100) : 'no match',
-      appMatch: appMatch ? appMatch[1].slice(0,100) : 'no match',
-      // Check if it's a consent page
-      isConsent: html.includes('consent') || html.includes('GDPR'),
-    };
-  } catch(e) { results.page_scrape = { error: e.message }; }
+    // 3. OpenFIGI - free, maps ticker to company info
+    fetch('https://api.openfigi.com/v3/mapping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ 'idType': 'TICKER', 'idValue': ticker, 'exchCode': 'US' }])
+    }).then(r => r.json()).then(d => { results.openfigi = { status: 200, data: JSON.stringify(d).slice(0,200) }; })
+      .catch(e => { results.openfigi = { error: e.message }; }),
 
-  // Test 5: Yahoo Finance v8 (older endpoint, sometimes no crumb needed)
-  try {
-    const r = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?includePrePost=false&interval=1d&range=1d`,
-      { headers: { 'User-Agent': ua } }
-    );
-    results.v8_chart = { status: r.status };
-  } catch(e) { results.v8_chart = { error: e.message }; }
+    // 4. Polygon.io company details (free tier has basic info)
+    fetch(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=demo`)
+      .then(r => r.json()).then(d => { results.polygon_free = { status: 200, name: d.results?.name, description: d.results?.description?.slice(0,150), sic_description: d.results?.sic_description }; })
+      .catch(e => { results.polygon_free = { error: e.message }; }),
 
-  // Test 6: Try different Yahoo endpoint for profile
-  try {
-    const r = await fetch(
-      `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=assetProfile`,
-      { headers: { 'User-Agent': ua, 'Accept': 'application/json' } }
-    );
-    const d = await r.json();
-    results.v11_no_crumb = {
-      status: r.status,
-      error: d?.quoteSummary?.error?.code || null,
-      hasData: !!d?.quoteSummary?.result?.[0]?.assetProfile
-    };
-  } catch(e) { results.v11_no_crumb = { error: e.message }; }
+    // 5. IEX Cloud free (public/open) - company info
+    fetch(`https://api.iex.cloud/v1/data/core/COMPANY/${ticker}?token=pk_test_placeholder`)
+      .then(r => r.json()).then(d => { results.iex = { data: JSON.stringify(d).slice(0,150) }; })
+      .catch(e => { results.iex = { error: e.message }; }),
+
+    // 6. SEC EDGAR company search - gets official company name + SIC
+    fetch(`https://efts.sec.gov/LATEST/search-index?q=%22${ticker}%22&forms=10-K&dateRange=custom&startdt=2024-01-01&hits.hits._source.entity_name=true&hits.hits._source.file_date=true`, {
+      headers: { 'User-Agent': 'PulseStock research@pulsestock.com' }
+    }).then(r => r.json()).then(d => { results.sec_search = { total: d.hits?.total?.value, first: d.hits?.hits?.[0]?._source?.entity_name }; })
+      .catch(e => { results.sec_search = { error: e.message }; }),
+
+    // 7. Finnhub - check all profile fields we get
+    fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0`)
+      .then(r => r.json()).then(d => { results.finnhub_all_fields = Object.keys(d); })
+      .catch(e => { results.finnhub_all_fields = { error: e.message }; }),
+
+    // 8. Clearbit Autocomplete (free, no key needed)
+    fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${ticker}`)
+      .then(r => r.json()).then(d => { results.clearbit_auto = { data: JSON.stringify(d).slice(0,200) }; })
+      .catch(e => { results.clearbit_auto = { error: e.message }; }),
+
+    // 9. Alpha Vantage OVERVIEW - free 25 req/day
+    fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=MDTO4RDRQK8BOEDT`)
+      .then(r => r.json()).then(d => { results.alpha_vantage = { description: d.Description?.slice(0,200), sector: d.Sector, industry: d.Industry, employees: d.FullTimeEmployees, note: d.Note?.slice(0,100) }; })
+      .catch(e => { results.alpha_vantage = { error: e.message }; }),
+
+  ]);
 
   return new Response(JSON.stringify(results, null, 2), { headers: cors });
 }
