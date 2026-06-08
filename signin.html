@@ -1,347 +1,509 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PulseStock — Sign In</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Sign In & Pricing</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#F7F8FA;--surface:#fff;--surface2:#F2F4F7;--surface3:#E9ECF2;--border:#E2E6ED;--border2:#D0D6E0;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--accent2:#0F4FC4;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--radius-sm:8px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;}
-button{font-family:'DM Sans',sans-serif;cursor:pointer;border:none;outline:none;transition:all .15s;}
-input{font-family:'DM Sans',sans-serif;outline:none;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--radius-sm);padding:10px 14px;font-size:14px;transition:border-color .15s;}
-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,107,245,.1);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-font-smoothing:antialiased;min-height:100vh;padding:48px 24px;}
+
+.page{max-width:1060px;margin:0 auto;}
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
-.header-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
-.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--text);}
-.logo-name span{color:var(--accent);}
-.header-badge{font-size:11px;font-weight:500;padding:4px 10px;background:var(--accent-light);color:var(--accent);border-radius:20px;}
-.back-link{font-size:13.5px;font-weight:500;color:var(--text2);text-decoration:none;padding:7px 14px;border-radius:6px;}
-.back-link:hover{background:var(--accent-light);color:var(--accent);}
+.header{text-align:center;margin-bottom:40px;}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:28px;}
+.logo-icon{width:36px;height:36px;background:#1A6BF5;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;}
+.logo-name{font-size:20px;font-weight:700;letter-spacing:-.4px;}
+.logo-name span{color:#1A6BF5;}
+.header h1{font-size:38px;font-weight:700;letter-spacing:-1.5px;margin-bottom:10px;}
+.header h1 em{color:#1A6BF5;font-style:normal;}
+.header p{font-size:16px;color:#4A5568;max-width:500px;margin:0 auto 28px;}
 
-/* LAYOUT */
-.main{max-width:1200px;margin:0 auto;padding:40px 24px;}
+.billing-toggle{display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;color:#4A5568;}
+.toggle-track{width:48px;height:26px;background:#1A6BF5;border-radius:13px;cursor:pointer;position:relative;transition:background .2s;}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.toggle-track.annual .toggle-thumb{transform:translateX(22px);}
+.save-badge{background:#E6F7F1;color:#0D9B6B;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;}
 
-/* HERO */
-.hero{text-align:center;padding:48px 0 40px;}
-.hero h1{font-size:38px;font-weight:600;letter-spacing:-1px;line-height:1.2;margin-bottom:12px;}
-.hero h1 span{color:var(--accent);}
-.hero p{font-size:16px;color:var(--text2);font-weight:300;max-width:500px;margin:0 auto;}
+/* TIER GRID */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;}
 
-/* PRICING GRID */
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:960px;margin:0 auto 56px;}
-@media(max-width:700px){.pricing-grid{grid-template-columns:1fr;}}
+.tier{background:#fff;border:1px solid #E2E6ED;border-radius:16px;padding:28px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);}
+.tier.popular{border:2px solid #1A6BF5;position:relative;}
+.popular-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#1A6BF5;color:#fff;font-size:12px;font-weight:600;padding:4px 16px;border-radius:20px;white-space:nowrap;letter-spacing:.02em;}
 
-.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative;box-shadow:var(--shadow);}
-.plan-card.featured{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent), var(--shadow);}
-.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:3px 14px;border-radius:20px;white-space:nowrap;letter-spacing:.04em;}
-.plan-name{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
-.plan-price{font-size:42px;font-weight:700;letter-spacing:-1.5px;margin-bottom:4px;line-height:1;}
-.plan-price sup{font-size:20px;vertical-align:top;margin-top:8px;font-weight:600;}
-.plan-price .per{font-size:14px;font-weight:400;color:var(--text3);}
-.plan-desc{font-size:13px;color:var(--text3);margin:10px 0 20px;padding-bottom:20px;border-bottom:1px solid var(--border);line-height:1.6;min-height:48px;}
-.plan-features{list-style:none;margin-bottom:24px;}
-.plan-features li{font-size:13.5px;color:var(--text2);padding:5px 0;display:flex;gap:8px;align-items:flex-start;line-height:1.4;}
-.plan-features li .check{color:var(--green);font-weight:700;flex-shrink:0;font-size:13px;}
-.plan-features li .dash{color:var(--text3);flex-shrink:0;}
-.plan-features li.muted{color:var(--text3);}
-.soon{background:var(--amber-bg);color:var(--amber);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.03em;}
-.plan-btn{display:block;width:100%;padding:11px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-align:center;cursor:pointer;transition:all .15s;text-decoration:none;}
-.plan-btn.primary{background:var(--accent);color:#fff;}
-.plan-btn.primary:hover{background:var(--accent2);}
-.plan-btn.secondary{background:var(--surface2);color:var(--text);border:1.5px solid var(--border);}
-.plan-btn.secondary:hover{border-color:var(--accent);color:var(--accent);}
+.tier-icon{font-size:28px;margin-bottom:12px;}
+.tier-name{font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;}
+.tier-desc{font-size:13px;color:#8A95A3;line-height:1.6;margin-bottom:20px;}
+.price-wrap{margin-bottom:6px;}
+.price{font-size:42px;font-weight:700;letter-spacing:-2px;color:#0D1117;}
+.price-period{font-size:16px;font-weight:400;color:#8A95A3;letter-spacing:0;}
+.price-note{font-size:12.5px;color:#8A95A3;margin-bottom:24px;margin-top:4px;}
+.price-note strong{color:#0D9B6B;}
+.divider{height:1px;background:#F2F4F7;margin:20px 0;}
+.section-label{font-size:10.5px;font-weight:700;color:#8A95A3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;margin-top:4px;}
+.feat-list{display:flex;flex-direction:column;gap:9px;flex:1;}
+.feat{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:#4A5568;line-height:1.5;}
+.feat-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px;}
+.feat-icon.yes{background:#E6F7F1;color:#0D9B6B;}
+.feat-icon.no{background:#F2F4F7;color:#8A95A3;}
+.feat.no-feat span{color:#C4C9D4;text-decoration:line-through;}
+.feat-badge{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:4px;display:inline-block;}
+.badge-limit{background:#FEF9E7;color:#B45309;}
+.badge-new{background:#EBF1FE;color:#1A6BF5;}
+.badge-hot{background:#FDECEA;color:#D13F30;}
+.badge-soon{background:#F2F4F7;color:#8A95A3;}
 
-/* AUTH BOX */
-.auth-wrap{max-width:420px;margin:0 auto 64px;}
-.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow);}
-.auth-card h2{font-size:21px;font-weight:600;letter-spacing:-.4px;margin-bottom:4px;}
-.auth-card .sub{font-size:13px;color:var(--text3);margin-bottom:24px;}
-.form-label{display:block;font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.cta-btn{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:center;border:none;margin-top:24px;letter-spacing:.01em;transition:opacity .15s;text-decoration:none;}
+.cta-btn:hover{opacity:.88;}
+.cta-free{background:#F2F4F7;color:#0D1117;}
+.cta-pro{background:#1A6BF5;color:#fff;}
+.cta-trader{background:#0D1117;color:#fff;}
+
+/* SIGN IN */
+.signin-section{margin-top:56px;}
+.signin-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.signin-sub{text-align:center;font-size:14px;color:#8A95A3;margin-bottom:24px;}
+.auth-card{background:#fff;border:1px solid #E2E6ED;border-radius:16px;padding:32px;max-width:440px;margin:0 auto;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);}
+.form-label{display:block;font-size:12px;font-weight:600;color:#8A95A3;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
 .form-group{margin-bottom:14px;}
-.form-group input{width:100%;}
-.btn-primary{background:var(--accent);color:#fff;padding:11px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;width:100%;margin-top:6px;}
-.btn-primary:hover{background:var(--accent2);}
-.divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--text3);font-size:12px;}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
-.google-btn{width:100%;padding:10px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:500;color:var(--text);display:flex;align-items:center;justify-content:center;gap:10px;}
-.google-btn:hover{border-color:var(--accent);color:var(--accent);}
-.terms-note{font-size:11.5px;color:var(--text3);text-align:center;margin-top:16px;line-height:1.7;}
-.terms-note a{color:var(--accent);text-decoration:none;}
+.form-group input{width:100%;border:1.5px solid #E2E6ED;border-radius:8px;padding:10px 14px;font-size:14px;font-family:'DM Sans',sans-serif;color:#0D1117;background:#fff;outline:none;transition:border-color .15s;}
+.form-group input:focus{border-color:#1A6BF5;box-shadow:0 0 0 3px rgba(26,107,245,.1);}
+.btn-signin{width:100%;padding:13px;background:#1A6BF5;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;transition:opacity .15s;}
+.btn-signin:hover{opacity:.88;}
+.divider-or{display:flex;align-items:center;gap:12px;margin:18px 0;color:#8A95A3;font-size:12px;}
+.divider-or::before,.divider-or::after{content:'';flex:1;height:1px;background:#E2E6ED;}
+.google-btn{width:100%;padding:11px;background:#fff;border:1.5px solid #E2E6ED;border-radius:10px;font-size:14px;font-weight:500;color:#0D1117;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color .15s;}
+.google-btn:hover{border-color:#1A6BF5;}
+.auth-note{font-size:12px;color:#8A95A3;text-align:center;margin-top:16px;line-height:1.7;}
+.auth-note a{color:#1A6BF5;text-decoration:none;}
+
+/* COMPARE */
+.compare-section{margin-top:56px;}
+.compare-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.compare-sub{text-align:center;font-size:14px;color:#8A95A3;margin-bottom:24px;}
+.compare-table{background:#fff;border:1px solid #E2E6ED;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.compare-table table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.compare-table th{padding:14px 18px;text-align:left;font-size:11px;font-weight:700;color:#8A95A3;text-transform:uppercase;letter-spacing:.08em;background:#F7F8FA;border-bottom:1px solid #E2E6ED;}
+.compare-table td{padding:12px 18px;border-bottom:1px solid #F2F4F7;color:#4A5568;vertical-align:middle;}
+.compare-table td:first-child{font-weight:500;color:#0D1117;}
+.compare-table tr:last-child td{border-bottom:none;}
+.compare-table tr.pulse-row td{background:#EBF1FE;}
+.compare-table tr.pulse-row td:first-child{color:#1A6BF5;font-weight:700;}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.pill-green{background:#E6F7F1;color:#0D9B6B;}
+.pill-amber{background:#FEF9E7;color:#B45309;}
+.pill-gray{background:#F2F4F7;color:#8A95A3;}
+.pill-blue{background:#EBF1FE;color:#1A6BF5;}
+.pill-red{background:#FDECEA;color:#D13F30;}
+
+/* FAQ */
+.faq{margin-top:56px;}
+.faq-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:24px;}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.faq-item{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:20px;}
+.faq-q{font-size:14px;font-weight:600;margin-bottom:8px;color:#0D1117;}
+.faq-a{font-size:13.5px;color:#4A5568;line-height:1.7;}
 
 /* TERMS */
-.terms-wrap{max-width:820px;margin:0 auto;padding-bottom:80px;}
-.terms-title-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;text-align:center;margin-bottom:24px;box-shadow:var(--shadow);}
-.terms-title-card h2{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;}
-.terms-title-card p{font-size:13px;color:var(--text3);}
+.terms-section{margin-top:56px;}
+.terms-title{text-align:center;font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.terms-sub{text-align:center;font-size:14px;color:#8A95A3;margin-bottom:24px;}
+.terms-card{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:24px 28px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.terms-card h3{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.terms-card h3 .tnum{font-size:11px;font-weight:700;padding:2px 8px;background:#EBF1FE;color:#1A6BF5;border-radius:6px;}
+.terms-card h4{font-size:13px;font-weight:700;color:#1A6BF5;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em;}
+.terms-card p{font-size:13.5px;color:#4A5568;line-height:1.8;margin-bottom:8px;}
+.terms-card p:last-child{margin-bottom:0;}
+.terms-card ul{margin:6px 0 10px 18px;}
+.terms-card ul li{font-size:13.5px;color:#4A5568;line-height:1.8;margin-bottom:2px;}
+.warn-box{background:#FDECEA;border:1px solid rgba(209,63,48,.2);border-radius:8px;padding:14px 18px;margin:10px 0;}
+.warn-box p{color:#0D1117;font-size:13.5px;line-height:1.7;margin:0;}
+.info-box{background:#EBF1FE;border:1px solid rgba(26,107,245,.2);border-radius:8px;padding:14px 18px;margin:10px 0;}
+.info-box p{color:#0D1117;font-size:13.5px;line-height:1.7;margin:0;}
 
-.terms-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:12px;box-shadow:var(--shadow);}
-.terms-card h3{font-size:16px;font-weight:600;letter-spacing:-.3px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.terms-card h3 .num{font-size:11px;font-weight:700;padding:2px 8px;background:var(--accent-light);color:var(--accent);border-radius:4px;letter-spacing:.04em;}
-.terms-card h4{font-size:13.5px;font-weight:600;color:var(--accent);margin:16px 0 6px;}
-.terms-card p{font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:10px;}
-.terms-card ul{margin:6px 0 12px 18px;}
-.terms-card ul li{font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:3px;}
-.warning-box{background:var(--red-bg);border:1px solid rgba(209,63,48,.2);border-radius:var(--radius-sm);padding:14px 18px;margin:12px 0;}
-.warning-box p{color:var(--text);margin:0;font-size:13.5px;line-height:1.7;}
-.info-box{background:var(--accent-light);border:1px solid rgba(26,107,245,.2);border-radius:var(--radius-sm);padding:14px 18px;margin:12px 0;}
-.info-box p{color:var(--text);margin:0;font-size:13.5px;line-height:1.7;}
-
-/* SECTION LABEL */
-.section-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:40px 0 14px;display:flex;align-items:center;gap:8px;}
-.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
-
-footer{border-top:1px solid var(--border);padding:24px;text-align:center;font-size:12px;color:var(--text3);}
-footer a{color:var(--text3);text-decoration:none;margin:0 10px;}
-footer a:hover{color:var(--accent);}
+.footer{text-align:center;margin-top:48px;font-size:13px;color:#8A95A3;}
+.footer strong{color:#0D1117;}
+.footer a{color:#8A95A3;text-decoration:none;margin:0 8px;}
+.footer a:hover{color:#1A6BF5;}
 </style>
 </head>
 <body>
+<div class="page">
 
-<header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-icon">P</div>
-      <span class="logo-name">Pulse<span>Stock</span></span>
+  <!-- HEADER -->
+  <div class="header">
+    <a href="/" style="text-decoration:none;color:inherit;">
+      <div class="logo">
+        <div class="logo-icon">P</div>
+        <div class="logo-name">Pulse<span>Stock</span></div>
+      </div>
     </a>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <span class="header-badge">AI-Powered · Live Data</span>
-      <a href="/" class="back-link">← Back to App</a>
+    <h1>Simple, transparent <em>pricing</em></h1>
+    <p>Institutional-grade stock research for every type of investor. Start free, upgrade when you're ready.</p>
+    <div class="billing-toggle">
+      <span>Monthly</span>
+      <div class="toggle-track" id="billing-tog" onclick="flipBilling()">
+        <div class="toggle-thumb"></div>
+      </div>
+      <span>Annual <span class="save-badge">Save 20%</span></span>
     </div>
   </div>
-</header>
 
-<div class="main">
-
-  <!-- HERO -->
-  <div class="hero">
-    <h1>Institutional-grade analysis,<br><span>built for every trader.</span></h1>
-    <p>Real-time quotes, AI-driven insights, dark pool data, insider transactions, and more — starting free.</p>
-  </div>
-
-  <!-- PRICING -->
-  <div class="pricing-grid">
+  <!-- TIER CARDS -->
+  <div class="grid">
 
     <!-- FREE -->
-    <div class="plan-card">
-      <div class="plan-name">Free</div>
-      <div class="plan-price">$0<span class="per">/mo</span></div>
-      <div class="plan-desc">Everything you need to get started. No credit card required.</div>
-      <ul class="plan-features">
-        <li><span class="check">✓</span>Live quotes &amp; charts</li>
-        <li><span class="check">✓</span>Basic AI Analysis <span class="soon">SOON</span></li>
-        <li><span class="check">✓</span>Fundamentals &amp; financials</li>
-        <li><span class="check">✓</span>SEC filings</li>
-        <li><span class="check">✓</span>News feed</li>
-        <li><span class="check">✓</span>5 analyses per day</li>
-        <li class="muted"><span class="dash">–</span>Advanced AI Analysis</li>
-        <li class="muted"><span class="dash">–</span>Dark pool flow</li>
-        <li class="muted"><span class="dash">–</span>Market Intelligence</li>
-        <li class="muted"><span class="dash">–</span>Insider transactions</li>
-      </ul>
-      <a href="#signin" class="plan-btn secondary">Get Started Free</a>
+    <div class="tier">
+      <div class="tier-icon">📊</div>
+      <div class="tier-name">Free</div>
+      <div class="tier-desc">For investors who want to research stocks without opening a brokerage account.</div>
+      <div class="price-wrap">
+        <span class="price">$0</span><span class="price-period">/mo</span>
+      </div>
+      <div class="price-note">Always free · Ad-supported</div>
+      <div class="divider"></div>
+      <div class="section-label">Quotes & Data</div>
+      <div class="feat-list">
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Live real-time stock quotes</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Professional TradingView chart</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Valuation metrics (P/E, PEG, EV)</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Full financial statements (EDGAR)</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Technical indicators (RSI, MACD)</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Company profile & SEC filings</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>News feed <span class="feat-badge badge-limit">7 days</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Community access</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">AI & Intelligence</div>
+      <div class="feat-list">
+        <div class="feat"><div class="feat-icon yes">✓</div><span>AI analysis <span class="feat-badge badge-limit">3/day</span></span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Level II order book</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Dark pool flow data</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Insider transactions</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Market Intelligence section</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Settlement Pressure Score</span></div>
+      </div>
+      <a href="#signin" class="cta-btn cta-free">Get started free →</a>
     </div>
 
-    <!-- BASIC -->
-    <div class="plan-card featured">
-      <div class="plan-badge">MOST POPULAR</div>
-      <div class="plan-name">Basic</div>
-      <div class="plan-price"><sup>$</sup>19<span class="per">/mo</span></div>
-      <div class="plan-desc">Unlimited AI analyses with advanced Sonnet model. Everything a serious trader needs.</div>
-      <ul class="plan-features">
-        <li><span class="check">✓</span>Everything in Free</li>
-        <li><span class="check">✓</span>Unlimited AI Analyses</li>
-        <li><span class="check">✓</span>Advanced AI (Sonnet 4.6)</li>
-        <li><span class="check">✓</span>Dark pool buy/sell flow</li>
-        <li><span class="check">✓</span>Insider transactions</li>
-        <li><span class="check">✓</span>Institutional 13F data</li>
-        <li><span class="check">✓</span>Market Intelligence</li>
-        <li><span class="check">✓</span>Settlement Pressure Score</li>
-        <li><span class="check">✓</span>Short borrow rate history</li>
-        <li><span class="check">✓</span>Buy-In Candidates page</li>
-      </ul>
-      <a href="#signin" class="plan-btn primary">Start Basic — $19/mo</a>
+    <!-- BASIC / PRO -->
+    <div class="tier popular">
+      <div class="popular-badge">⭐ Most Popular</div>
+      <div class="tier-icon">🚀</div>
+      <div class="tier-name">Basic</div>
+      <div class="tier-desc">For active traders who want real institutional data — no brokerage account required.</div>
+      <div class="price-wrap">
+        <span class="price" id="pro-price">$19</span><span class="price-period">/mo</span>
+      </div>
+      <div class="price-note" id="pro-note">Billed monthly · <strong>7-day free trial</strong></div>
+      <div class="divider"></div>
+      <div class="section-label">Everything in Free, plus:</div>
+      <div class="feat-list">
+        <div class="feat"><div class="feat-icon yes">✓</div><span>No ads — ever</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Unlimited AI analysis (Sonnet 4.6)</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>News feed <span class="feat-badge badge-limit">90 days</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Portfolio tracking & P&amp;L</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Settlement Pressure Score</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Buy-In Candidates scanner</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Institutional 13F data</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Short borrow rate history</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Level II & Intelligence <span class="feat-badge badge-new">Key differentiator</span></div>
+      <div class="feat-list">
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Real-time Level II order book <span class="feat-badge badge-hot">vs $2.99 on Webull</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Time & Sales feed</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Dark pool buy/sell flow</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Insider transactions (Form 4)</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Market Intelligence section</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Congressional trading data</span></div>
+        <div class="feat no-feat"><div class="feat-icon no">✕</div><span>Real dark pool prints</span></div>
+      </div>
+      <a href="#signin" class="cta-btn cta-pro">Start Basic — 7 days free →</a>
     </div>
 
     <!-- TRADER -->
-    <div class="plan-card">
-      <div class="plan-name">Trader</div>
-      <div class="plan-price"><sup>$</sup>49<span class="per">/mo</span></div>
-      <div class="plan-desc">Professional AI with Opus model. For active traders who demand the best.</div>
-      <ul class="plan-features">
-        <li><span class="check">✓</span>Everything in Basic</li>
-        <li><span class="check">✓</span>Professional AI (Opus 4.7)</li>
-        <li><span class="check">✓</span>Congressional trading data</li>
-        <li><span class="check">✓</span>Real dark pool prints</li>
-        <li><span class="check">✓</span>Options P/C ratio</li>
-        <li><span class="check">✓</span>Social sentiment signals</li>
-        <li><span class="check">✓</span>Priority support</li>
-        <li><span class="check">✓</span>Early feature access</li>
-        <li class="muted"><span class="dash">–</span>Custom watchlist alerts <span class="soon">SOON</span></li>
-        <li class="muted"><span class="dash">–</span>Institutional AI <span class="soon">SOON</span></li>
-      </ul>
-      <a href="#signin" class="plan-btn secondary">Start Trader — $49/mo</a>
+    <div class="tier">
+      <div class="tier-icon">⚡</div>
+      <div class="tier-name">Trader</div>
+      <div class="tier-desc">For professionals and active traders who demand the most powerful AI and deepest data.</div>
+      <div class="price-wrap">
+        <span class="price" id="trader-price">$49</span><span class="price-period">/mo</span>
+      </div>
+      <div class="price-note" id="trader-note">Billed monthly · <strong>7-day free trial</strong></div>
+      <div class="divider"></div>
+      <div class="section-label">Everything in Basic, plus:</div>
+      <div class="feat-list">
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Professional AI (Opus 4.7) <span class="feat-badge badge-hot">Flagship model</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Congressional trading data</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Real dark pool prints</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Options P/C ratio</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Social sentiment signals</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Historical news <span class="feat-badge badge-limit">1 year</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>AI analysis PDF export <span class="feat-badge badge-soon">Soon</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Custom watchlist alerts <span class="feat-badge badge-soon">Soon</span></span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Priority support</span></div>
+        <div class="feat"><div class="feat-icon yes">✓</div><span>Early access to new features</span></div>
+      </div>
+      <a href="#signin" class="cta-btn cta-trader">Start Trader — 7 days free →</a>
     </div>
 
   </div>
 
   <!-- SIGN IN -->
-  <div class="section-label" id="signin">Sign In</div>
-  <div class="auth-wrap">
+  <div class="signin-section" id="signin">
+    <div class="signin-title">Sign in to PulseStock</div>
+    <div class="signin-sub">New users are placed on a waitlist. We'll notify you when your account is ready.</div>
     <div class="auth-card">
-      <h2>Sign in to PulseStock</h2>
-      <p class="sub">New users are placed on a waitlist. We'll notify you when your account is ready.</p>
-
       <button class="google-btn">
         <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
         Continue with Google
       </button>
-
-      <div class="divider">or</div>
-
+      <div class="divider-or">or</div>
       <div class="form-group">
         <label class="form-label">Email</label>
-        <input type="email" placeholder="you@example.com" />
+        <input type="email" placeholder="you@example.com"/>
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" placeholder="••••••••" />
+        <input type="password" placeholder="••••••••"/>
       </div>
-      <button class="btn-primary">Sign In</button>
-
-      <div class="terms-note" style="margin-top:18px;">
+      <button class="btn-signin">Sign In →</button>
+      <div class="auth-note">
         By signing in you agree to our <a href="#terms">Terms of Service</a> and <a href="#terms">Privacy Policy</a>.<br>
         Don't have an account? <a href="#signin">Join the waitlist →</a>
       </div>
     </div>
   </div>
 
+  <!-- COMPETITIVE COMPARE -->
+  <div class="compare-section">
+    <div class="compare-title">How we compare</div>
+    <div class="compare-sub">PulseStock bundles more than any competitor — at a lower price, with no brokerage account required.</div>
+    <div class="compare-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Level II</th>
+            <th>AI Analysis</th>
+            <th>Dark Pool Data</th>
+            <th>SEC Filings</th>
+            <th>Brokerage required?</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="pulse-row">
+            <td>PulseStock Basic ⭐</td>
+            <td><span class="pill pill-green">✓ Real-time</span></td>
+            <td><span class="pill pill-green">✓ Unlimited</span></td>
+            <td><span class="pill pill-green">✓ Included</span></td>
+            <td><span class="pill pill-green">✓ Full EDGAR</span></td>
+            <td><span class="pill pill-green">No</span></td>
+            <td><span class="pill pill-blue">$19/mo</span></td>
+          </tr>
+          <tr>
+            <td>Webull</td>
+            <td><span class="pill pill-amber">$2.99 add-on</span></td>
+            <td><span class="pill pill-amber">Basic only</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-red">Yes</span></td>
+            <td><span class="pill pill-amber">$2.99+/mo</span></td>
+          </tr>
+          <tr>
+            <td>TradingView</td>
+            <td><span class="pill pill-amber">Paid plan only</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-green">No</span></td>
+            <td><span class="pill pill-amber">$14.95/mo</span></td>
+          </tr>
+          <tr>
+            <td>Robinhood Gold</td>
+            <td><span class="pill pill-amber">Limited</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-red">Yes</span></td>
+            <td><span class="pill pill-amber">$5/mo</span></td>
+          </tr>
+          <tr>
+            <td>Thinkorswim (Schwab)</td>
+            <td><span class="pill pill-green">✓ Free</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-red">Yes — funded acct</span></td>
+            <td><span class="pill pill-green">Free</span></td>
+          </tr>
+          <tr>
+            <td>Yahoo Finance Plus</td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-gray">No</span></td>
+            <td><span class="pill pill-amber">Basic links</span></td>
+            <td><span class="pill pill-green">No</span></td>
+            <td><span class="pill pill-amber">$24.99/mo</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <div class="faq-title">Common questions</div>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q">Do I need a brokerage account?</div>
+        <div class="faq-a">No. PulseStock is a standalone research platform. You get real-time Level II and Time & Sales data without opening or funding any brokerage account.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How does the 7-day free trial work?</div>
+        <div class="faq-a">Start Basic or Trader with full access for 7 days, no charge. Cancel anytime before the trial ends and you won't be billed a cent.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What AI model powers the analysis?</div>
+        <div class="faq-a">Free gets standard AI (3/day). Basic gets unlimited analysis powered by Claude Sonnet 4.6. Trader gets Claude Opus 4.7 — the most powerful model available — for institutional-quality research.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I cancel anytime?</div>
+        <div class="faq-a">Yes — cancel anytime from your account settings with one click. No contracts, no cancellation fees. Annual plans are refunded pro-rata if cancelled early.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What is dark pool flow data?</div>
+        <div class="faq-a">Dark pool data shows buy vs sell dollar flow from off-exchange trading — where institutional investors trade large blocks away from public markets. It's a key signal of where smart money is positioned on a stock.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is there an enterprise or team plan?</div>
+        <div class="faq-a">For team access or white-label licensing contact us at hello@pulsestock.com for custom enterprise pricing.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- TERMS -->
-  <div class="section-label" id="terms">Terms of Service &amp; User Agreement</div>
-  <div class="terms-wrap">
+  <div class="terms-section" id="terms">
+    <div class="terms-title">Terms of Service &amp; User Agreement</div>
+    <div class="terms-sub">Last updated: June 7, 2026 · Effective immediately upon account creation</div>
 
-    <div class="terms-title-card">
-      <h2>PulseStock Terms of Service</h2>
-      <p>Last updated: June 7, 2026 &nbsp;·&nbsp; Effective immediately upon account creation</p>
+    <div class="terms-card">
+      <h3><span class="tnum">1</span> Acceptance of Terms</h3>
+      <p>By accessing or using PulseStock ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, you may not use the Service. These Terms constitute a legally binding agreement. We reserve the right to modify these Terms at any time — continued use constitutes acceptance.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">1</span> Acceptance of Terms</h3>
-      <p>By accessing or using PulseStock ("the Service," "we," "us," or "our"), you ("User," "you," or "your") agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, you may not access or use the Service. These Terms constitute a legally binding agreement between you and PulseStock.</p>
-      <p>We reserve the right to modify these Terms at any time. Continued use of the Service following any modification constitutes acceptance of the updated Terms.</p>
-    </div>
-
-    <div class="terms-card">
-      <h3><span class="num">2</span> Not Financial Advice — Critical Disclaimer</h3>
-      <div class="warning-box">
-        <p><strong>⚠️ PulseStock does not provide financial, investment, legal, or tax advice. All content, data, AI analyses, scores, ratings, and information on PulseStock are for informational and educational purposes only. Nothing on PulseStock should be construed as a recommendation to buy, sell, or hold any security. Always consult a licensed financial advisor before making investment decisions.</strong></p>
+      <h3><span class="tnum">2</span> Not Financial Advice — Critical Disclaimer</h3>
+      <div class="warn-box">
+        <p><strong>⚠️ PulseStock does not provide financial, investment, legal, or tax advice. All content, data, AI analyses, scores, and ratings are for informational and educational purposes only. Nothing on PulseStock should be construed as a recommendation to buy, sell, or hold any security. Always consult a licensed financial advisor before making investment decisions.</strong></p>
       </div>
-      <p>PulseStock aggregates publicly available financial data and uses artificial intelligence to generate analyses. These AI-generated analyses reflect algorithmic interpretation of available data and do not constitute professional financial advice. Past performance of any security is not indicative of future results.</p>
-      <p>Market data, quotes, fundamentals, and all other data displayed on PulseStock may be delayed, inaccurate, or incomplete. You acknowledge that trading securities involves substantial risk of loss and is not suitable for all investors. You agree that PulseStock and its operators are not liable for any investment decisions made based on information obtained through the Service.</p>
+      <p>AI-generated analyses reflect algorithmic interpretation of available data and do not constitute professional financial advice. Past performance of any security is not indicative of future results. Trading securities involves substantial risk of loss and is not suitable for all investors.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">3</span> Prohibited Uses — Automated Access &amp; Bots</h3>
+      <h3><span class="tnum">3</span> Prohibited Uses — Automated Access &amp; Bots</h3>
       <h4>3.1 Strict Prohibition on Automated Access</h4>
-      <div class="warning-box">
-        <p><strong>🚫 You are strictly prohibited from using any automated system, bot, script, spider, scraper, crawler, AI agent, or other automated means to access, query, copy, monitor, or extract any data from PulseStock without express written permission. Violation of this provision may result in immediate account termination, civil liability, and criminal prosecution under the Computer Fraud and Abuse Act (18 U.S.C. § 1030) and applicable state laws.</strong></p>
+      <div class="warn-box">
+        <p><strong>🚫 You are strictly prohibited from using any automated system, bot, script, spider, scraper, crawler, AI agent, or other automated means to access, query, copy, or extract any data from PulseStock without express written permission. Violation may result in immediate account termination, civil liability, and criminal prosecution under the Computer Fraud and Abuse Act (18 U.S.C. § 1030).</strong></p>
       </div>
-      <p>Specifically, you may NOT:</p>
+      <p>You may NOT:</p>
       <ul>
-        <li>Use any bot, script, automated browser, headless browser, or programmatic HTTP client to access the Service</li>
-        <li>Scrape, harvest, or systematically download any data, prices, analyses, scores, or content from the Service</li>
-        <li>Use AI agents, LLM-powered tools, or autonomous software to interact with or extract data from the Service</li>
-        <li>Simulate user behavior through automated means to trigger AI analyses, access market data, or retrieve any content</li>
-        <li>Reverse-engineer, decompile, or extract underlying data sources, API endpoints, or algorithms used by the Service</li>
-        <li>Use PulseStock data in any automated trading system or algorithmic trading strategy without a commercial license</li>
-        <li>Resell, redistribute, sublicense, or make available to third parties any data obtained from PulseStock</li>
-        <li>Use VPNs, proxies, Tor, or other IP-masking tools to circumvent access restrictions or rate limiting</li>
-        <li>Create multiple accounts to circumvent usage limits — one account per person is strictly enforced</li>
+        <li>Use bots, scripts, headless browsers, or programmatic HTTP clients to access the Service</li>
+        <li>Scrape, harvest, or systematically download any data, prices, analyses, or scores</li>
+        <li>Use AI agents or LLM-powered tools to interact with or extract data from the Service</li>
+        <li>Use PulseStock data in any automated trading system without a commercial license</li>
+        <li>Resell, redistribute, or sublicense any data obtained from PulseStock</li>
+        <li>Use VPNs, proxies, or Tor to circumvent access restrictions or rate limiting</li>
+        <li>Create multiple accounts to circumvent usage limits — one account per person</li>
+        <li>Reverse-engineer, decompile, or extract any underlying API endpoints or algorithms</li>
       </ul>
-      <h4>3.2 Commercial Use Restrictions</h4>
-      <p>PulseStock is licensed for personal, non-commercial use only under free and standard paid tiers. Any commercial use — including incorporating PulseStock analyses into investment products, financial publications, or client-facing services — requires a separate commercial license. Contact legal@pulsestock.com.</p>
-      <h4>3.3 Detection and Enforcement</h4>
-      <p>PulseStock employs rate limiting, behavioral analysis, and traffic fingerprinting to detect automated access. We actively monitor for violations and reserve the right to immediately terminate any account suspected of automated access without notice or refund. We may pursue civil damages and report violations to law enforcement where applicable. Damages for unauthorized automated access may include statutory damages, lost profits, and attorney's fees.</p>
+      <h4>3.2 Detection and Enforcement</h4>
+      <p>PulseStock employs rate limiting, behavioral analysis, and traffic fingerprinting to detect automated access. We reserve the right to immediately terminate any account without notice or refund. We may pursue civil damages and report violations to law enforcement. Damages may include statutory damages, lost profits, and attorney's fees.</p>
+      <h4>3.3 Commercial Use</h4>
+      <p>Personal, non-commercial use only under all tiers. Commercial use — including incorporating PulseStock analyses into investment products or client-facing services — requires a separate commercial license. Contact legal@pulsestock.com.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">4</span> Account Registration &amp; Security</h3>
-      <p>You must provide accurate, current, and complete information when creating an account. You are responsible for maintaining the confidentiality of your credentials and for all activity under your account. You must be at least 18 years of age to create an account.</p>
-      <p>You agree to notify us immediately of any unauthorized use of your account. Creating multiple accounts to circumvent usage limits is prohibited and will result in termination of all associated accounts.</p>
+      <h3><span class="tnum">4</span> Account Registration &amp; Security</h3>
+      <p>You must provide accurate information when creating an account. You must be at least 18 years of age. You are responsible for all activity under your account and must notify us immediately of any unauthorized use. Creating multiple accounts to circumvent limits will result in termination of all associated accounts.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">5</span> Subscription, Billing &amp; Refunds</h3>
-      <p>Paid subscriptions are billed monthly in advance. You authorize PulseStock to charge your payment method on a recurring basis until cancellation. Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date.</p>
-      <p>We offer no refunds for partial months. If you cancel, you retain access through the end of your current billing period. PulseStock reserves the right to modify pricing with 30 days notice to active subscribers. Chargebacks filed while service is actively provided will result in immediate account suspension.</p>
+      <h3><span class="tnum">5</span> Subscription, Billing &amp; Refunds</h3>
+      <p>Paid subscriptions are billed monthly in advance and auto-renew unless cancelled at least 24 hours before the renewal date. No refunds for partial months. If you cancel, access continues through the end of your billing period. Chargebacks filed while service is actively provided will result in immediate account suspension.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">6</span> Intellectual Property</h3>
-      <p>All content on PulseStock — including the Settlement Pressure Score algorithm, AI analysis outputs, UI design, source code, and proprietary scoring methodologies — is the exclusive property of PulseStock and is protected by copyright, trade secret, and other intellectual property laws. You may not copy, reproduce, distribute, or create derivative works from any PulseStock content without express written permission.</p>
+      <h3><span class="tnum">6</span> Intellectual Property</h3>
+      <p>All PulseStock content — including the Settlement Pressure Score algorithm, AI analysis outputs, UI design, source code, and proprietary methodologies — is protected by copyright and trade secret law. You may not copy, reproduce, or create derivative works without express written permission.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">7</span> Data Accuracy &amp; Market Data Disclaimer</h3>
-      <p>Market data displayed on PulseStock may be delayed by up to 15 minutes or more. Short interest data is published by FINRA on a bi-monthly basis and represents historical, not real-time, information. Dark pool data is estimated from publicly available FINRA short sale volume data and may not reflect actual off-exchange trading activity. AI analyses are generated by large language models and may contain errors, hallucinations, or outdated information.</p>
+      <h3><span class="tnum">7</span> Data Accuracy Disclaimer</h3>
       <div class="info-box">
-        <p>PulseStock makes no representation that any data, analysis, score, or rating displayed is accurate, complete, or suitable for any investment purpose. All data is provided "as is" without warranty of any kind.</p>
+        <p>Market data may be delayed up to 15 minutes. Short interest data is published by FINRA bi-monthly and is historical. Dark pool flow is estimated from FINRA short sale volume and may not reflect actual off-exchange activity. AI analyses may contain errors or outdated information. All data is provided "as is" without warranty.</p>
       </div>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">8</span> Limitation of Liability</h3>
-      <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PULSESTOCK AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, INVESTMENT LOSSES, LOSS OF DATA, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.</p>
-      <p>IN NO EVENT SHALL PULSESTOCK'S TOTAL LIABILITY TO YOU EXCEED THE AMOUNT YOU PAID TO PULSESTOCK IN THE TWELVE MONTHS PRECEDING THE CLAIM.</p>
+      <h3><span class="tnum">8</span> Limitation of Liability</h3>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, PULSESTOCK SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING INVESTMENT LOSSES. PULSESTOCK'S TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID IN THE TWELVE MONTHS PRECEDING THE CLAIM.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">9</span> Indemnification</h3>
-      <p>You agree to indemnify, defend, and hold harmless PulseStock and its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable attorneys' fees, arising out of or in connection with: (a) your use of the Service; (b) your violation of these Terms; (c) any investment decisions made based on information obtained through the Service.</p>
+      <h3><span class="tnum">9</span> Indemnification</h3>
+      <p>You agree to indemnify and hold harmless PulseStock and its affiliates from any claims, liabilities, damages, and expenses — including attorney's fees — arising from your use of the Service, violation of these Terms, or investment decisions made based on PulseStock data.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">10</span> Termination</h3>
-      <p>PulseStock reserves the right to suspend or terminate your account at any time, with or without cause or notice. Grounds for immediate termination include but are not limited to: automated access or scraping, sharing account credentials, chargebacks, abusive behavior, or any violation of these Terms.</p>
+      <h3><span class="tnum">10</span> Termination</h3>
+      <p>PulseStock may suspend or terminate your account at any time with or without cause. Grounds for immediate termination include automated access, credential sharing, chargebacks, or any Terms violation.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">11</span> Governing Law &amp; Dispute Resolution</h3>
-      <p>These Terms shall be governed by the laws of the State of Delaware. Any dispute shall be resolved by binding arbitration under the rules of the American Arbitration Association, except that either party may seek injunctive relief in any court of competent jurisdiction for violations of intellectual property rights or unauthorized access provisions.</p>
-      <p><strong>You waive any right to participate in a class action lawsuit or class-wide arbitration against PulseStock.</strong></p>
+      <h3><span class="tnum">11</span> Governing Law &amp; Disputes</h3>
+      <p>These Terms are governed by the laws of the State of Delaware. Disputes shall be resolved by binding arbitration under AAA rules. <strong>You waive any right to participate in a class action lawsuit or class-wide arbitration against PulseStock.</strong> Either party may seek injunctive relief for IP violations or unauthorized access.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">12</span> Privacy</h3>
-      <p>We collect account information and usage data to operate and improve the Service. We do not sell your personal information to third parties. We may share aggregated, anonymized usage data with analytics partners.</p>
+      <h3><span class="tnum">12</span> Privacy</h3>
+      <p>We collect account information and usage data to operate and improve the Service. We do not sell your personal information. We may share aggregated, anonymized usage data with analytics partners.</p>
     </div>
 
     <div class="terms-card">
-      <h3><span class="num">13</span> Contact</h3>
-      <p><strong>Legal inquiries:</strong> legal@pulsestock.com<br>
-      <strong>Abuse reports:</strong> abuse@pulsestock.com<br>
-      <strong>Support:</strong> support@pulsestock.com</p>
+      <h3><span class="tnum">13</span> Contact</h3>
+      <p><strong>Legal:</strong> legal@pulsestock.com &nbsp;·&nbsp; <strong>Abuse:</strong> abuse@pulsestock.com &nbsp;·&nbsp; <strong>Support:</strong> support@pulsestock.com &nbsp;·&nbsp; <strong>Enterprise:</strong> hello@pulsestock.com</p>
     </div>
 
   </div>
+
+  <div class="footer">
+    <p style="margin-bottom:8px;">
+      <a href="/">← Back to App</a>
+      <a href="#terms">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+      <a href="mailto:hello@pulsestock.com">Contact</a>
+    </p>
+    <p><strong>PulseStock</strong> — Real-time AI-powered stock analysis · Not financial advice · Data provided by Finnhub, SEC EDGAR & FINRA</p>
+  </div>
+
 </div>
 
-<footer>
-  <div style="margin-bottom:8px;">
-    <a href="/">Home</a>
-    <a href="#terms">Terms of Service</a>
-    <a href="#">Privacy Policy</a>
-    <a href="#">Contact</a>
-  </div>
-  © 2026 PulseStock, Inc. All rights reserved. · Not financial advice.
-</footer>
-
+<script>
+var isAnnual = false;
+function flipBilling(){
+  isAnnual = !isAnnual;
+  document.getElementById('billing-tog').classList.toggle('annual', isAnnual);
+  document.getElementById('pro-price').textContent = isAnnual ? '$15' : '$19';
+  document.getElementById('pro-note').innerHTML = isAnnual ? 'Billed annually ($182/yr) · <strong>Save $46 · 7-day free trial</strong>' : 'Billed monthly · <strong>7-day free trial</strong>';
+  document.getElementById('trader-price').textContent = isAnnual ? '$39' : '$49';
+  document.getElementById('trader-note').innerHTML = isAnnual ? 'Billed annually ($468/yr) · <strong>Save $120 · 7-day free trial</strong>' : 'Billed monthly · <strong>7-day free trial</strong>';
+}
+</script>
 </body>
 </html>
