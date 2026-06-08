@@ -19,6 +19,48 @@ async function getFinnhubMetrics(ticker) {
   } catch(e) { return null; }
 }
 
+async function getYahooProfile(ticker) {
+  try {
+    // Step 1: Get crumb (required for Yahoo Finance API auth)
+    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+      }
+    });
+    if (!crumbRes.ok) return null;
+    const crumb = await crumbRes.text();
+    if (!crumb || crumb.length > 50) return null;
+
+    // Step 2: Fetch asset profile with crumb
+    const profileRes = await fetch(
+      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb)}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+        }
+      }
+    );
+    if (!profileRes.ok) return null;
+    const data = await profileRes.json();
+    const profile = data?.quoteSummary?.result?.[0]?.assetProfile;
+    if (!profile) return null;
+
+    return {
+      description: profile.longBusinessSummary || null,
+      sector:      profile.sector || null,
+      industry:    profile.industry || null,
+      employees:   profile.fullTimeEmployees || null,
+      website:     profile.website || null,
+      country:     profile.country || null,
+      city:        profile.city || null,
+      state:       profile.state || null,
+    };
+  } catch(e) { return null; }
+}
+
+
 async function getEdgarFacts(cik) {
   try {
     const paddedCik = cik.replace(/^0+/, '').padStart(10, '0');
@@ -269,21 +311,20 @@ export default async function handler(req) {
   if (!ticker) return new Response(JSON.stringify({}), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   try {
-    const [fhProfile, fhMetrics, cik] = await Promise.all([
+    const [fhProfile, fhMetrics, cik, yahooProfile] = await Promise.all([
       getFinnhubProfile(ticker),
       getFinnhubMetrics(ticker),
       getEdgarCik(ticker),
+      getYahooProfile(ticker),
     ]);
 
     const fh = fhProfile || {};
     const m = fhMetrics || {};
     const companyName = fh.name || ticker;
 
-    // Fetch EDGAR facts and 10-K description in parallel
-    const [edgarFacts, edgarDesc] = await Promise.all([
-      cik ? getEdgarFacts(cik) : null,
-      getEdgarDescription(cik),
-    ]);
+    // Fetch EDGAR facts only (no slow 10-K scrape — description comes from Yahoo)
+    const edgarFacts = cik ? await getEdgarFacts(cik) : null;
+    const edgarDesc = null; // deprecated — using Yahoo Finance instead
 
     // Extract financials from EDGAR XBRL
     const revenue = getLatestValue(edgarFacts, 'RevenueFromContractWithCustomerExcludingAssessedTax') || getLatestValue(edgarFacts, 'Revenues') || getLatestValue(edgarFacts, 'SalesRevenueNet');
@@ -405,14 +446,16 @@ export default async function handler(req) {
     const capexQtrs          = _getCapexHist(getQuarterlyValues);
 
     return new Response(JSON.stringify({
-      // Profile
+      // Profile — Yahoo Finance (primary) + Finnhub (fallback)
       name: companyName,
-      description: edgarDesc,
-      sector: fh.finnhubIndustry || null,
-      industry: fh.finnhubIndustry || null,
-      website: fh.weburl || null,
+      description: yahooProfile?.description || null,
+      sector: yahooProfile?.sector || fh.finnhubIndustry || null,
+      industry: yahooProfile?.industry || fh.finnhubIndustry || null,
+      website: yahooProfile?.website || fh.weburl || null,
       phone: fh.phone || null,
-      employees: fh.employeeTotal || null,
+      employees: yahooProfile?.employees || fh.employeeTotal || null,
+      country: yahooProfile?.country || fh.country || null,
+      city: yahooProfile?.city || null,
       exchange: fh.exchange || null,
       marketCap: fh.marketCapitalization ? fmt(fh.marketCapitalization * 1e6) : null,
       logo: fh.logo || null,
@@ -516,7 +559,7 @@ export default async function handler(req) {
       opCfHistory, opCfQtrs,
       capexHistory, capexQtrs,
 
-      _source: 'edgar+finnhub+wiki',
+      _source: 'edgar+finnhub+yahoo',
       _edgarAvailable: !!edgarFacts,
     }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
 
