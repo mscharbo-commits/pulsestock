@@ -460,10 +460,27 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 
   <!-- WATCHLIST -->
   <div class="page" id="page-watchlist">
-    <div style="margin-bottom:24px;">
-      <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;">⭐ Watchlist</h2>
-      <p style="color:var(--text2);font-size:14px;">Stocks you're tracking. Click ☆ Watch on any stock analysis to add it here.</p>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px;">⭐ Watchlist</h2>
+        <p style="color:var(--text2);font-size:14px;">Track your favorite stocks. Add tickers below to monitor them.</p>
+      </div>
+      <button onclick="showWatchlistEditor()" style="padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">✏️ Edit Watchlist</button>
     </div>
+
+    <!-- EDITOR (hidden by default) -->
+    <div id="watchlist-editor" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Add stocks to your watchlist</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <input id="wl-input" type="text" placeholder="Enter ticker (e.g. AAPL, TSLA, MSFT)" 
+          style="flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);"
+          onkeydown="if(event.key==='Enter')addToWatchlist()"/>
+        <button onclick="addToWatchlist()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;">+ Add</button>
+        <button onclick="document.getElementById('watchlist-editor').style.display='none';" style="padding:10px 16px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;">Done</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">Tip: You can enter multiple tickers separated by commas — e.g. AAPL, NVDA, MSFT</div>
+    </div>
+
     <div id="watchlist-content"></div>
   </div>
 
@@ -601,6 +618,25 @@ function savePortfolio(){try{localStorage.setItem('ps_portfolio',JSON.stringify(
 var watchlist=(function(){try{var s=localStorage.getItem('ps_watchlist');return s?JSON.parse(s):[];}catch(e){return [];}})();
 function saveWatchlist(){try{localStorage.setItem('ps_watchlist',JSON.stringify(watchlist));}catch(e){}}
 function isWatched(t){return watchlist.includes(t);}
+function showWatchlistEditor(){
+  var ed = document.getElementById('watchlist-editor');
+  if(ed) { ed.style.display = ed.style.display==='none'?'block':'none'; }
+  if(ed && ed.style.display==='block') document.getElementById('wl-input')?.focus();
+}
+function addToWatchlist(){
+  var input = document.getElementById('wl-input');
+  if(!input) return;
+  var tickers = input.value.toUpperCase().split(/[,\s]+/).map(function(t){return t.trim();}).filter(Boolean);
+  tickers.forEach(function(t){
+    if(t && !watchlist.includes(t)){
+      watchlist.unshift(t);
+    }
+  });
+  if(watchlist.length > 50) watchlist = watchlist.slice(0, 50);
+  saveWatchlist();
+  input.value = '';
+  renderWatchlist();
+}
 function toggleWatch(ticker){
   if(isWatched(ticker)){watchlist=watchlist.filter(t=>t!==ticker);}
   else{watchlist.unshift(ticker);if(watchlist.length>50)watchlist=watchlist.slice(0,50);}
@@ -613,25 +649,32 @@ function renderWatchlist(){
   var el=document.getElementById('watchlist-content');
   if(!el) return;
   if(!watchlist.length){
-    el.innerHTML='<div class="card" style="text-align:center;padding:40px;color:var(--text3);">No stocks watched yet.<br>Click ☆ Watch on any stock analysis to add it here.</div>';
+    el.innerHTML='<div class="card" style="text-align:center;padding:48px;color:var(--text3);">'
+      +'<div style="font-size:32px;margin-bottom:12px;">⭐</div>'
+      +'<div style="font-size:15px;font-weight:600;margin-bottom:6px;">Your watchlist is empty</div>'
+      +'<div style="font-size:13px;">Click <strong>✏️ Edit Watchlist</strong> above and type any ticker to add it.</div>'
+      +'</div>';
     return;
   }
-  var html='<div class="results-table"><div class="results-table-header"><span>Ticker</span><span></span></div>';
+  var html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">';
   for(var i=0;i<watchlist.length;i++){
     var t=watchlist[i];
-    html+='<div class="result-row" style="grid-template-columns:1fr auto;gap:12px;">'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<span class="rr-ticker" style="cursor:pointer;" data-analyze="'+t+'">'+t+'</span>'
-      +'<button class="wl-analyze" data-ticker="'+t+'" style="padding:4px 10px;background:var(--accent);color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;">Analyze ↗</button>'
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;">'
+      +'<span class="rr-ticker" style="font-size:18px;">'+t+'</span>'
+      +'<button class="wl-remove" data-ticker="'+t+'" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;" title="Remove from watchlist">✕</button>'
       +'</div>'
-      +'<button class="wl-remove" data-ticker="'+t+'" style="padding:4px 8px;background:var(--red-bg,#FDECEA);color:var(--red);border:none;border-radius:5px;font-size:11px;cursor:pointer;">✕</button>'
+      +'<button class="wl-analyze" data-ticker="'+t+'" style="width:100%;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;">Analyze ↗</button>'
       +'</div>';
   }
   html+='</div>';
   el.innerHTML=html;
-  el.querySelectorAll('.wl-analyze').forEach(function(b){b.addEventListener('click',function(){goAnalyze(b.dataset.ticker);});});
-  el.querySelectorAll('.wl-remove').forEach(function(b){b.addEventListener('click',function(){toggleWatch(b.dataset.ticker);});});
-  el.querySelectorAll('[data-analyze]').forEach(function(b){b.addEventListener('click',function(){goAnalyze(b.dataset.analyze);});});
+  el.querySelectorAll('.wl-analyze').forEach(function(b){
+    b.addEventListener('click',function(){goAnalyze(b.dataset.ticker);});
+  });
+  el.querySelectorAll('.wl-remove').forEach(function(b){
+    b.addEventListener('click',function(){watchlist=watchlist.filter(function(t){return t!==b.dataset.ticker;});saveWatchlist();renderWatchlist();});
+  });
 }
 let quoteCache={};
 
@@ -1555,19 +1598,8 @@ async function doAnalyze(){
       el.onclick = function(){ scrollToSection(b.target); };
       return el;
     }
-    // Add Watch button to quick nav
-    var watchBtnEl = document.createElement('button');
-    watchBtnEl.id = 'watch-btn-'+t;
-    watchBtnEl.className = 'qn-btn';
-    var ww = isWatched(t);
-    watchBtnEl.textContent = ww ? '★ Watching' : '☆ Watch';
-    watchBtnEl.style.color = ww ? 'var(--amber,#F59E0B)' : 'var(--text3)';
-    watchBtnEl.style.background = ww ? 'rgba(245,158,11,.1)' : 'var(--surface2)';
-    watchBtnEl.onclick = function(){ toggleWatch(t); };
-
     var stage = document.getElementById('qn-stage-'+t);
     if(!stage) return;
-    stage.appendChild(watchBtnEl);
     var els = btns.map(function(b){ var el=makeBtn(b); stage.appendChild(el); return el; });
     requestAnimationFrame(function(){
       var GAP = 6;
