@@ -3,109 +3,86 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 export default async function handler(req) {
   const ticker = new URL(req.url).searchParams.get('ticker') || 'AAPL';
+  const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
   const results = {};
-  const hdrs = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/json,*/*',
-    'Accept-Language': 'en-US,en;q=0.9',
-  };
 
-  // Test 1: Yahoo Finance - get crumb first then fetch profile
+  // Test 1: Get crumb
   try {
-    const crumbRes = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: hdrs });
-    const crumb = await crumbRes.text();
-    results['yahoo_crumb'] = { status: crumbRes.status, crumb: crumb.slice(0,20) };
+    const r = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { 'User-Agent': ua, 'Accept': '*/*' }
+    });
+    const crumb = await r.text();
+    const cookie = r.headers.get('set-cookie');
+    results.crumb = { status: r.status, crumb: crumb.slice(0,30), cookieLen: cookie?.length || 0 };
 
-    if(crumbRes.ok && crumb) {
-      const profileRes = await fetch(
-        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb)}`,
-        { headers: { ...hdrs, 'Cookie': crumbRes.headers.get('set-cookie') || '' } }
+    // Test 2: Use crumb with cookie
+    if (r.ok && crumb.trim()) {
+      const r2 = await fetch(
+        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb.trim())}`,
+        { headers: { 'User-Agent': ua, 'Accept': 'application/json', 'Cookie': cookie || '' } }
       );
-      const data = await profileRes.json();
-      const profile = data?.quoteSummary?.result?.[0]?.assetProfile;
-      results['yahoo_profile'] = {
-        status: profileRes.status,
-        description: profile?.longBusinessSummary?.slice(0, 300) || 'none',
-        sector: profile?.sector,
-        industry: profile?.industry,
-        employees: profile?.fullTimeEmployees,
-        website: profile?.website,
-        country: profile?.country,
+      const d2 = await r2.json();
+      results.with_cookie = {
+        status: r2.status,
+        error: d2?.quoteSummary?.error || null,
+        hasProfile: !!d2?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary,
+        preview: d2?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary?.slice(0,80) || JSON.stringify(d2).slice(0,100)
+      };
+
+      // Test 3: Without cookie
+      const r3 = await fetch(
+        `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb.trim())}`,
+        { headers: { 'User-Agent': ua, 'Accept': 'application/json' } }
+      );
+      const d3 = await r3.json();
+      results.without_cookie = {
+        status: r3.status,
+        error: d3?.quoteSummary?.error || null,
+        hasProfile: !!d3?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary,
       };
     }
-  } catch(e) { results['yahoo_crumb'] = { error: e.message }; }
+  } catch(e) { results.crumb = { error: e.message }; }
 
-  // Test 2: Yahoo Finance v11 (newer endpoint)
+  // Test 4: Yahoo page scrape for description
+  try {
+    const r = await fetch(`https://finance.yahoo.com/quote/${ticker}/profile/`, {
+      headers: { 'User-Agent': ua, 'Accept': 'text/html', 'Accept-Language': 'en-US,en;q=0.9' }
+    });
+    const html = await r.text();
+    const match = html.match(/"longBusinessSummary":"((?:[^"\\]|\\.)*)"/);
+    const appMatch = html.match(/longBusinessSummary['":\s]+"([^"]{50,}?)"/);
+    results.page_scrape = {
+      status: r.status,
+      htmlSize: html.length,
+      regexMatch: match ? match[1].slice(0,100) : 'no match',
+      appMatch: appMatch ? appMatch[1].slice(0,100) : 'no match',
+      // Check if it's a consent page
+      isConsent: html.includes('consent') || html.includes('GDPR'),
+    };
+  } catch(e) { results.page_scrape = { error: e.message }; }
+
+  // Test 5: Yahoo Finance v8 (older endpoint, sometimes no crumb needed)
   try {
     const r = await fetch(
-      `https://query2.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=assetProfile,summaryProfile,financialData`,
-      { headers: hdrs }
+      `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?includePrePost=false&interval=1d&range=1d`,
+      { headers: { 'User-Agent': ua } }
+    );
+    results.v8_chart = { status: r.status };
+  } catch(e) { results.v8_chart = { error: e.message }; }
+
+  // Test 6: Try different Yahoo endpoint for profile
+  try {
+    const r = await fetch(
+      `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${ticker}?modules=assetProfile`,
+      { headers: { 'User-Agent': ua, 'Accept': 'application/json' } }
     );
     const d = await r.json();
-    const p = d?.quoteSummary?.result?.[0]?.assetProfile;
-    results['yahoo_v11'] = {
+    results.v11_no_crumb = {
       status: r.status,
-      description: p?.longBusinessSummary?.slice(0,200) || 'none',
-      sector: p?.sector,
+      error: d?.quoteSummary?.error?.code || null,
+      hasData: !!d?.quoteSummary?.result?.[0]?.assetProfile
     };
-  } catch(e) { results['yahoo_v11'] = { error: e.message }; }
-
-  // Test 3: Yahoo Finance scrape - look for description in meta tags
-  try {
-    const r = await fetch(`https://finance.yahoo.com/quote/${ticker}/profile/`, { headers: hdrs });
-    const html = await r.text();
-    // Yahoo embeds data in window.App.__reactProps or similar
-    const jsonMatch = html.match(/"longBusinessSummary":"([^"]{50,500})"/);
-    const sectorMatch = html.match(/"sector":"([^"]+)"/);
-    const industryMatch = html.match(/"industry":"([^"]+)"/);
-    results['yahoo_scrape'] = {
-      status: r.status,
-      description: jsonMatch ? jsonMatch[1].slice(0,200) : 'not found in HTML',
-      sector: sectorMatch ? sectorMatch[1] : 'not found',
-      industry: industryMatch ? industryMatch[1] : 'not found',
-    };
-  } catch(e) { results['yahoo_scrape'] = { error: e.message }; }
-
-  // Test 4: Google Finance scrape
-  try {
-    const r = await fetch(`https://www.google.com/finance/quote/${ticker}:NASDAQ`, { headers: hdrs });
-    const html = await r.text();
-    // Google Finance embeds description in specific divs
-    const descMatch = html.match(/class="bLLb2d[^>]*>([^<]{100,1000})<\/span>/);
-    const desc2 = html.match(/"description":"([^"]{50,500})"/);
-    results['google_scrape'] = {
-      status: r.status,
-      description: descMatch ? descMatch[1].slice(0,200) : (desc2 ? desc2[1].slice(0,200) : 'not found'),
-      htmlSize: html.length,
-    };
-  } catch(e) { results['google_scrape'] = { error: e.message }; }
-
-  // Test 5: Finnhub basic profile (already have key)
-  try {
-    const r = await fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0`);
-    const d = await r.json();
-    results['finnhub_profile'] = {
-      status: r.status,
-      name: d.name,
-      industry: d.finnhubIndustry,
-      country: d.country,
-      description: d.description ? d.description.slice(0,200) : 'NO DESCRIPTION FIELD',
-      hasDescription: !!d.description,
-    };
-  } catch(e) { results['finnhub_profile'] = { error: e.message }; }
-
-  // Test 6: Alpha Vantage free overview
-  try {
-    const r = await fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=demo`);
-    const d = await r.json();
-    results['alphavantage'] = {
-      status: r.status,
-      description: d.Description?.slice(0,200) || d.Note || 'none',
-      sector: d.Sector,
-      industry: d.Industry,
-      employees: d.FullTimeEmployees,
-    };
-  } catch(e) { results['alphavantage'] = { error: e.message }; }
+  } catch(e) { results.v11_no_crumb = { error: e.message }; }
 
   return new Response(JSON.stringify(results, null, 2), { headers: cors });
 }
