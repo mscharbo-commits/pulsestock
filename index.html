@@ -1034,7 +1034,10 @@ function renderNews(ticker, articles){
     el.innerHTML = '<div class="news-loading">No recent news found for ' + ticker + '</div>';
     return;
   }
-  el.innerHTML = articles.map(function(a){
+  // Paginate news
+  var newsContainerId = 'news-list-' + ticker;
+  function renderNewsItems(slice) {
+    return slice.map(function(a){
     var ago = timeAgo(a.datetime);
     var sentClass = 'news-neu';
     var sentLabel = '';
@@ -1062,6 +1065,8 @@ function renderNews(ticker, articles){
       + '</div>'
     + '</a>';
   }).join('');
+  }
+  el.innerHTML = makePaginator(articles, 10, renderNewsItems, newsContainerId);
 }
 
 async function fetchAnalyst(ticker){
@@ -2238,8 +2243,7 @@ async function renderFilings(ticker){
       }).join('');
     }
     if(containerId) {
-      setTimeout(function(){ makePaginator(filings, 15, renderFilingItems, containerId); }, 50);
-      return '<div id="' + containerId + '"></div>';
+      return makePaginator(filings, 15, renderFilingItems, containerId);
     }
     return renderFilingItems(filings);
   }
@@ -3226,13 +3230,18 @@ function renderInsider(ticker, data) {
         + '</div>';
     }).join('');
   }
-  makePaginator(txns, 15, renderInsiderRows, 'insider-rows-' + ticker);
+  // Paginator runs after el.innerHTML is set below
+  var _insiderTxns = txns;
+  var _insiderTicker = ticker;
 
   html += '<div id="insider-rows-' + ticker + '"></div>';
   html += '</div>';
   html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;">Source: SEC Form 4 filings · P=Open market purchase · S=Open market sale · Excludes options/awards</div>';
 
   el.innerHTML = html;
+  // Now DOM exists — render paginated rows into the pre-inserted div
+  var _insiderRowsEl = document.getElementById('insider-rows-' + _insiderTicker);
+  if(_insiderRowsEl) _insiderRowsEl.innerHTML = makePaginator(_insiderTxns, 15, renderInsiderRows, 'insider-rows-' + _insiderTicker);
 }
 
 
@@ -3483,63 +3492,44 @@ function renderIntelligence(ticker, data) {
 
 // ── PAGINATION UTILITY ──
 function makePaginator(items, perPage, renderFn, containerId) {
-  var state = { page: 0, items: items, perPage: perPage };
-
-  function render() {
-    var start = state.page * state.perPage;
-    var end   = start + state.perPage;
-    var slice = state.items.slice(start, end);
-    var total = Math.ceil(state.items.length / state.perPage);
-    var el    = document.getElementById(containerId);
-    if(!el) return;
-
-    var html = renderFn(slice, start);
-
-    // Pagination controls
+  var cid = containerId;
+  function buildPage(page) {
+    var total = Math.ceil(items.length / perPage);
+    var start = page * perPage;
+    var html  = renderFn(items.slice(start, start + perPage));
     if(total > 1) {
-      html += '<div class="pagination">';
-      // Prev
-      html += '<button class="pg-btn" ' + (state.page===0?'disabled':'') + ' onclick="window._paginators[\'' + containerId + '\'].go(' + (state.page-1) + ')">&#8592; Prev</button>';
-      
-      // Page numbers — show max 7 buttons
+      var pgHtml = '<div class="pagination">';
+      pgHtml += '<button class="pg-btn"' + (page===0?' disabled':'') + ' onclick="window.__pg[\''+cid+'\']('+(page-1)+')">&#8592; Prev</button>';
       var pages = [];
-      if(total <= 7) {
-        for(var i=0;i<total;i++) pages.push(i);
-      } else {
+      if(total<=7) { for(var i=0;i<total;i++) pages.push(i); }
+      else {
         pages.push(0);
-        var start2 = Math.max(1, state.page-2);
-        var end2   = Math.min(total-1, state.page+2);
-        if(start2 > 1) pages.push('...');
-        for(var i=start2;i<=end2;i++) pages.push(i);
-        if(end2 < total-1) pages.push('...');
+        var lo=Math.max(1,page-2), hi=Math.min(total-2,page+2);
+        if(lo>1) pages.push('…');
+        for(var i=lo;i<=hi;i++) pages.push(i);
+        if(hi<total-2) pages.push('…');
         pages.push(total-1);
       }
-      pages.forEach(function(p) {
-        if(p==='...') { html += '<span class="pg-info">…</span>'; return; }
-        html += '<button class="pg-btn' + (p===state.page?' active':'') + '" onclick="window._paginators[\'' + containerId + '\'].go(' + p + ')">' + (p+1) + '</button>';
-      });
-
-      // Next
-      html += '<button class="pg-btn" ' + (state.page===total-1?'disabled':'') + ' onclick="window._paginators[\'' + containerId + '\'].go(' + (state.page+1) + ')">Next &#8594;</button>';
-      html += '<span class="pg-info">' + (start+1) + '–' + Math.min(end, state.items.length) + ' of ' + state.items.length + '</span>';
-      html += '</div>';
+      for(var j=0;j<pages.length;j++){
+        var p=pages[j];
+        if(p==='…'){pgHtml+='<span class="pg-info">…</span>';continue;}
+        pgHtml+='<button class="pg-btn'+(p===page?' active':'')+'" onclick="window.__pg[\''+cid+'\']('+p+')">'+(p+1)+'</button>';
+      }
+      pgHtml+='<button class="pg-btn"'+(page===total-1?' disabled':'')+' onclick="window.__pg[\''+cid+'\']('+(page+1)+')">Next &#8594;</button>';
+      pgHtml+='<span class="pg-info">'+(start+1)+'–'+Math.min(start+perPage,items.length)+' of '+items.length+'</span>';
+      pgHtml+='</div>';
+      html += pgHtml;
     }
-
-    el.innerHTML = html;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return html;
   }
-
-  var paginator = {
-    go: function(page) { state.page = page; render(); },
-    update: function(items) { state.items = items; state.page = 0; render(); },
-    render: render,
+  window.__pg = window.__pg || {};
+  window.__pg[cid] = function(page) {
+    var el = document.getElementById(cid);
+    if(el){ el.innerHTML = buildPage(page); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
   };
-
-  window._paginators = window._paginators || {};
-  window._paginators[containerId] = paginator;
-  render();
-  return paginator;
+  return buildPage(0);
 }
+
 
 loadTickerBar();
 // Refresh every 60 seconds
