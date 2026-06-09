@@ -4014,67 +4014,38 @@ var _chatHistory = {};
 async function chatAsk(ticker, question) {
   if (!ticker || !question || !question.trim()) return;
   question = question.trim();
-
-  // Clear input if it matches
+  var msgsEl = document.getElementById('chat-messages-' + ticker);
+  if (!msgsEl) return;
   var inp = document.getElementById('chat-input-' + ticker);
   if (inp) inp.value = '';
-
-  // Add messages to chat
-  var msgsEl = document.getElementById('chat-messages-' + ticker);
-  if (!msgsEl) { alert('Chat not ready. Run analysis first.'); return; }
-
-  // User message
-  var userDiv = document.createElement('div');
-  userDiv.className = 'chat-msg chat-msg-user';
-  userDiv.innerHTML = '<div class="chat-msg-label">You</div><div class="chat-msg-text">' + question.replace(/</g,'&lt;') + '</div>';
-  msgsEl.appendChild(userDiv);
-
-  // AI placeholder
-  var aiDiv = document.createElement('div');
-  aiDiv.className = 'chat-msg chat-msg-ai';
-  var aiBodyId = 'cmb' + Date.now();
-  aiDiv.innerHTML = '<div class="chat-msg-label">🧠 Claude</div><div class="chat-msg-text" id="' + aiBodyId + '"><span style="color:var(--text3);">Thinking...</span></div>';
-  msgsEl.appendChild(aiDiv);
+  var u = document.createElement('div');
+  u.className = 'chat-msg chat-msg-user';
+  u.innerHTML = '<div class="chat-msg-label">You</div><div class="chat-msg-text">' + question.replace(/</g,'&lt;') + '</div>';
+  msgsEl.appendChild(u);
+  var aid = 'ai' + Date.now();
+  var a = document.createElement('div');
+  a.className = 'chat-msg chat-msg-ai';
+  a.innerHTML = '<div class="chat-msg-label">&#129504; Claude</div><div class="chat-msg-text" id="' + aid + '"><em style="color:var(--text3)">Thinking&#8230;</em></div>';
+  msgsEl.appendChild(a);
   msgsEl.scrollTop = msgsEl.scrollHeight;
-
-  // Disable chips
-  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){c.disabled=true;});
-
-  // Build messages
-  if (!_chatHistory[ticker]) _chatHistory[ticker] = [];
-  _chatHistory[ticker].push({role:'user', content: question});
-  var history = _chatHistory[ticker].slice(-6);
-  var systemMsg = 'You are a financial analyst for PulseStock. Answer concise questions about ' + ticker + '. Be specific and factual. Not financial advice.';
-  var messages = [{role:'user', content: systemMsg + '\n\nUser question: ' + question}];
-  if (history.length > 1) {
-    messages = [{role:'user', content: systemMsg + '\n\nQuestion: ' + history[0].content}].concat(history.slice(1));
-  }
-
+  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){ c.disabled = true; });
   try {
-    console.log('[chatAsk] sending to API, ticker:', ticker, 'question:', question);
-    var resp = await fetch('/api/analyze-cached', {
+    var resp = await fetch('/api/chat', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ticker: ticker + '_chat_' + Date.now(), tier:'free', messages: messages})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: ticker, question: question })
     });
-    console.log('[chatAsk] response status:', resp.status);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     var data = await resp.json();
-    console.log('[chatAsk] got data:', !!data.text);
-    var answer = (data.text || 'No answer available.').replace(/\n/g,'<br>');
-    _chatHistory[ticker].push({role:'assistant', content: data.text||''});
-    var aiBodyEl = document.getElementById(aiBodyId);
-    if (aiBodyEl) aiBodyEl.innerHTML = answer;
-  } catch(err) {
-    var aiBodyEl = document.getElementById(aiBodyId);
-    if (aiBodyEl) aiBodyEl.innerHTML = 'Error: ' + err.message + '. Please try again.';
+    var text = (data.text || data.error || 'No response.').replace(/\n/g, '<br>');
+    var el = document.getElementById(aid);
+    if (el) el.innerHTML = text;
+  } catch (e) {
+    var el = document.getElementById(aid);
+    if (el) el.textContent = 'Error: ' + e.message;
   }
-
-  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){c.disabled=false;});
+  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){ c.disabled = false; });
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
-
-
 </script>
 </body>
 </html>
