@@ -8,109 +8,117 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-font-smoothing:antialiased;}
-header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:100;}
+header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
 .logo-name{font-size:17px;font-weight:700;color:#0D1117;letter-spacing:-.4px;}
 .logo-name span{color:#1A6BF5;}
 .back{font-size:13px;color:#8A95A3;text-decoration:none;padding:7px 14px;border-radius:6px;}
 .back:hover{background:#EBF1FE;color:#1A6BF5;}
-
-/* HERO TEXT */
 .hero{text-align:center;padding:48px 24px 32px;}
 .hero h1{font-size:36px;font-weight:700;letter-spacing:-1px;margin-bottom:10px;}
 .hero h1 span{color:#1A6BF5;}
-.hero p{font-size:16px;color:#4A5568;max-width:520px;margin:0 auto;}
+.hero p{font-size:16px;color:#4A5568;max-width:500px;margin:0 auto;}
 
-/* ── FULL WIDTH SCREEN MOCKUP ──────────────────────────────────────────────── */
-.screen-demo{width:100%;background:#1A1F2A;margin:32px 0 0;border-top:3px solid #1A6BF5;border-bottom:3px solid #30363D;position:relative;overflow:hidden;}
+/* ── MONITOR MOCKUP ─────────────────────────────────────────────────────────── */
+.monitor-wrap{margin:0 auto 0;max-width:1100px;padding:0 24px;}
+.monitor{background:#1A1A1A;border-radius:12px 12px 0 0;border:3px solid #333;border-bottom:none;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.monitor-stand{height:20px;background:linear-gradient(to bottom,#2A2A2A,#1A1A1A);border:3px solid #333;border-top:none;border-radius:0 0 4px 4px;margin:0 20%;box-shadow:0 6px 0 #111;}
 
-/* Mac menu bar simulation */
-.mac-menubar{background:#1E2330;height:24px;display:flex;align-items:center;padding:0 16px;gap:16px;border-bottom:1px solid #111;}
-.mac-apple{color:#8A95A3;font-size:13px;}
-.mac-menu{font-size:11px;color:#8A95A3;display:flex;gap:14px;}
-.mac-menu span{cursor:default;}
-.mac-right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:10px;color:#8A95A3;}
+/* Inside the monitor: Mac menu bar + ticker + desktop */
+.screen{background:#1C1C2E;overflow:hidden;}
 
-/* THE TICKER BAR — full width */
-.ticker-bar{background:#0D1117;height:44px;display:flex;align-items:center;border-bottom:2px solid #1A6BF5;width:100%;}
-.t-brand{display:flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid #1C2030;height:100%;cursor:pointer;transition:background .15s;flex-shrink:0;}
+/* Mac system bar */
+.sys-bar{background:#1E1E2E;height:24px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #111;}
+.sys-left{display:flex;align-items:center;gap:14px;}
+.sys-apple{color:#C8C8C8;font-size:14px;}
+.sys-menu{display:flex;gap:14px;font-size:11px;color:#C8C8C8;}
+.sys-right{margin-left:auto;font-size:10.5px;color:#C8C8C8;font-family:'DM Mono',monospace;}
+
+/* THE TICKER — pinned right below sys bar, full width */
+.ticker{background:#0D1117;height:44px;display:flex;align-items:center;border-bottom:2px solid #1A6BF5;position:relative;z-index:10;}
+.t-brand{display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid #1C2030;height:100%;cursor:pointer;flex-shrink:0;transition:background .15s;}
 .t-brand:hover{background:#111827;}
 .t-icon{width:22px;height:22px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
 .t-name{font-size:12px;font-weight:700;color:#E6EDF3;white-space:nowrap;}
 .t-name span{color:#1A6BF5;}
 .t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
 .t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#E6EDF3;font-size:12px;font-family:'DM Sans',sans-serif;padding:3px 8px;width:120px;outline:none;transition:border-color .15s;}
-.t-input:focus{border-color:#1A6BF5;box-shadow:0 0 0 2px rgba(26,107,245,.15);}
+.t-input:focus{border-color:#1A6BF5;}
 .t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;padding:4px 10px;cursor:pointer;white-space:nowrap;}
 .t-btn:hover{background:#1558D6;}
-.tape-viewport{flex:1;overflow:hidden;position:relative;height:100%;mask-image:linear-gradient(to right,transparent 0%,black 1%,black 99%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0%,black 1%,black 99%,transparent 100%);}
+.tape-vp{flex:1;overflow:hidden;height:100%;position:relative;mask-image:linear-gradient(to right,transparent 0,black 2%,black 98%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0,black 2%,black 98%,transparent 100%);}
 .tape{display:flex;position:absolute;height:100%;align-items:center;will-change:transform;}
-.tick{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:44px;cursor:pointer;border-right:1px solid #1C2030;transition:background .1s;flex-shrink:0;}
+.tick{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:44px;cursor:pointer;border-right:1px solid #1C2030;flex-shrink:0;transition:background .1s;}
 .tick:hover{background:#111827;}
-.tick-sym{font-size:12px;font-weight:700;color:#E6EDF3;}
-.tick-price{font-size:12px;color:#8A95A3;font-family:'DM Mono',monospace;}
+.tick-sym{font-size:11.5px;font-weight:700;color:#E6EDF3;}
+.tick-prc{font-size:11.5px;color:#8A95A3;font-family:'DM Mono',monospace;}
 .tick-chg{font-size:11px;font-weight:600;font-family:'DM Mono',monospace;}
-.up{color:#0DB56B;}.dn{color:#D13F30;}.flat{color:#5A6478;}
-.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.dot.up{background:#0DB56B;}.dot.dn{background:#D13F30;}.dot.flat{background:#5A6478;}
-.t-status{display:flex;align-items:center;gap:5px;padding:0 12px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
-.s-dot{width:6px;height:6px;border-radius:50%;}
-.s-dot.open{background:#0DB56B;animation:pulse 2s infinite;}
-.s-dot.closed{background:#D13F30;}
-.s-dot.pre{background:#F59E0B;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.s-txt{font-size:10px;font-weight:700;letter-spacing:.06em;}
-.s-time{font-size:10px;color:#3D4D60;font-family:'DM Mono',monospace;}
-.t-ad{width:200px;height:100%;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer;border-left:1px solid #1C2030;}
-.ad-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 12px;opacity:0;transition:opacity .6s;background:linear-gradient(135deg,#0a1628,#0d2145);}
-.ad-slide.active{opacity:1;}
-.ad-logo{font-size:12px;font-weight:700;white-space:nowrap;}
-.ad-sep{color:#2A3040;font-size:14px;}
+.up{color:#0DB56B;}.dn{color:#D13F30;}.fl{color:#5A6478;}
+.tdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.tdot.up{background:#0DB56B;}.tdot.dn{background:#D13F30;}.tdot.fl{background:#5A6478;}
+.t-status{display:flex;align-items:center;gap:5px;padding:0 10px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
+.sdot{width:6px;height:6px;border-radius:50%;}
+.sdot.open{background:#0DB56B;animation:blink 2s infinite;}
+.sdot.closed{background:#D13F30;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.stxt{font-size:10px;font-weight:700;letter-spacing:.06em;}
+.stime{font-size:10px;color:#3D4D60;font-family:'DM Mono',monospace;}
+.t-ad{width:190px;height:100%;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer;border-left:1px solid #1C2030;}
+.ad-s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;opacity:0;transition:opacity .6s;background:linear-gradient(135deg,#0a1628,#0d2145);}
+.ad-s.on{opacity:1;}
+.ad-logo{font-size:11px;font-weight:700;}
 .ad-body{display:flex;flex-direction:column;gap:1px;}
-.ad-hl{font-size:11px;font-weight:600;color:#E6EDF3;white-space:nowrap;}
-.ad-sub{font-size:9.5px;color:#5A6478;white-space:nowrap;}
-.ad-cta{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap;flex-shrink:0;}
-.t-exit{width:44px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
-.t-exit:hover{background:rgba(209,63,48,.4);transform:scale(1.1);}
+.ad-hl{font-size:10.5px;font-weight:600;color:#E6EDF3;white-space:nowrap;}
+.ad-sub{font-size:9px;color:#5A6478;white-space:nowrap;}
+.ad-cta{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+.t-exit{width:42px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
+.t-exit:hover{background:rgba(209,63,48,.4);}
 
-/* Browser window below ticker */
-.browser-window{background:#2D3748;border-bottom:1px solid #1A1F2A;}
-.browser-chrome{background:#2D3748;padding:8px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1A1F2A;}
-.browser-dots{display:flex;gap:5px;}
-.b-dot{width:11px;height:11px;border-radius:50%;}
-.browser-tabs{display:flex;gap:2px;flex:1;margin:0 10px;}
-.b-tab{background:#1E2330;border-radius:6px 6px 0 0;padding:5px 14px;font-size:11px;color:#8A95A3;display:flex;align-items:center;gap:6px;cursor:pointer;}
-.b-tab.active{background:#3A4557;color:#E6EDF3;}
-.b-tab-plus{background:none;border:none;color:#5A6478;font-size:16px;cursor:pointer;padding:0 6px;}
-.browser-bar{background:#1A1F2A;margin:6px 14px;border-radius:6px;padding:5px 12px;font-size:11px;color:#8A95A3;font-family:'DM Mono',monospace;}
-/* Browser content */
-.browser-content{padding:20px 24px;background:#F7F8FA;min-height:220px;}
-.ps-app-header{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.ps-logo-sm{display:flex;align-items:center;gap:8px;}
-.ps-icon-sm{width:24px;height:24px;background:#1A6BF5;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
-.ps-name-sm{font-size:14px;font-weight:700;color:#0D1117;}
-.ps-name-sm span{color:#1A6BF5;}
-.ps-search-row{display:flex;gap:10px;margin-bottom:14px;}
-.ps-search{flex:1;background:#fff;border:1.5px solid #E2E6ED;border-radius:8px;padding:10px 14px;font-size:14px;color:#0D1117;font-family:'DM Sans',sans-serif;}
-.ps-search-btn{background:#1A6BF5;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;}
-.ps-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.ps-card{background:#fff;border:1px solid #E2E6ED;border-radius:8px;padding:14px;font-size:12px;color:#4A5568;}
-.ps-card-title{font-size:11px;font-weight:600;color:#8A95A3;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-.ps-card-val{font-size:18px;font-weight:700;color:#0D1117;}
+/* DESKTOP AREA — windows start right below the ticker */
+.desktop{position:relative;height:380px;background:#1C1C2E;overflow:hidden;padding:10px;}
 
-/* Annotation arrow */
-.annotation{position:absolute;left:50%;transform:translateX(-50%);background:#1A6BF5;color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;white-space:nowrap;top:68px;}
+/* Blurred overlay hint */
+.desk-hint{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(to bottom,rgba(26,107,245,.4),transparent);z-index:5;}
 
-/* CONTENT BELOW DEMO */
+/* Chrome window */
+.win{position:absolute;background:#252535;border-radius:8px;border:1px solid #333;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.win-tb{background:#2D3748;padding:7px 10px;display:flex;align-items:center;gap:6px;}
+.wdots{display:flex;gap:4px;}
+.wd{width:10px;height:10px;border-radius:50%;}
+.win-tabs{display:flex;gap:2px;margin-left:8px;}
+.wtab{padding:4px 10px;border-radius:5px 5px 0 0;font-size:10px;cursor:pointer;}
+.wtab.on{background:#3A4557;color:#E6EDF3;}
+.wtab.off{background:#1E2330;color:#5A6478;}
+.wurl{background:#141923;margin:4px 8px;border-radius:5px;padding:3px 8px;font-size:10px;color:#5A6478;font-family:monospace;}
+.wcontent{background:#F7F8FA;padding:12px;}
+.ps-mini{background:#fff;border:1px solid #E2E6ED;border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.ps-mini-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.pmc{background:#fff;border:1px solid #E2E6ED;border-radius:5px;padding:7px 8px;}
+.pmc-label{font-size:8.5px;color:#8A95A3;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.pmc-val{font-size:13px;font-weight:700;}
+
+/* Terminal window */
+.term-content{background:#0D1117;padding:10px 12px;font-family:'DM Mono',monospace;font-size:10px;line-height:1.9;color:#8DE8A0;}
+.tc-prompt{color:#1A6BF5;}
+.tc-dim{color:#484F58;}
+
+/* Excel */
+.xl-content{background:#1A3A1C;padding:8px 10px;font-size:10px;}
+.xl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;color:#8ABA8C;line-height:1.8;}
+.xl-hd{font-weight:700;color:#5A8A5C;}
+
+/* CALLOUT LABELS floating on desktop */
+.desk-label{position:absolute;background:rgba(26,107,245,.85);color:#fff;font-size:10.5px;font-weight:600;padding:4px 12px;border-radius:20px;backdrop-filter:blur(4px);white-space:nowrap;z-index:20;}
+
+/* CONTENT BELOW */
 .content{max-width:900px;margin:0 auto;padding:40px 24px;}
-.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:40px;}
+.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:36px;}
 @media(max-width:700px){.callouts{grid-template-columns:1fr 1fr;}}
 .callout{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
 .callout-icon{font-size:24px;margin-bottom:8px;}
 .callout h4{font-size:13px;font-weight:600;margin-bottom:4px;}
 .callout p{font-size:12px;color:#4A5568;line-height:1.5;}
-
 .download-card{background:#fff;border:1.5px solid #1A6BF5;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 16px rgba(26,107,245,.1);margin-bottom:28px;}
 .download-card h2{font-size:22px;font-weight:700;margin-bottom:6px;}
 .download-card p{font-size:14px;color:#4A5568;margin-bottom:20px;}
@@ -119,18 +127,17 @@ header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;
 .dl-btn:hover{opacity:.88;}
 .dl-primary{background:#0D1117;color:#fff;}
 .dl-secondary{background:#F2F4F7;color:#0D1117;border:1.5px solid #E2E6ED;}
-
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
 @media(max-width:600px){.steps{grid-template-columns:1fr;}}
 .step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
 .step-num{width:26px;height:26px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;margin-bottom:10px;}
 .step h3{font-size:13.5px;font-weight:600;margin-bottom:5px;}
 .step p{font-size:12.5px;color:#4A5568;line-height:1.6;}
-.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace;}
+.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11px;font-family:'DM Mono',monospace;}
 .terminal{background:#0D1117;border-radius:10px;padding:14px 18px;margin:0 0 28px;border:1px solid #30363D;}
 .terminal div{font-family:'DM Mono',monospace;font-size:12.5px;line-height:2.2;color:#8DE8A0;}
-.terminal .prompt{color:#1A6BF5;}
-.terminal .comment{color:#484F58;}
+.terminal .pr{color:#1A6BF5;}
+.terminal .cm{color:#484F58;}
 footer{text-align:center;padding:28px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;}
 footer a{color:#8A95A3;text-decoration:none;margin:0 8px;}
 footer a:hover{color:#1A6BF5;}
@@ -139,104 +146,100 @@ footer a:hover{color:#1A6BF5;}
 <body>
 
 <header>
-  <a href="/" class="logo">
-    <div class="logo-icon">P</div>
-    <div class="logo-name">Pulse<span>Stock</span></div>
-  </a>
+  <a href="/" class="logo"><div class="logo-icon">P</div><div class="logo-name">Pulse<span>Stock</span></div></a>
   <a href="/" class="back">← Back to App</a>
 </header>
 
 <div class="hero">
   <h1>PulseStock <span>Desktop Ticker</span></h1>
-  <p>A persistent 44px bar that pins across the full top of your screen — always visible while you work in any app.</p>
+  <p>Pins across the full top of your screen. Every app you use sits below it — it never goes away.</p>
 </div>
 
-<!-- FULL WIDTH SCREEN MOCKUP -->
-<div class="screen-demo">
+<!-- MONITOR MOCKUP -->
+<div class="monitor-wrap">
+<div class="monitor">
+<div class="screen">
 
   <!-- Mac system menu bar -->
-  <div class="mac-menubar">
-    <span class="mac-apple">&#63743;</span>
-    <div class="mac-menu">
-      <span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span>
+  <div class="sys-bar">
+    <div class="sys-left">
+      <span class="sys-apple">&#63743;</span>
+      <div class="sys-menu"><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span>Window</span></div>
     </div>
-    <div class="mac-right">
-      <span id="demo-stime2" style="font-family:'DM Mono',monospace;"></span>
-    </div>
+    <span class="sys-right" id="sys-time"></span>
   </div>
 
-  <!-- THE TICKER BAR — FULL WIDTH -->
-  <div class="ticker-bar">
-    <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')" title="Open PulseStock">
+  <!-- TICKER BAR — full width, pinned -->
+  <div class="ticker">
+    <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
       <div class="t-icon">P</div>
       <div class="t-name">Pulse<span>Stock</span></div>
     </div>
     <div class="t-search">
-      <input id="demo-input" class="t-input" placeholder="Ticker..." maxlength="10" onkeydown="if(event.key==='Enter')demoSearch()"/>
-      <button class="t-btn" onclick="demoSearch()">Analyze ↗</button>
+      <input id="ti" class="t-input" placeholder="Ticker..." maxlength="10" onkeydown="if(event.key==='Enter')doSearch()"/>
+      <button class="t-btn" onclick="doSearch()">Analyze ↗</button>
     </div>
-    <div class="tape-viewport">
-      <div class="tape" id="demo-tape"></div>
-    </div>
+    <div class="tape-vp"><div class="tape" id="tape"></div></div>
     <div class="t-status">
-      <div class="s-dot" id="demo-sdot"></div>
-      <span class="s-txt" id="demo-stxt"></span>
-      <span class="s-time" id="demo-stime"></span>
+      <div class="sdot" id="sdot"></div>
+      <span class="stxt" id="stxt"></span>
+      <span class="stime" id="stime"></span>
     </div>
-    <div class="t-ad" id="demo-ad"></div>
-    <div class="t-exit" onclick="alert('In the real app this closes the ticker bar.')" title="Close ticker">✕</div>
+    <div class="t-ad" id="ad-zone"></div>
+    <div class="t-exit" onclick="alert('On your Mac this closes the ticker bar.')" title="Close">✕</div>
   </div>
 
-  <!-- MULTI-WINDOW DESKTOP SCENE -->
-  <div style="background:#1A1F2A;position:relative;min-height:320px;padding:12px;overflow:hidden;">
+  <!-- DESKTOP — windows start immediately below ticker -->
+  <div class="desktop">
+    <div class="desk-hint"></div>
 
-    <!-- Window 1: Chrome (back left) -->
-    <div style="position:absolute;left:12px;top:12px;width:58%;background:#252535;border-radius:8px;border:1px solid #333;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.4);">
-      <div style="background:#2D3748;padding:7px 12px;display:flex;align-items:center;gap:6px;">
-        <div style="display:flex;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:#FF5F56;"></div><div style="width:10px;height:10px;border-radius:50%;background:#FFBD2E;"></div><div style="width:10px;height:10px;border-radius:50%;background:#27C93F;"></div></div>
-        <div style="display:flex;gap:2px;margin-left:8px;">
-          <div style="background:#1E2330;border-radius:5px 5px 0 0;padding:4px 12px;font-size:10px;color:#E6EDF3;display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#1A6BF5;border-radius:2px;display:inline-block;"></span>PulseStock</div>
-          <div style="background:#1A1F2A;border-radius:5px 5px 0 0;padding:4px 10px;font-size:10px;color:#5A6478;">Gmail</div>
-          <div style="background:#1A1F2A;border-radius:5px 5px 0 0;padding:4px 10px;font-size:10px;color:#5A6478;">Bloomberg</div>
+    <!-- Chrome window -->
+    <div class="win" style="left:10px;top:8px;width:58%;z-index:3;">
+      <div class="win-tb">
+        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
+        <div class="win-tabs">
+          <div class="wtab on">📈 PulseStock</div>
+          <div class="wtab off">Gmail</div>
+          <div class="wtab off">Bloomberg</div>
+          <div style="color:#5A6478;font-size:14px;padding:0 6px;cursor:pointer;">+</div>
         </div>
       </div>
-      <div style="background:#141923;padding:4px 10px;font-size:10px;color:#5A6478;font-family:monospace;">pulsestock-nu.vercel.app</div>
-      <div style="background:#F7F8FA;padding:12px;">
-        <div style="background:#fff;border:1px solid #E2E6ED;border-radius:7px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="display:flex;align-items:center;gap:7px;"><div style="width:20px;height:20px;background:#1A6BF5;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;">P</div><span style="font-size:12px;font-weight:700;color:#0D1117;">Pulse<span style="color:#1A6BF5;">Stock</span></span></div>
-          <span style="font-size:10px;color:#8A95A3;">AI-Powered · Live Data</span>
+      <div class="wurl">pulsestock-nu.vercel.app</div>
+      <div class="wcontent">
+        <div class="ps-mini">
+          <div style="display:flex;align-items:center;gap:7px;"><div style="width:18px;height:18px;background:#1A6BF5;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;">P</div><span style="font-size:12px;font-weight:700;">Pulse<span style="color:#1A6BF5;">Stock</span></span></div>
+          <span style="font-size:9px;color:#8A95A3;">AI-Powered · Live Data</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-          <div style="background:#fff;border:1px solid #E2E6ED;border-radius:6px;padding:8px;"><div style="font-size:9px;color:#8A95A3;margin-bottom:3px;">PRICE</div><div style="font-size:14px;font-weight:700;color:#0DB56B;">$207.34</div></div>
-          <div style="background:#fff;border:1px solid #E2E6ED;border-radius:6px;padding:8px;"><div style="font-size:9px;color:#8A95A3;margin-bottom:3px;">SIGNAL</div><div style="font-size:14px;font-weight:700;color:#1A6BF5;">BUY</div></div>
-          <div style="background:#fff;border:1px solid #E2E6ED;border-radius:6px;padding:8px;"><div style="font-size:9px;color:#8A95A3;margin-bottom:3px;">SHORT VOL</div><div style="font-size:14px;font-weight:700;color:#0D1117;">48.2%</div></div>
+        <div class="ps-mini-cards">
+          <div class="pmc"><div class="pmc-label">AAPL Price</div><div class="pmc-val" style="color:#0DB56B;">$207.34</div></div>
+          <div class="pmc"><div class="pmc-label">AI Signal</div><div class="pmc-val" style="color:#1A6BF5;">BUY</div></div>
+          <div class="pmc"><div class="pmc-label">Short Vol</div><div class="pmc-val">48.2%</div></div>
         </div>
       </div>
     </div>
 
-    <!-- Window 2: Terminal (back right) -->
-    <div style="position:absolute;right:12px;top:12px;width:38%;background:#0D1117;border-radius:8px;border:1px solid #333;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.4);">
-      <div style="background:#1A1F2A;padding:7px 12px;display:flex;align-items:center;gap:6px;">
-        <div style="display:flex;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:#FF5F56;"></div><div style="width:10px;height:10px;border-radius:50%;background:#FFBD2E;"></div><div style="width:10px;height:10px;border-radius:50%;background:#27C93F;"></div></div>
-        <span style="font-size:10px;color:#5A6478;margin-left:6px;">Terminal — zsh</span>
+    <!-- Terminal window -->
+    <div class="win" style="right:10px;top:8px;width:38%;z-index:3;">
+      <div class="win-tb">
+        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
+        <span style="font-size:10px;color:#5A6478;margin-left:8px;">Terminal — zsh</span>
       </div>
-      <div style="padding:10px 12px;font-family:monospace;font-size:10px;line-height:1.9;color:#8DE8A0;">
-        <div><span style="color:#1A6BF5;">$</span> cd ~/Downloads/pulsestock-ticker</div>
-        <div><span style="color:#1A6BF5;">$</span> npm start 2>/dev/null</div>
-        <div style="color:#484F58;"># Ticker launched ✓</div>
-        <div><span style="color:#1A6BF5;">$</span> <span style="animation:blink 1s infinite;">▊</span></div>
+      <div class="term-content">
+        <div><span class="tc-prompt">$</span> npm start 2>/dev/null</div>
+        <div class="tc-dim"># PulseStock Ticker running ✓</div>
+        <div><span class="tc-prompt">$</span> <span style="animation:blink 1s step-end infinite;font-weight:700;">▊</span></div>
       </div>
     </div>
 
-    <!-- Window 3: Spreadsheet (bottom, slightly lower) -->
-    <div style="position:absolute;left:40px;bottom:12px;width:45%;background:#1E4620;border-radius:8px;border:1px solid #333;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.4);opacity:.8;">
-      <div style="background:#1A3A1C;padding:7px 12px;display:flex;align-items:center;gap:6px;">
-        <div style="display:flex;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:#FF5F56;"></div><div style="width:10px;height:10px;border-radius:50%;background:#FFBD2E;"></div><div style="width:10px;height:10px;border-radius:50%;background:#27C93F;"></div></div>
-        <span style="font-size:10px;color:#5A8A5C;margin-left:6px;">Portfolio Tracker.xlsx — Excel</span>
+    <!-- Excel window partially behind -->
+    <div class="win" style="left:30px;bottom:0;width:50%;z-index:2;opacity:.9;">
+      <div class="win-tb">
+        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
+        <span style="font-size:10px;color:#5A8A5C;margin-left:8px;">Portfolio.xlsx — Excel</span>
       </div>
-      <div style="padding:8px 12px;font-size:10px;color:#5A8A5C;line-height:1.8;">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;color:#8ABA8C;">
-          <div style="font-weight:700;">Ticker</div><div style="font-weight:700;">Shares</div><div style="font-weight:700;">Price</div><div style="font-weight:700;">P&L</div>
+      <div class="xl-content">
+        <div class="xl-grid">
+          <div class="xl-hd">Ticker</div><div class="xl-hd">Shares</div><div class="xl-hd">Price</div><div class="xl-hd">P&L</div>
           <div>AAPL</div><div>100</div><div>$207.34</div><div style="color:#0DB56B;">+$4,234</div>
           <div>NVDA</div><div>50</div><div>$131.82</div><div style="color:#0DB56B;">+$2,891</div>
           <div>TSLA</div><div>25</div><div>$248.50</div><div style="color:#D13F30;">-$312</div>
@@ -244,26 +247,31 @@ footer a:hover{color:#1A6BF5;}
       </div>
     </div>
 
-    <!-- LABEL BADGE -->
-    <div style="position:absolute;bottom:16px;right:16px;background:rgba(26,107,245,.9);color:#fff;font-size:11px;font-weight:600;padding:6px 14px;border-radius:20px;backdrop-filter:blur(4px);">
-      Ticker bar stays on top of all windows ↑
+    <!-- Floating labels -->
+    <div class="desk-label" style="top:16px;left:50%;transform:translateX(-50%);">
+      ↑ Ticker bar sits above all windows — always visible
     </div>
-
+    <div class="desk-label" style="bottom:16px;right:16px;background:rgba(13,181,107,.8);">
+      ✓ All apps work normally below
+    </div>
   </div>
 
-  <div style="background:#111827;padding:6px 0;text-align:center;font-size:11px;color:#3D4D60;letter-spacing:.02em;">
-    ↑ Interactive — type any ticker above and click Analyze ↗ to open live analysis · Ticker scrolls in real time
-  </div>
+</div>
+</div>
+<div class="monitor-stand"></div>
+</div>
+
+<div style="text-align:center;padding:10px 24px 36px;font-size:12px;color:#8A95A3;">
+  ↑ Interactive demo — type any ticker in the search box and click Analyze ↗ to open live analysis
 </div>
 
 <!-- CONTENT -->
 <div class="content">
-
   <div class="callouts">
     <div class="callout"><div class="callout-icon">📊</div><h4>Live Quotes</h4><p>Real prices every 15 seconds across your full ticker list</p></div>
-    <div class="callout"><div class="callout-icon">🔍</div><h4>Instant Analysis</h4><p>Type any ticker → AI analysis opens immediately</p></div>
+    <div class="callout"><div class="callout-icon">🔍</div><h4>Instant Analysis</h4><p>Type any ticker → full AI analysis opens immediately</p></div>
     <div class="callout"><div class="callout-icon">📌</div><h4>Always On Top</h4><p>Stays visible across Chrome, Excel, Terminal — everything</p></div>
-    <div class="callout"><div class="callout-icon">💰</div><h4>Free to Use</h4><p>No account needed to download and run</p></div>
+    <div class="callout"><div class="callout-icon">💰</div><h4>Free to Download</h4><p>No account needed. Just download and run.</p></div>
   </div>
 
   <div class="download-card">
@@ -276,134 +284,104 @@ footer a:hover{color:#1A6BF5;}
   </div>
 
   <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Install Node.js</h3>
-      <p>Download Node.js LTS from <code>nodejs.org</code>. Verify with <code>node --version</code> in Terminal.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <h3>Download & Extract</h3>
-      <p>Download the ZIP above and extract it to your Downloads folder.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>Launch from Terminal</h3>
-      <p>Navigate to the folder and run the commands below. Ticker appears instantly.</p>
-    </div>
+    <div class="step"><div class="step-num">1</div><h3>Install Node.js</h3><p>Download Node.js LTS from <code>nodejs.org</code>. Verify with <code>node --version</code> in Terminal.</p></div>
+    <div class="step"><div class="step-num">2</div><h3>Download & Extract</h3><p>Download the ZIP above and extract it to your Downloads folder.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Launch</h3><p>Open Terminal, navigate to the folder, run the commands below.</p></div>
   </div>
 
   <div class="terminal">
-    <div><span class="prompt">$</span> cd ~/Downloads/pulsestock-ticker</div>
-    <div><span class="prompt">$</span> npm install</div>
-    <div><span class="prompt">$</span> npm start 2>/dev/null</div>
-    <div class="comment"># Ticker bar appears at top of screen</div>
-    <div class="comment"># Right-click to edit your ticker list</div>
-    <div class="comment"># Click ✕ on the right to close</div>
+    <div><span class="pr">$</span> cd ~/Downloads/pulsestock-ticker</div>
+    <div><span class="pr">$</span> npm install</div>
+    <div><span class="pr">$</span> npm start 2>/dev/null</div>
+    <div class="cm"># Ticker bar appears at the top of your screen</div>
+    <div class="cm"># Right-click to edit your ticker list · Click ✕ to close</div>
   </div>
-
 </div>
 
 <footer>
-  <a href="/">Home</a>
-  <a href="/signin">Pricing</a>
-  <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank">GitHub</a>
+  <a href="/">Home</a><a href="/signin">Pricing</a><a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank">GitHub</a>
   <br/><br/>© 2026 PulseStock, Inc. · Not financial advice.
 </footer>
 
 <script>
-var stocks = [
+var stocks=[
   {s:'AAPL',p:207.34,c:1.2},{s:'NVDA',p:131.82,c:2.8},{s:'MSFT',p:442.16,c:-0.4},
   {s:'TSLA',p:248.50,c:3.1},{s:'META',p:612.44,c:0.9},{s:'AMZN',p:198.22,c:-0.7},
   {s:'JPM',p:248.10,c:0.5},{s:'GOOGL',p:178.92,c:1.4},{s:'XOM',p:112.34,c:-1.1},
-  {s:'V',p:294.56,c:0.6},{s:'BRK-B',p:468.20,c:0.3},{s:'LLY',p:842.10,c:2.1},
-  {s:'NFLX',p:1124.50,c:0.8},{s:'NVDA',p:131.82,c:2.8},{s:'AMD',p:168.44,c:1.5},
+  {s:'V',p:294.56,c:0.6},{s:'LLY',p:842.10,c:2.1},{s:'NFLX',p:1124.50,c:0.8},
 ];
 var ads=[
   {logo:'Webull',lc:'#00AEEF',hl:'Trade commission-free',sub:'$0 commissions',cta:'Open account',cc:'#00AEEF'},
   {logo:'IBKR',lc:'#E31837',hl:'Advanced trading tools',sub:'Lowest margin rates',cta:'Learn more',cc:'#E31837'},
   {logo:'Tastytrade',lc:'#FF6B00',hl:'Options & futures',sub:'$1 open · $0 close',cta:'Trade free',cc:'#FF6B00'},
 ];
-var adIdx=0, tapePx=0;
+var adIdx=0,px=0;
 
 function buildTape(){
-  var tape=document.getElementById('demo-tape');
+  var tape=document.getElementById('tape');
   var items=[...stocks,...stocks,...stocks];
   tape.innerHTML=items.map(function(s){
-    var cls=s.c>0?'up':s.c<0?'dn':'flat';
+    var cls=s.c>0?'up':s.c<0?'dn':'fl';
     var chg=(s.c>0?'+':'')+s.c.toFixed(2)+'%';
     return '<div class="tick" onclick="openStock(\''+s.s+'\')" title="Analyze '+s.s+'">'
-      +'<div class="dot '+cls+'"></div>'
+      +'<div class="tdot '+cls+'"></div>'
       +'<span class="tick-sym">'+s.s+'</span>'
-      +'<span class="tick-price">$'+s.p.toFixed(2)+'</span>'
+      +'<span class="tick-prc">$'+s.p.toFixed(2)+'</span>'
       +'<span class="tick-chg '+cls+'">'+chg+'</span>'
       +'</div>';
   }).join('');
 }
-
-function animateTape(){
-  var tape=document.getElementById('demo-tape');
+function animTape(){
+  var tape=document.getElementById('tape');
   if(!tape)return;
-  tapePx-=0.5;
+  px-=0.5;
   var items=tape.children;
-  if(items.length>0){
-    var w=items[0].offsetWidth*stocks.length;
-    if(Math.abs(tapePx)>=w) tapePx+=w;
-  }
-  tape.style.transform='translateX('+tapePx+'px)';
-  requestAnimationFrame(animateTape);
+  if(items.length>0){var w=items[0].offsetWidth*stocks.length;if(Math.abs(px)>=w)px+=w;}
+  tape.style.transform='translateX('+px+'px)';
+  requestAnimationFrame(animTape);
 }
-
 function buildAds(){
-  var zone=document.getElementById('demo-ad');
-  zone.innerHTML=ads.map(function(a,i){
-    return '<div class="ad-slide'+(i===0?' active':'')+'">'
+  var z=document.getElementById('ad-zone');
+  z.innerHTML=ads.map(function(a,i){
+    return '<div class="ad-s'+(i===0?' on':'')+'">'
       +'<span class="ad-logo" style="color:'+a.lc+'">'+a.logo+'</span>'
-      +'<span class="ad-sep">|</span>'
+      +'<span style="color:#2A3040;font-size:12px;">|</span>'
       +'<div class="ad-body"><span class="ad-hl">'+a.hl+'</span><span class="ad-sub">'+a.sub+'</span></div>'
       +'<span class="ad-cta" style="color:'+a.cc+';border-color:'+a.cc+'">'+a.cta+'</span>'
       +'</div>';
   }).join('');
 }
-
 function rotateAd(){
-  var slides=document.querySelectorAll('.ad-slide');
-  slides[adIdx].classList.remove('active');
+  var s=document.querySelectorAll('.ad-s');
+  s[adIdx].classList.remove('on');
   adIdx=(adIdx+1)%ads.length;
-  slides[adIdx].classList.add('active');
+  s[adIdx].classList.add('on');
 }
-
 function updateStatus(){
   var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   var h=et.getHours(),m=et.getMinutes(),d=et.getDay();
-  var wkday=d>=1&&d<=5;
-  var open=wkday&&(h>9||(h===9&&m>=30))&&h<16;
-  var pre=wkday&&h>=4&&(h<9||(h===9&&m<30));
-  var ah=wkday&&h>=16&&h<20;
-  var dot=document.getElementById('demo-sdot');
-  var txt=document.getElementById('demo-stxt');
+  var wk=d>=1&&d<=5;
+  var open=wk&&(h>9||(h===9&&m>=30))&&h<16;
+  var pre=wk&&h>=4&&(h<9||(h===9&&m<30));
+  var ah=wk&&h>=16&&h<20;
   var ts=et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
-  document.getElementById('demo-stime').textContent=ts+' ET';
-  document.getElementById('demo-stime2').textContent=ts;
-  if(open){dot.className='s-dot open';txt.textContent='OPEN';txt.style.color='#0DB56B';}
-  else if(pre){dot.className='s-dot pre';txt.textContent='PRE';txt.style.color='#F59E0B';}
-  else if(ah){dot.className='s-dot pre';txt.textContent='AH';txt.style.color='#F59E0B';}
-  else{dot.className='s-dot closed';txt.textContent='CLOSED';txt.style.color='#5A6478';}
+  document.getElementById('stime').textContent=ts+' ET';
+  document.getElementById('sys-time').textContent=ts;
+  var dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
+  if(open){dot.className='sdot open';txt.textContent='OPEN';txt.style.color='#0DB56B';}
+  else if(pre||ah){dot.className='sdot open';txt.textContent=pre?'PRE':'AH';txt.style.color='#F59E0B';}
+  else{dot.className='sdot closed';txt.textContent='CLOSED';txt.style.color='#5A6478';}
 }
-
-function demoSearch(){
-  var t=document.getElementById('demo-input').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+function doSearch(){
+  var t=document.getElementById('ti').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
   if(!t)return;
   openStock(t);
-  document.getElementById('demo-input').value='';
+  document.getElementById('ti').value='';
 }
-
-function openStock(t){
-  window.open('https://pulsestock-nu.vercel.app/?ticker='+t,'_blank');
-}
+function openStock(t){window.open('https://pulsestock-nu.vercel.app/?ticker='+t,'_blank');}
 
 buildTape();buildAds();updateStatus();
-requestAnimationFrame(animateTape);
+requestAnimationFrame(animTape);
 setInterval(rotateAd,8000);
 setInterval(updateStatus,30000);
 </script>
