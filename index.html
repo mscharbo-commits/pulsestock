@@ -1015,11 +1015,76 @@ function renderShortInterest(ticker, data){
   el.innerHTML = html;
 }
 
+async // Track news state per ticker
+var _newsState = {};
+
 async function reloadNews(ticker, days){
+  days = parseInt(days) || 7;
+  _newsState[ticker] = { days: days, offset: 0, allArticles: [] };
   var el = document.getElementById('news-list-' + ticker);
   if(el) el.innerHTML = '<div class="news-loading">Loading news...</div>';
+  var rangeEl = document.getElementById('news-range-' + ticker);
+  if(rangeEl) rangeEl.textContent = 'Loading...';
   var articles = await fetchNews(ticker, days);
+  _newsState[ticker].allArticles = articles;
   renderNews(ticker, articles);
+  // Show Load More button if we got a full page (likely more available)
+  var moreBtn = document.getElementById('news-load-more-' + ticker);
+  if(moreBtn) moreBtn.style.display = articles.length >= 25 ? 'block' : 'none';
+  if(rangeEl) rangeEl.textContent = 'Last ' + days + ' day' + (days > 1 ? 's' : '');
+}
+
+async function loadMoreNews(ticker){
+  var state = _newsState[ticker] || { days: 7, allArticles: [] };
+  var btn = document.querySelector('#news-load-more-' + ticker + ' button');
+  if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
+  // Fetch next window — go back further
+  var newDays = state.days + 14;
+  var articles = await fetchNews(ticker, newDays);
+  // Only show articles we haven't shown yet (by id or datetime)
+  var existingIds = new Set(state.allArticles.map(function(a){ return a.id || a.datetime + a.headline; }));
+  var newArticles = articles.filter(function(a){ 
+    return !existingIds.has(a.id || a.datetime + a.headline); 
+  });
+  _newsState[ticker] = { days: newDays, allArticles: state.allArticles.concat(newArticles) };
+  // Append new articles to existing list
+  var el = document.getElementById('news-list-' + ticker);
+  if(el && newArticles.length > 0){
+    var tempDiv = document.createElement('div');
+    tempDiv.innerHTML = renderNewsItems(newArticles);
+    while(tempDiv.firstChild){ el.appendChild(tempDiv.firstChild); }
+  }
+  var rangeEl = document.getElementById('news-range-' + ticker);
+  if(rangeEl) rangeEl.textContent = 'Last ' + newDays + ' days';
+  var moreBtn = document.getElementById('news-load-more-' + ticker);
+  if(moreBtn){
+    if(newArticles.length >= 10 && newDays < 180){
+      moreBtn.style.display = 'block';
+      if(btn){ btn.textContent = 'Load older news ↓'; btn.disabled = false; }
+    } else {
+      moreBtn.style.display = 'none';
+    }
+  }
+}
+
+// Global renderNewsItems for use by loadMoreNews
+function renderNewsItems(slice) {
+  return slice.map(function(a){
+    var ago = timeAgo(a.datetime);
+    var sentClass = 'news-neu';
+    var h = (a.headline||'').toLowerCase();
+    var posWords = ['surge','soar','gain','beat','profit','record','high','rise','upgrade','buy','bull','strong','growth'];
+    var negWords = ['fall','drop','loss','miss','cut','downgrade','sell','bear','weak','decline','crash','plunge'];
+    if(posWords.some(function(w){return h.includes(w);})) sentClass = 'news-pos';
+    else if(negWords.some(function(w){return h.includes(w);})) sentClass = 'news-neg';
+    return '<a href="' + (a.url||'#') + '" target="_blank" class="news-item ' + sentClass + '">'
+      + '<div class="news-content">'
+      + '<div class="news-headline">' + (a.headline||'') + '</div>'
+      + '<div class="news-meta"><span class="news-source">' + (a.source||'') + '</span><span class="news-time">' + ago + '</span></div>'
+      + '</div>'
+      + (a.image ? '<img src="' + a.image + '" class="news-thumb" onerror="this.style.display=\'none\'" loading="lazy"/>' : '')
+      + '</a>';
+  }).join('');
 }
 
 function timeAgo(ts){
@@ -1088,7 +1153,7 @@ async function doAnalyze(){
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 90),fetchEdgar(ticker)]);
+  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 7),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
   setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 500);
@@ -1423,14 +1488,21 @@ async function doAnalyze(){
   <div class="news-card" id="news-card-${ticker}">
     <div class="news-header">
       <h3>📰 Latest News — ${ticker}</h3>
-      <select id="news-period-${ticker}" onchange="reloadNews('${ticker}',this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);color:var(--text2);background:var(--surface);">
-        <option value="7">Last 7 days</option>
-        <option value="30" selected>Last 30 days</option>
-        <option value="90">Last 3 months</option>
-        <option value="180">Last 6 months</option>
-      </select>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="news-range-${ticker}" style="font-size:11px;color:var(--text3);">Last 7 days</span>
+        <select id="news-period-${ticker}" onchange="reloadNews('${ticker}',this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);color:var(--text2);background:var(--surface);">
+          <option value="7" selected>Last 7 days</option>
+          <option value="14">Last 2 weeks</option>
+          <option value="30">Last 30 days</option>
+        </select>
+      </div>
     </div>
     <div id="news-list-${ticker}"><div class="news-loading">Loading news...</div></div>
+    <div id="news-load-more-${ticker}" style="display:none;padding:12px 20px;border-top:1px solid var(--border);text-align:center;">
+      <button onclick="loadMoreNews('${ticker}')" style="padding:8px 24px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+        Load older news ↓
+      </button>
+    </div>
   </div>
 
   </div><!-- end news section -->
