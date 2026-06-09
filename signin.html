@@ -28,7 +28,7 @@ body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-f
 .save-badge{background:#E6F7F1;color:#0D9B6B;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;}
 
 /* TIER GRID */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px;align-items:stretch;}
 
 .tier{background:#fff;border:1px solid #E2E6ED;border-radius:16px;padding:28px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);}
 .tier.popular{border:2px solid #1A6BF5;position:relative;}
@@ -56,7 +56,9 @@ body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-f
 .badge-hot{background:#FDECEA;color:#D13F30;}
 .badge-soon{background:#F2F4F7;color:#8A95A3;}
 
-.cta-btn{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:center;border:none;margin-top:auto;padding-top:24px;letter-spacing:.01em;transition:opacity .15s;text-decoration:none;}
+.cta-btn{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:center;border:none;margin-top:24px;letter-spacing:.01em;transition:opacity .15s;text-decoration:none;}
+.tier{background:#fff;border:1px solid #E2E6ED;border-radius:16px;padding:28px;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);}
+.tier .cta-btn{margin-top:auto;padding-top:24px;}
 .cta-btn:hover{opacity:.88;}
 .cta-free{background:#F2F4F7;color:#0D1117;}
 .cta-pro{background:#1A6BF5;color:#fff;}
