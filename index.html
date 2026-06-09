@@ -3826,6 +3826,25 @@ function makePaginator(items, perPage, renderFn, containerId) {
 
 
 loadTickerBar();
+
+// ── URL PARAMETER HANDLER ─────────────────────────────────────────────────
+// Handles ?ticker=AAPL from PulseStock Desktop Ticker and direct links
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var ticker = params.get('ticker') || params.get('t') || params.get('symbol');
+  if (ticker) {
+    ticker = ticker.toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
+    if (ticker) {
+      // Small delay to let the page fully initialize
+      setTimeout(function() {
+        goAnalyze(ticker);
+        // Clean up URL without reloading
+        window.history.replaceState({}, '', '/');
+      }, 300);
+    }
+  }
+})();
+
 // Refresh every 60 seconds
 setInterval(loadTickerBar, 60000);
 
