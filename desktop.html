@@ -15,130 +15,122 @@ header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;
 .logo-name span{color:#1A6BF5;}
 .back{font-size:13px;color:#8A95A3;text-decoration:none;padding:7px 14px;border-radius:6px;}
 .back:hover{background:#EBF1FE;color:#1A6BF5;}
-.hero{text-align:center;padding:48px 24px 32px;}
-.hero h1{font-size:36px;font-weight:700;letter-spacing:-1px;margin-bottom:10px;}
+
+/* HERO */
+.hero{text-align:center;padding:56px 24px 40px;}
+.hero-badge{display:inline-block;background:#EBF1FE;color:#1A6BF5;font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;margin-bottom:16px;letter-spacing:.03em;}
+.hero h1{font-size:40px;font-weight:700;letter-spacing:-1.5px;margin-bottom:12px;line-height:1.15;}
 .hero h1 span{color:#1A6BF5;}
-.hero p{font-size:16px;color:#4A5568;max-width:500px;margin:0 auto;}
+.hero p{font-size:17px;color:#4A5568;max-width:500px;margin:0 auto 32px;line-height:1.6;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-dark{padding:13px 28px;background:#0D1117;color:#fff;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+.btn-dark:hover{background:#1A1F2A;}
+.btn-ghost{padding:13px 22px;background:#fff;color:#0D1117;border:1.5px solid #E2E6ED;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;}
+.btn-ghost:hover{border-color:#1A6BF5;color:#1A6BF5;}
 
-/* ── MONITOR MOCKUP ─────────────────────────────────────────────────────────── */
-.monitor-wrap{margin:0 auto 0;max-width:1100px;padding:0 24px;}
-.monitor{background:#1A1A1A;border-radius:12px 12px 0 0;border:3px solid #333;border-bottom:none;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);}
-.monitor-stand{height:20px;background:linear-gradient(to bottom,#2A2A2A,#1A1A1A);border:3px solid #333;border-top:none;border-radius:0 0 4px 4px;margin:0 20%;box-shadow:0 6px 0 #111;}
-
-/* Inside the monitor: Mac menu bar + ticker + desktop */
-.screen{background:#1C1C2E;overflow:hidden;}
-
-/* Mac system bar */
-.sys-bar{background:#1E1E2E;height:24px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #111;}
-.sys-left{display:flex;align-items:center;gap:14px;}
-.sys-apple{color:#C8C8C8;font-size:14px;}
-.sys-menu{display:flex;gap:14px;font-size:11px;color:#C8C8C8;}
-.sys-right{margin-left:auto;font-size:10.5px;color:#C8C8C8;font-family:'DM Mono',monospace;}
-
-/* THE TICKER — pinned right below sys bar, full width */
-.ticker{background:#0D1117;height:44px;display:flex;align-items:center;border-bottom:2px solid #1A6BF5;position:relative;z-index:10;}
-.t-brand{display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid #1C2030;height:100%;cursor:pointer;flex-shrink:0;transition:background .15s;}
+/* LIVE TICKER STRIP — full width, looks exactly like the real app */
+.ticker-section{background:#0D1117;border-top:2px solid #1A6BF5;border-bottom:2px solid #1A6BF5;margin:0 0 0;}
+.ticker-label{background:#0D1117;padding:6px 20px;font-size:10px;color:#3D4D60;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #1C2030;}
+.ticker-bar{background:#0D1117;height:44px;display:flex;align-items:center;width:100%;}
+.t-brand{display:flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid #1C2030;height:100%;cursor:pointer;flex-shrink:0;transition:background .15s;}
 .t-brand:hover{background:#111827;}
 .t-icon{width:22px;height:22px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
-.t-name{font-size:12px;font-weight:700;color:#E6EDF3;white-space:nowrap;}
+.t-name{font-size:12px;font-weight:700;color:#E6EDF3;}
 .t-name span{color:#1A6BF5;}
 .t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
-.t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#E6EDF3;font-size:12px;font-family:'DM Sans',sans-serif;padding:3px 8px;width:120px;outline:none;transition:border-color .15s;}
+.t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#E6EDF3;font-size:12px;font-family:'DM Sans',sans-serif;padding:3px 8px;width:120px;outline:none;}
 .t-input:focus{border-color:#1A6BF5;}
-.t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;padding:4px 10px;cursor:pointer;white-space:nowrap;}
+.t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;padding:4px 10px;cursor:pointer;}
 .t-btn:hover{background:#1558D6;}
-.tape-vp{flex:1;overflow:hidden;height:100%;position:relative;mask-image:linear-gradient(to right,transparent 0,black 2%,black 98%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0,black 2%,black 98%,transparent 100%);}
+.tape-vp{flex:1;overflow:hidden;height:100%;position:relative;mask-image:linear-gradient(to right,transparent 0,black 1%,black 99%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0,black 1%,black 99%,transparent 100%);}
 .tape{display:flex;position:absolute;height:100%;align-items:center;will-change:transform;}
-.tick{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:44px;cursor:pointer;border-right:1px solid #1C2030;flex-shrink:0;transition:background .1s;}
+.tick{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:44px;cursor:pointer;border-right:1px solid #1C2030;flex-shrink:0;transition:background .1s;}
 .tick:hover{background:#111827;}
-.tick-sym{font-size:11.5px;font-weight:700;color:#E6EDF3;}
-.tick-prc{font-size:11.5px;color:#8A95A3;font-family:'DM Mono',monospace;}
+.tick-sym{font-size:12px;font-weight:700;color:#E6EDF3;}
+.tick-prc{font-size:12px;color:#8A95A3;font-family:'DM Mono',monospace;}
 .tick-chg{font-size:11px;font-weight:600;font-family:'DM Mono',monospace;}
 .up{color:#0DB56B;}.dn{color:#D13F30;}.fl{color:#5A6478;}
 .tdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.tdot.up{background:#0DB56B;}.tdot.dn{background:#D13F30;}.tdot.fl{background:#5A6478;}
-.t-status{display:flex;align-items:center;gap:5px;padding:0 10px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
+.tdot.up{background:#0DB56B;}.tdot.dn{background:#D13F30;}
+.t-status{display:flex;align-items:center;gap:5px;padding:0 12px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
 .sdot{width:6px;height:6px;border-radius:50%;}
-.sdot.open{background:#0DB56B;animation:blink 2s infinite;}
+.sdot.open{background:#0DB56B;animation:pulse 2s infinite;}
 .sdot.closed{background:#D13F30;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 .stxt{font-size:10px;font-weight:700;letter-spacing:.06em;}
 .stime{font-size:10px;color:#3D4D60;font-family:'DM Mono',monospace;}
-.t-ad{width:190px;height:100%;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer;border-left:1px solid #1C2030;}
-.ad-s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;opacity:0;transition:opacity .6s;background:linear-gradient(135deg,#0a1628,#0d2145);}
+.t-ad{width:200px;height:100%;flex-shrink:0;position:relative;overflow:hidden;border-left:1px solid #1C2030;}
+.ad-s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 12px;opacity:0;transition:opacity .6s;background:linear-gradient(135deg,#0a1628,#0d2145);}
 .ad-s.on{opacity:1;}
 .ad-logo{font-size:11px;font-weight:700;}
-.ad-body{display:flex;flex-direction:column;gap:1px;}
+.ad-body{display:flex;flex-direction:column;}
 .ad-hl{font-size:10.5px;font-weight:600;color:#E6EDF3;white-space:nowrap;}
 .ad-sub{font-size:9px;color:#5A6478;white-space:nowrap;}
-.ad-cta{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:3px;border:1px solid;white-space:nowrap;flex-shrink:0;}
-.t-exit{width:42px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
+.ad-cta{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+.t-exit{width:44px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
 .t-exit:hover{background:rgba(209,63,48,.4);}
 
-/* DESKTOP AREA — windows start right below the ticker */
-.desktop{position:relative;height:380px;background:#1C1C2E;overflow:hidden;padding:10px;}
+/* WHAT IT LOOKS LIKE section */
+.look-section{background:#1A1F2A;padding:0;}
+.look-inner{max-width:900px;margin:0 auto;padding:32px 24px;}
+.look-inner h2{font-size:13px;font-weight:600;color:#8A95A3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;}
+/* Simulated desktop screenshot */
+.desktop-ss{border-radius:10px;overflow:hidden;border:1px solid #333;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.ss-menubar{background:#1E1E2E;height:22px;display:flex;align-items:center;padding:0 12px;justify-content:space-between;}
+.ss-left{display:flex;align-items:center;gap:12px;font-size:10px;color:#C8C8C8;}
+.ss-right{font-size:10px;color:#C8C8C8;font-family:monospace;}
+/* Ticker inside screenshot */
+.ss-ticker{background:#0D1117;height:40px;display:flex;align-items:center;border-bottom:1.5px solid #1A6BF5;font-size:10.5px;}
+.ss-brand{display:flex;align-items:center;gap:5px;padding:0 12px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
+.ss-icon{width:18px;height:18px;background:#1A6BF5;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;}
+.ss-name{font-size:11px;font-weight:700;color:#E6EDF3;}
+.ss-name span{color:#1A6BF5;}
+.ss-tape{flex:1;display:flex;align-items:center;overflow:hidden;height:100%;}
+.ss-tick{display:inline-flex;align-items:center;gap:4px;padding:0 12px;border-right:1px solid #1C2030;height:100%;font-size:10.5px;white-space:nowrap;}
+.ss-sym{font-weight:700;color:#E6EDF3;}
+.ss-prc{color:#8A95A3;font-family:monospace;}
+.ss-ad-sm{width:140px;flex-shrink:0;height:100%;border-left:1px solid #1C2030;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#0d2145);font-size:10px;}
+.ss-exit-sm{width:32px;height:100%;border-left:1px solid #2A3040;background:rgba(209,63,48,.15);display:flex;align-items:center;justify-content:center;color:#D13F30;font-size:12px;font-weight:700;}
+/* Windows below ticker in screenshot */
+.ss-desktop{background:#1C1C2E;height:200px;position:relative;padding:8px;}
+.ss-win{position:absolute;background:#252535;border-radius:6px;border:1px solid #333;overflow:hidden;}
+.ss-winbar{background:#2D3748;padding:5px 8px;display:flex;align-items:center;gap:4px;}
+.ss-wd{width:8px;height:8px;border-radius:50%;}
+.ss-wc{padding:8px 10px;font-size:9px;color:#5A6478;line-height:1.7;}
 
-/* Blurred overlay hint */
-.desk-hint{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(to bottom,rgba(26,107,245,.4),transparent);z-index:5;}
+/* Arrow annotation */
+.annotation{position:absolute;display:flex;align-items:center;gap:6px;}
 
-/* Chrome window */
-.win{position:absolute;background:#252535;border-radius:8px;border:1px solid #333;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);}
-.win-tb{background:#2D3748;padding:7px 10px;display:flex;align-items:center;gap:6px;}
-.wdots{display:flex;gap:4px;}
-.wd{width:10px;height:10px;border-radius:50%;}
-.win-tabs{display:flex;gap:2px;margin-left:8px;}
-.wtab{padding:4px 10px;border-radius:5px 5px 0 0;font-size:10px;cursor:pointer;}
-.wtab.on{background:#3A4557;color:#E6EDF3;}
-.wtab.off{background:#1E2330;color:#5A6478;}
-.wurl{background:#141923;margin:4px 8px;border-radius:5px;padding:3px 8px;font-size:10px;color:#5A6478;font-family:monospace;}
-.wcontent{background:#F7F8FA;padding:12px;}
-.ps-mini{background:#fff;border:1px solid #E2E6ED;border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
-.ps-mini-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.pmc{background:#fff;border:1px solid #E2E6ED;border-radius:5px;padding:7px 8px;}
-.pmc-label{font-size:8.5px;color:#8A95A3;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
-.pmc-val{font-size:13px;font-weight:700;}
-
-/* Terminal window */
-.term-content{background:#0D1117;padding:10px 12px;font-family:'DM Mono',monospace;font-size:10px;line-height:1.9;color:#8DE8A0;}
-.tc-prompt{color:#1A6BF5;}
-.tc-dim{color:#484F58;}
-
-/* Excel */
-.xl-content{background:#1A3A1C;padding:8px 10px;font-size:10px;}
-.xl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;color:#8ABA8C;line-height:1.8;}
-.xl-hd{font-weight:700;color:#5A8A5C;}
-
-/* CALLOUT LABELS floating on desktop */
-.desk-label{position:absolute;background:rgba(26,107,245,.85);color:#fff;font-size:10.5px;font-weight:600;padding:4px 12px;border-radius:20px;backdrop-filter:blur(4px);white-space:nowrap;z-index:20;}
-
-/* CONTENT BELOW */
-.content{max-width:900px;margin:0 auto;padding:40px 24px;}
-.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:36px;}
+/* BELOW DEMO */
+.content{max-width:900px;margin:0 auto;padding:48px 24px;}
+.section-title{font-size:24px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
+.section-sub{font-size:14px;color:#4A5568;margin-bottom:28px;}
+.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:48px;}
 @media(max-width:700px){.callouts{grid-template-columns:1fr 1fr;}}
-.callout{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:16px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.callout-icon{font-size:24px;margin-bottom:8px;}
-.callout h4{font-size:13px;font-weight:600;margin-bottom:4px;}
-.callout p{font-size:12px;color:#4A5568;line-height:1.5;}
-.download-card{background:#fff;border:1.5px solid #1A6BF5;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 16px rgba(26,107,245,.1);margin-bottom:28px;}
-.download-card h2{font-size:22px;font-weight:700;margin-bottom:6px;}
-.download-card p{font-size:14px;color:#4A5568;margin-bottom:20px;}
+.callout{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.callout-icon{font-size:26px;margin-bottom:8px;}
+.callout h4{font-size:13.5px;font-weight:600;margin-bottom:4px;}
+.callout p{font-size:12.5px;color:#4A5568;line-height:1.5;}
+.download-card{background:#0D1117;border-radius:14px;padding:36px;text-align:center;margin-bottom:28px;}
+.download-card h2{font-size:24px;font-weight:700;color:#fff;margin-bottom:6px;}
+.download-card p{font-size:14px;color:#8A95A3;margin-bottom:24px;}
 .dl-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.dl-btn{padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s;}
+.dl-btn{padding:13px 26px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s;}
 .dl-btn:hover{opacity:.88;}
-.dl-primary{background:#0D1117;color:#fff;}
-.dl-secondary{background:#F2F4F7;color:#0D1117;border:1.5px solid #E2E6ED;}
+.dl-primary{background:#1A6BF5;color:#fff;}
+.dl-secondary{background:#1A1F2A;color:#E6EDF3;border:1px solid #30363D;}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
 @media(max-width:600px){.steps{grid-template-columns:1fr;}}
-.step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.step-num{width:26px;height:26px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;margin-bottom:10px;}
-.step h3{font-size:13.5px;font-weight:600;margin-bottom:5px;}
-.step p{font-size:12.5px;color:#4A5568;line-height:1.6;}
-.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11px;font-family:'DM Mono',monospace;}
-.terminal{background:#0D1117;border-radius:10px;padding:14px 18px;margin:0 0 28px;border:1px solid #30363D;}
-.terminal div{font-family:'DM Mono',monospace;font-size:12.5px;line-height:2.2;color:#8DE8A0;}
+.step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.step-num{width:28px;height:28px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;margin-bottom:12px;}
+.step h3{font-size:14px;font-weight:600;margin-bottom:5px;}
+.step p{font-size:13px;color:#4A5568;line-height:1.6;}
+.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace;}
+.terminal{background:#0D1117;border-radius:12px;padding:18px 22px;margin:0 0 0;border:1px solid #30363D;}
+.terminal div{font-family:'DM Mono',monospace;font-size:13px;line-height:2.3;color:#8DE8A0;}
 .terminal .pr{color:#1A6BF5;}
 .terminal .cm{color:#484F58;}
-footer{text-align:center;padding:28px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;}
+footer{text-align:center;padding:28px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;margin-top:48px;}
 footer a{color:#8A95A3;text-decoration:none;margin:0 8px;}
 footer a:hover{color:#1A6BF5;}
 </style>
@@ -150,27 +142,21 @@ footer a:hover{color:#1A6BF5;}
   <a href="/" class="back">← Back to App</a>
 </header>
 
+<!-- HERO -->
 <div class="hero">
-  <h1>PulseStock <span>Desktop Ticker</span></h1>
-  <p>Pins across the full top of your screen. Every app you use sits below it — it never goes away.</p>
+  <div class="hero-badge">🖥 Free Desktop App · Mac & Windows</div>
+  <h1>Your stocks.<br><span>Always visible.</span></h1>
+  <p>A 44px bar that pins to the top of your screen and never moves. Live quotes, one-click AI analysis, and broker ads — visible in every app you use.</p>
+  <div class="hero-btns">
+    <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="btn-dark">⬇ Download Free</a>
+    <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="btn-ghost">View on GitHub ↗</a>
+  </div>
 </div>
 
-<!-- MONITOR MOCKUP -->
-<div class="monitor-wrap">
-<div class="monitor">
-<div class="screen">
-
-  <!-- Mac system menu bar -->
-  <div class="sys-bar">
-    <div class="sys-left">
-      <span class="sys-apple">&#63743;</span>
-      <div class="sys-menu"><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span>Window</span></div>
-    </div>
-    <span class="sys-right" id="sys-time"></span>
-  </div>
-
-  <!-- TICKER BAR — full width, pinned -->
-  <div class="ticker">
+<!-- LIVE TICKER — full page width, exactly what they'll see on their desktop -->
+<div class="ticker-section">
+  <div class="ticker-label">↓ This bar runs across your entire screen — try it: type a ticker and click Analyze ↗</div>
+  <div class="ticker-bar">
     <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
       <div class="t-icon">P</div>
       <div class="t-name">Pulse<span>Stock</span></div>
@@ -186,97 +172,94 @@ footer a:hover{color:#1A6BF5;}
       <span class="stime" id="stime"></span>
     </div>
     <div class="t-ad" id="ad-zone"></div>
-    <div class="t-exit" onclick="alert('On your Mac this closes the ticker bar.')" title="Close">✕</div>
+    <div class="t-exit" onclick="alert('On the real desktop app this closes the ticker bar.')" title="Close">✕</div>
   </div>
+</div>
 
-  <!-- DESKTOP — windows start immediately below ticker -->
-  <div class="desktop">
-    <div class="desk-hint"></div>
-
-    <!-- Chrome window -->
-    <div class="win" style="left:10px;top:8px;width:58%;z-index:3;">
-      <div class="win-tb">
-        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
-        <div class="win-tabs">
-          <div class="wtab on">📈 PulseStock</div>
-          <div class="wtab off">Gmail</div>
-          <div class="wtab off">Bloomberg</div>
-          <div style="color:#5A6478;font-size:14px;padding:0 6px;cursor:pointer;">+</div>
+<!-- WHAT IT LOOKS LIKE ON YOUR DESKTOP -->
+<div class="look-section">
+  <div class="look-inner">
+    <h2>What it looks like on your desktop</h2>
+    <div class="desktop-ss">
+      <!-- Mac menu bar -->
+      <div class="ss-menubar">
+        <div class="ss-left"><span>&#63743;</span><span>Finder</span><span>File</span><span>Edit</span><span>View</span><span>Window</span></div>
+        <div class="ss-right" id="ss-time"></div>
+      </div>
+      <!-- Ticker bar — full width -->
+      <div class="ss-ticker">
+        <div class="ss-brand"><div class="ss-icon">P</div><div class="ss-name">Pulse<span>Stock</span></div></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:0 8px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;">
+          <input style="background:#141923;border:1px solid #252C3A;border-radius:4px;color:#8A95A3;font-size:10px;padding:2px 6px;width:90px;outline:none;font-family:monospace;" placeholder="Ticker..." readonly/>
+          <div style="background:#1A6BF5;border-radius:3px;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;cursor:pointer;">Analyze ↗</div>
+        </div>
+        <div class="ss-tape">
+          <div class="ss-tick"><span class="ss-sym">AAPL</span><span class="ss-prc">$207.34</span><span style="color:#0DB56B;font-size:10px;font-weight:600;">+1.2%</span></div>
+          <div class="ss-tick"><span class="ss-sym">NVDA</span><span class="ss-prc">$131.82</span><span style="color:#0DB56B;font-size:10px;font-weight:600;">+2.8%</span></div>
+          <div class="ss-tick"><span class="ss-sym">MSFT</span><span class="ss-prc">$442.16</span><span style="color:#D13F30;font-size:10px;font-weight:600;">−0.4%</span></div>
+          <div class="ss-tick"><span class="ss-sym">TSLA</span><span class="ss-prc">$248.50</span><span style="color:#0DB56B;font-size:10px;font-weight:600;">+3.1%</span></div>
+          <div class="ss-tick"><span class="ss-sym">META</span><span class="ss-prc">$612.44</span><span style="color:#0DB56B;font-size:10px;font-weight:600;">+0.9%</span></div>
+          <div class="ss-tick"><span class="ss-sym">JPM</span><span class="ss-prc">$248.10</span><span style="color:#0DB56B;font-size:10px;font-weight:600;">+0.5%</span></div>
+          <div class="ss-tick"><span class="ss-sym">AMZN</span><span class="ss-prc">$198.22</span><span style="color:#D13F30;font-size:10px;font-weight:600;">−0.7%</span></div>
+          <div class="ss-tick"><span class="ss-sym">XOM</span><span class="ss-prc">$112.34</span><span style="color:#D13F30;font-size:10px;font-weight:600;">−1.1%</span></div>
+        </div>
+        <div class="ss-ad-sm"><span style="color:#00AEEF;font-weight:700;">Webull</span><span style="color:#2A3040;margin:0 5px;">|</span><span style="color:#E6EDF3;font-size:9px;">Trade free</span></div>
+        <div class="ss-exit-sm">✕</div>
+      </div>
+      <!-- Desktop with windows below -->
+      <div class="ss-desktop">
+        <!-- Chrome -->
+        <div class="ss-win" style="left:8px;top:8px;width:56%;">
+          <div class="ss-winbar"><div class="ss-wd" style="background:#FF5F56;"></div><div class="ss-wd" style="background:#FFBD2E;"></div><div class="ss-wd" style="background:#27C93F;"></div><span style="font-size:9px;color:#5A6478;margin-left:6px;">Chrome — PulseStock</span></div>
+          <div class="ss-wc">
+            <div style="background:#fff;border-radius:4px;padding:6px 8px;margin-bottom:5px;"><span style="font-size:10px;font-weight:700;color:#0D1117;">Pulse<span style="color:#1A6BF5;">Stock</span></span><span style="float:right;font-size:8px;color:#8A95A3;">AI-Powered</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+              <div style="background:#fff;border-radius:3px;padding:4px 5px;"><div style="font-size:7px;color:#8A95A3;">PRICE</div><div style="font-size:11px;font-weight:700;color:#0DB56B;">$207.34</div></div>
+              <div style="background:#fff;border-radius:3px;padding:4px 5px;"><div style="font-size:7px;color:#8A95A3;">SIGNAL</div><div style="font-size:11px;font-weight:700;color:#1A6BF5;">BUY</div></div>
+              <div style="background:#fff;border-radius:3px;padding:4px 5px;"><div style="font-size:7px;color:#8A95A3;">SHORT</div><div style="font-size:11px;font-weight:700;color:#0D1117;">48%</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Terminal -->
+        <div class="ss-win" style="right:8px;top:8px;width:40%;">
+          <div class="ss-winbar"><div class="ss-wd" style="background:#FF5F56;"></div><div class="ss-wd" style="background:#FFBD2E;"></div><div class="ss-wd" style="background:#27C93F;"></div><span style="font-size:9px;color:#5A6478;margin-left:6px;">Terminal</span></div>
+          <div style="background:#0D1117;padding:8px 10px;font-family:monospace;font-size:9px;color:#8DE8A0;line-height:1.9;">
+            <div><span style="color:#1A6BF5;">$</span> npm start 2>/dev/null</div>
+            <div style="color:#484F58;"># Ticker running ✓</div>
+          </div>
+        </div>
+        <!-- Excel -->
+        <div class="ss-win" style="left:20px;bottom:8px;width:45%;opacity:.85;">
+          <div class="ss-winbar" style="background:#1A3A1C;"><div class="ss-wd" style="background:#FF5F56;"></div><div class="ss-wd" style="background:#FFBD2E;"></div><div class="ss-wd" style="background:#27C93F;"></div><span style="font-size:9px;color:#5A8A5C;margin-left:6px;">Portfolio.xlsx</span></div>
+          <div style="background:#1E4620;padding:6px 8px;font-size:9px;color:#8ABA8C;line-height:1.8;">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;">
+              <b>Ticker</b><b>Shares</b><b>Price</b><b>P&L</b>
+              <span>AAPL</span><span>100</span><span>$207</span><span style="color:#0DB56B;">+$4,234</span>
+              <span>NVDA</span><span>50</span><span>$131</span><span style="color:#0DB56B;">+$2,891</span>
+            </div>
+          </div>
+        </div>
+        <!-- Key annotation -->
+        <div style="position:absolute;right:12px;bottom:12px;background:rgba(26,107,245,.9);color:#fff;font-size:10px;font-weight:600;padding:5px 12px;border-radius:16px;">
+          Ticker stays above everything ↑
         </div>
       </div>
-      <div class="wurl">pulsestock-nu.vercel.app</div>
-      <div class="wcontent">
-        <div class="ps-mini">
-          <div style="display:flex;align-items:center;gap:7px;"><div style="width:18px;height:18px;background:#1A6BF5;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;">P</div><span style="font-size:12px;font-weight:700;">Pulse<span style="color:#1A6BF5;">Stock</span></span></div>
-          <span style="font-size:9px;color:#8A95A3;">AI-Powered · Live Data</span>
-        </div>
-        <div class="ps-mini-cards">
-          <div class="pmc"><div class="pmc-label">AAPL Price</div><div class="pmc-val" style="color:#0DB56B;">$207.34</div></div>
-          <div class="pmc"><div class="pmc-label">AI Signal</div><div class="pmc-val" style="color:#1A6BF5;">BUY</div></div>
-          <div class="pmc"><div class="pmc-label">Short Vol</div><div class="pmc-val">48.2%</div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Terminal window -->
-    <div class="win" style="right:10px;top:8px;width:38%;z-index:3;">
-      <div class="win-tb">
-        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
-        <span style="font-size:10px;color:#5A6478;margin-left:8px;">Terminal — zsh</span>
-      </div>
-      <div class="term-content">
-        <div><span class="tc-prompt">$</span> npm start 2>/dev/null</div>
-        <div class="tc-dim"># PulseStock Ticker running ✓</div>
-        <div><span class="tc-prompt">$</span> <span style="animation:blink 1s step-end infinite;font-weight:700;">▊</span></div>
-      </div>
-    </div>
-
-    <!-- Excel window partially behind -->
-    <div class="win" style="left:30px;bottom:0;width:50%;z-index:2;opacity:.9;">
-      <div class="win-tb">
-        <div class="wdots"><div class="wd" style="background:#FF5F56;"></div><div class="wd" style="background:#FFBD2E;"></div><div class="wd" style="background:#27C93F;"></div></div>
-        <span style="font-size:10px;color:#5A8A5C;margin-left:8px;">Portfolio.xlsx — Excel</span>
-      </div>
-      <div class="xl-content">
-        <div class="xl-grid">
-          <div class="xl-hd">Ticker</div><div class="xl-hd">Shares</div><div class="xl-hd">Price</div><div class="xl-hd">P&L</div>
-          <div>AAPL</div><div>100</div><div>$207.34</div><div style="color:#0DB56B;">+$4,234</div>
-          <div>NVDA</div><div>50</div><div>$131.82</div><div style="color:#0DB56B;">+$2,891</div>
-          <div>TSLA</div><div>25</div><div>$248.50</div><div style="color:#D13F30;">-$312</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Floating labels -->
-    <div class="desk-label" style="top:16px;left:50%;transform:translateX(-50%);">
-      ↑ Ticker bar sits above all windows — always visible
-    </div>
-    <div class="desk-label" style="bottom:16px;right:16px;background:rgba(13,181,107,.8);">
-      ✓ All apps work normally below
     </div>
   </div>
-
-</div>
-</div>
-<div class="monitor-stand"></div>
 </div>
 
-<div style="text-align:center;padding:10px 24px 36px;font-size:12px;color:#8A95A3;">
-  ↑ Interactive demo — type any ticker in the search box and click Analyze ↗ to open live analysis
-</div>
-
-<!-- CONTENT -->
 <div class="content">
+
   <div class="callouts">
     <div class="callout"><div class="callout-icon">📊</div><h4>Live Quotes</h4><p>Real prices every 15 seconds across your full ticker list</p></div>
-    <div class="callout"><div class="callout-icon">🔍</div><h4>Instant Analysis</h4><p>Type any ticker → full AI analysis opens immediately</p></div>
-    <div class="callout"><div class="callout-icon">📌</div><h4>Always On Top</h4><p>Stays visible across Chrome, Excel, Terminal — everything</p></div>
-    <div class="callout"><div class="callout-icon">💰</div><h4>Free to Download</h4><p>No account needed. Just download and run.</p></div>
+    <div class="callout"><div class="callout-icon">🔍</div><h4>Instant Analysis</h4><p>Type any ticker → AI analysis opens immediately in your browser</p></div>
+    <div class="callout"><div class="callout-icon">📌</div><h4>Always On Top</h4><p>Stays above Chrome, Excel, Terminal — every app you use</p></div>
+    <div class="callout"><div class="callout-icon">💰</div><h4>100% Free</h4><p>No account required. Download, run, done.</p></div>
   </div>
 
   <div class="download-card">
-    <h2>Download for Mac</h2>
-    <p>Free · macOS 10.15+ · Intel Mac · Requires Node.js</p>
+    <h2>Get the Desktop Ticker</h2>
+    <p>Free · macOS 10.15+ · Requires Node.js</p>
     <div class="dl-btns">
       <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="dl-btn dl-primary">⬇ Download ZIP</a>
       <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="dl-btn dl-secondary">View on GitHub ↗</a>
@@ -284,18 +267,19 @@ footer a:hover{color:#1A6BF5;}
   </div>
 
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Install Node.js</h3><p>Download Node.js LTS from <code>nodejs.org</code>. Verify with <code>node --version</code> in Terminal.</p></div>
-    <div class="step"><div class="step-num">2</div><h3>Download & Extract</h3><p>Download the ZIP above and extract it to your Downloads folder.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Launch</h3><p>Open Terminal, navigate to the folder, run the commands below.</p></div>
+    <div class="step"><div class="step-num">1</div><h3>Install Node.js</h3><p>Download from <code>nodejs.org</code> if you don't have it. Verify: <code>node --version</code></p></div>
+    <div class="step"><div class="step-num">2</div><h3>Download & Unzip</h3><p>Download the ZIP above and extract it anywhere on your Mac.</p></div>
+    <div class="step"><div class="step-num">3</div><h3>Run in Terminal</h3><p>Navigate to the folder and run the three commands below.</p></div>
   </div>
 
   <div class="terminal">
     <div><span class="pr">$</span> cd ~/Downloads/pulsestock-ticker</div>
     <div><span class="pr">$</span> npm install</div>
     <div><span class="pr">$</span> npm start 2>/dev/null</div>
-    <div class="cm"># Ticker bar appears at the top of your screen</div>
-    <div class="cm"># Right-click to edit your ticker list · Click ✕ to close</div>
+    <div class="cm"># Bar appears at the top of your screen</div>
+    <div class="cm"># Right-click to edit ticker list · ✕ to close</div>
   </div>
+
 </div>
 
 <footer>
@@ -323,7 +307,7 @@ function buildTape(){
   tape.innerHTML=items.map(function(s){
     var cls=s.c>0?'up':s.c<0?'dn':'fl';
     var chg=(s.c>0?'+':'')+s.c.toFixed(2)+'%';
-    return '<div class="tick" onclick="openStock(\''+s.s+'\')" title="Analyze '+s.s+'">'
+    return '<div class="tick" onclick="openStock(\''+s.s+'\')">'
       +'<div class="tdot '+cls+'"></div>'
       +'<span class="tick-sym">'+s.s+'</span>'
       +'<span class="tick-prc">$'+s.p.toFixed(2)+'</span>'
@@ -345,17 +329,11 @@ function buildAds(){
   z.innerHTML=ads.map(function(a,i){
     return '<div class="ad-s'+(i===0?' on':'')+'">'
       +'<span class="ad-logo" style="color:'+a.lc+'">'+a.logo+'</span>'
-      +'<span style="color:#2A3040;font-size:12px;">|</span>'
+      +'<span style="color:#2A3040;margin:0 4px;">|</span>'
       +'<div class="ad-body"><span class="ad-hl">'+a.hl+'</span><span class="ad-sub">'+a.sub+'</span></div>'
       +'<span class="ad-cta" style="color:'+a.cc+';border-color:'+a.cc+'">'+a.cta+'</span>'
       +'</div>';
   }).join('');
-}
-function rotateAd(){
-  var s=document.querySelectorAll('.ad-s');
-  s[adIdx].classList.remove('on');
-  adIdx=(adIdx+1)%ads.length;
-  s[adIdx].classList.add('on');
 }
 function updateStatus(){
   var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
@@ -366,7 +344,8 @@ function updateStatus(){
   var ah=wk&&h>=16&&h<20;
   var ts=et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
   document.getElementById('stime').textContent=ts+' ET';
-  document.getElementById('sys-time').textContent=ts;
+  var el=document.getElementById('ss-time');
+  if(el)el.textContent=ts;
   var dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
   if(open){dot.className='sdot open';txt.textContent='OPEN';txt.style.color='#0DB56B';}
   else if(pre||ah){dot.className='sdot open';txt.textContent=pre?'PRE':'AH';txt.style.color='#F59E0B';}
@@ -379,11 +358,16 @@ function doSearch(){
   document.getElementById('ti').value='';
 }
 function openStock(t){window.open('https://pulsestock-nu.vercel.app/?ticker='+t,'_blank');}
-
 buildTape();buildAds();updateStatus();
 requestAnimationFrame(animTape);
 setInterval(rotateAd,8000);
 setInterval(updateStatus,30000);
+function rotateAd(){
+  var s=document.querySelectorAll('.ad-s');
+  s[adIdx].classList.remove('on');
+  adIdx=(adIdx+1)%ads.length;
+  s[adIdx].classList.add('on');
+}
 </script>
 </body>
 </html>
