@@ -326,13 +326,28 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-align:center;font-size:12.5px;color:var(--text3);line-height:1.8;}
 
 @media(max-width:768px){
-  .hero h1{font-size:28px;}
-  .mg4{grid-template-columns:repeat(2,1fr);}
-  .port-summary{grid-template-columns:repeat(2,1fr);}
-  .screener-filters{grid-template-columns:repeat(2,1fr);}
-  .cta-grid{grid-template-columns:1fr;}
+  .hero h1{font-size:26px;}
+  .mg4{grid-template-columns:1fr 1fr!important;}
+  .header-nav{display:none;}
+  .header-inner{padding:0 12px;}
+  .analyze-input-row{flex-direction:column;gap:8px;}
+  .analyze-input-row input{width:100%!important;}
+  .analyze-input-row button{width:100%!important;}
+  .quick-nav{gap:4px;}
+  .qn-btn{font-size:11px;padding:5px 8px;}
+  .card{padding:16px;}
+  .result-row{grid-template-columns:60px 1fr auto!important;font-size:12px;}
+  .screener-filters{grid-template-columns:1fr 1fr!important;gap:8px;}
+  .section-nav{flex-wrap:wrap;gap:4px;}
+  .jump-nav{flex-wrap:wrap;gap:4px;}
+  .jump-btn{font-size:11px;padding:5px 8px;}
+}
+@media(max-width:480px){
+  .hero h1{font-size:22px;}
+  .mg4{grid-template-columns:1fr!important;}
   .header-badge{display:none;}
-  .tv-chart-wrap{height:300px;}
+  .screener-filters{grid-template-columns:1fr!important;}
+  .holdings-table .hr-header,.holdings-table .holding-row{grid-template-columns:2fr 1fr 1fr 1fr!important;font-size:11px;}
 }
 
 /* MARKET TICKER BAR */
@@ -930,6 +945,10 @@ async function fetchShortInterest(ticker){
 
 async function fetchCompany(ticker){
   return fetchWithTimeout('/api/company?ticker='+encodeURIComponent(ticker), 6000);
+}
+
+async function fetchEarnings(ticker){
+  return fetchWithTimeout('/api/earnings?ticker='+encodeURIComponent(ticker), 6000);
 }
 
 async function fetchFilings(ticker){
@@ -1588,6 +1607,7 @@ async function doAnalyze(){
       {label:'🔬 Intelligence', target:'intelligence-'+t},
       {label:'🧑‍💼 Insider', target:'insider-'+t},
       {label:'📁 SEC Filings', target:'filings-'+t},
+      {label:'📅 Earnings', target:'earnings-'+t},
       {label:'📰 News', target:'news-'+t},
       {label:'🧠 AI Analysis', target:'ai-analysis-'+t},
       {label:'💬 Community', target:'community-'+t},
@@ -2214,6 +2234,49 @@ function scrollToSection(id){
 }
 
 // ── COMPANY PROFILE RENDER ──
+function renderEarnings(ticker, data){
+  var el = document.getElementById('earnings-content-' + ticker);
+  if(!el) return;
+  if(!data || data.error){ el.innerHTML = '<div style="color:var(--text3);font-size:13px;">Earnings data unavailable.</div>'; return; }
+  
+  var html = '';
+  
+  // Upcoming earnings
+  if(data.upcoming && data.upcoming.length) {
+    var next = data.upcoming[0];
+    var when = next.hour === 'bmo' ? 'Before Market Open' : next.hour === 'amc' ? 'After Market Close' : '';
+    html += '<div style="background:var(--accent-light,#EBF1FE);border:1px solid rgba(26,107,245,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;">'
+      + '<div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Next Earnings</div>'
+      + '<div style="font-size:18px;font-weight:700;color:var(--text);">' + next.date + '</div>'
+      + (when ? '<div style="font-size:12px;color:var(--text3);">' + when + '</div>' : '')
+      + (next.epsEstimate ? '<div style="font-size:12px;color:var(--text2);margin-top:4px;">EPS Estimate: <strong>$' + next.epsEstimate.toFixed(2) + '</strong></div>' : '')
+      + '</div>';
+  } else {
+    html += '<div style="font-size:13px;color:var(--text3);margin-bottom:16px;">No upcoming earnings in the next 90 days.</div>';
+  }
+  
+  // Historical surprises
+  if(data.history && data.history.length) {
+    html += '<div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Recent Results</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+    html += '<tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:5px 8px;color:var(--text3);font-weight:600;">Quarter</th><th style="text-align:right;padding:5px 8px;color:var(--text3);font-weight:600;">EPS Est</th><th style="text-align:right;padding:5px 8px;color:var(--text3);font-weight:600;">EPS Actual</th><th style="text-align:right;padding:5px 8px;color:var(--text3);font-weight:600;">Surprise</th></tr>';
+    data.history.slice(0,4).forEach(function(e){
+      var surprise = e.epsEstimate && e.epsActual ? ((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate) * 100) : null;
+      var surpriseColor = surprise > 0 ? 'var(--green)' : surprise < 0 ? 'var(--red)' : 'var(--text3)';
+      var surpriseStr = surprise !== null ? (surprise > 0 ? '+' : '') + surprise.toFixed(1) + '%' : '—';
+      html += '<tr style="border-bottom:1px solid var(--border2,#F2F4F7);">'
+        + '<td style="padding:6px 8px;color:var(--text);">Q' + e.quarter + ' ' + e.year + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--text2);">' + (e.epsEstimate ? '$'+e.epsEstimate.toFixed(2) : '—') + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--text);">' + (e.epsActual ? '$'+e.epsActual.toFixed(2) : '—') + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;font-weight:600;color:' + surpriseColor + ';">' + surpriseStr + '</td>'
+        + '</tr>';
+    });
+    html += '</table>';
+  }
+  
+  el.innerHTML = html;
+}
+
 function renderCompanyProfile(ticker, data){
   var el = document.getElementById('company-profile-content-' + ticker);
   var finEl = document.getElementById('financials-content-' + ticker);
