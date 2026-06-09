@@ -6,10 +6,13 @@ export default async function handler(req) {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   try {
     const body = await req.json();
+    // Model routing: paid tier gets Sonnet, free gets Haiku
+    const tier = body.tier || 'free';
+    const model = tier === 'paid' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
     const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1500, stream: true, messages: body.messages }),
+      body: JSON.stringify({ model, max_tokens: 1500, stream: true, messages: body.messages }),
     });
     if (!anthropicResp.ok) {
       const err = await anthropicResp.text();
