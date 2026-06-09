@@ -148,10 +148,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .short-change-up{color:var(--red);font-weight:600;}
 .short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
-.quick-nav{display:block;margin-bottom:16px;padding:12px 20px;background:var(--surface);border-bottom:2px solid var(--border);border-top:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.08);position:sticky;top:60px;z-index:90;}
-.qn-btn{font-size:12.5px;font-weight:600;padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.07);}
-.qn-btn:hover{background:var(--accent-light);color:var(--accent);border-color:var(--accent);box-shadow:0 2px 6px rgba(26,107,245,.15);transform:translateY(-1px);}
-.qn-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 2px 8px rgba(26,107,245,.3);}
+.quick-nav{display:block;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
+.qn-btn{font-size:12px;font-weight:500;padding:5px 13px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
 
 /* COMPANY PROFILE */
 .profile-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
@@ -402,8 +401,13 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <a href="/community.html" class="nav-tab-link">💬 Community</a>
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
       <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
+      <button class="nav-tab" onclick="showPage('watchlist',this)">⭐ Watchlist</button>
     </nav>
-    <div class="header-badge">AI-Powered · Live Data</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div class="header-badge">AI-Powered · Live Data</div>
+      <a href="/desktop" style="padding:7px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;color:var(--text);white-space:nowrap;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">🖥 Desktop</a>
+      <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In</a>
+    </div>
   </div>
 </header>
 
