@@ -1533,19 +1533,18 @@ async function doAnalyze(){
           <div style="font-size:11px;color:var(--text3);">Powered by Claude</div>
         </div>
         <div id="chat-chips-${ticker}" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);">
-          <button onclick="askQuickQuestion('${ticker}','${name}','Why is ${ticker} moving today?')" class="chat-chip">Why is it moving today?</button>
-          <button onclick="askQuickQuestion('${ticker}','${name}','What are the key risks for ${ticker}?')" class="chat-chip">Key risks</button>
-          <button onclick="askQuickQuestion('${ticker}','${name}','What do analysts say about ${ticker}?')" class="chat-chip">Analyst views</button>
-          <button onclick="askQuickQuestion('${ticker}','${name}','Is ${ticker} a good buy at the current price?')" class="chat-chip">Good buy now?</button>
-          <button onclick="askQuickQuestion('${ticker}','${name}','What are the upcoming catalysts for ${ticker}?')" class="chat-chip">Upcoming catalysts</button>
+          <button class="chat-chip" data-ticker="${ticker}" data-q="Why is ${ticker} moving today?">Why is it moving today?</button>
+          <button class="chat-chip" data-ticker="${ticker}" data-q="What are the key risks for ${ticker} right now?">Key risks</button>
+          <button class="chat-chip" data-ticker="${ticker}" data-q="What do analysts say about ${ticker}?">Analyst views</button>
+          <button class="chat-chip" data-ticker="${ticker}" data-q="Is ${ticker} a good buy at the current price?">Good buy now?</button>
+          <button class="chat-chip" data-ticker="${ticker}" data-q="What are the upcoming catalysts for ${ticker}?">Upcoming catalysts</button>
         </div>
         <div id="chat-messages-${ticker}" style="max-height:320px;overflow-y:auto;padding:0;"></div>
         <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;">
-          <input id="chat-input-${ticker}" type="text" placeholder="Ask anything about ${ticker}... e.g. Why is it down today?"
+          <input id="chat-input-${ticker}" type="text" data-ticker="${ticker}" placeholder="Ask anything about ${ticker}... e.g. Why is it down today?"
             style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatQuestion('${ticker}','${name}');}"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
-          <button onclick="sendChatQuestion('${ticker}','${name}')"
+          <button class="chat-send-btn" data-ticker="${ticker}"
             style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Ask →</button>
         </div>
@@ -4008,6 +4007,89 @@ function formatPortfolioAI(raw) {
   flushSection();
   return html || '<p style="color:var(--text2);">' + raw + '</p>';
 }
+
+// ── STOCK Q&A CHAT ───────────────────────────────────────────────────────────
+var _chatHistory = {};
+
+document.addEventListener('click', function(e) {
+  var chip = e.target.closest('.chat-chip');
+  if (chip) {
+    var t = chip.dataset.ticker;
+    var q = chip.dataset.q;
+    if (t && q) {
+      var inp = document.getElementById('chat-input-' + t);
+      if (inp) inp.value = q;
+      sendChatQuestion(t);
+    }
+    return;
+  }
+  var sendBtn = e.target.closest('.chat-send-btn');
+  if (sendBtn) {
+    var t = sendBtn.dataset.ticker;
+    if (t) sendChatQuestion(t);
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey && e.target.id && e.target.id.startsWith('chat-input-')) {
+    e.preventDefault();
+    var t = e.target.dataset.ticker || e.target.id.replace('chat-input-', '');
+    if (t) sendChatQuestion(t);
+  }
+});
+
+function appendChatMsg(ticker, role, text) {
+  var el = document.getElementById('chat-messages-' + ticker);
+  if (!el) return null;
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + (role === 'user' ? 'chat-msg-user' : 'chat-msg-ai');
+  var bodyId = 'cmb' + Date.now();
+  div.innerHTML = '<div class="chat-msg-label">' + (role === 'user' ? 'You' : '🧠 Claude') + '</div>'
+    + '<div class="chat-msg-text" id="' + bodyId + '">'
+    + (role === 'user' ? (text||'').replace(/</g,'&lt;') : '<span style="color:var(--text3);">Thinking...</span>')
+    + '</div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return document.getElementById(bodyId);
+}
+
+async function sendChatQuestion(ticker) {
+  var input = document.getElementById('chat-input-' + ticker);
+  if (!input) return;
+  var question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){c.disabled=true;});
+
+  appendChatMsg(ticker, 'user', question);
+  var aiEl = appendChatMsg(ticker, 'ai', '');
+
+  if (!_chatHistory[ticker]) _chatHistory[ticker] = [];
+  _chatHistory[ticker].push({role:'user', content: question});
+
+  var systemMsg = 'You are a financial analyst for PulseStock. Answer concise questions about ' + ticker + '. Not financial advice.';
+  var history = _chatHistory[ticker].slice(-6);
+  var messages = [{role:'user', content: systemMsg + '\n\nQuestion: ' + history[0].content}].concat(history.slice(1));
+
+  try {
+    var resp = await fetch('/api/analyze-cached', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ticker: ticker + '_q_' + Date.now(), tier:'free', messages: messages})
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    var answer = (data.text||'No answer.').replace(/\n/g,'<br>');
+    _chatHistory[ticker].push({role:'assistant', content: data.text||''});
+    if (aiEl) aiEl.innerHTML = answer;
+  } catch(err) {
+    if (aiEl) aiEl.innerHTML = 'Error: ' + err.message;
+  }
+
+  document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){c.disabled=false;});
+}
+
 
 </script>
 </body>
