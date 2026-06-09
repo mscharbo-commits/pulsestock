@@ -1643,11 +1643,30 @@ async function runAIAnalysis(ticker, name, sector){
   output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
 
   try {
-    const resp = await fetch('/api/analyze', {
+    // Use cached endpoint — saves Claude costs, returns cached result if < 3hrs old
+    const resp = await fetch('/api/analyze-cached', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ ticker, tier: 'free', messages: [{ role: 'user', content: prompt }] })
     });
+
+    // Handle cached response (JSON) vs fresh response
+    const contentType = resp.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await resp.json();
+      const streamEl = document.getElementById('ai-stream-body');
+      if (data.cached) {
+        const ageMin = data.age || 0;
+        const cacheNote = `<div style="font-size:11px;color:var(--text3);margin-bottom:12px;padding:6px 10px;background:var(--surface);border-radius:6px;display:inline-block;">⚡ Cached analysis · ${ageMin}m ago · Real-time price shown above</div>`;
+        if(streamEl) streamEl.innerHTML = cacheNote + formatAIResponse(data.text);
+      } else {
+        if(streamEl) streamEl.innerHTML = formatAIResponse(data.text);
+      }
+      if(btn){ btn.disabled=false; btn.textContent='↺ Refresh Analysis'; }
+      if(ctaCard) ctaCard.style.display='none';
+      if(output) output.style.display='block';
+      return;
+    }
 
     if(!resp.ok){
       const err = await resp.text();
