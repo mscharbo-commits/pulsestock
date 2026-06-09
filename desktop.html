@@ -4,87 +4,119 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PulseStock Desktop Ticker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-font-smoothing:antialiased;}
-header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;}
+header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:100;}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
 .logo-name{font-size:17px;font-weight:700;color:#0D1117;letter-spacing:-.4px;}
 .logo-name span{color:#1A6BF5;}
 .back{font-size:13px;color:#8A95A3;text-decoration:none;padding:7px 14px;border-radius:6px;}
 .back:hover{background:#EBF1FE;color:#1A6BF5;}
-.main{max-width:860px;margin:0 auto;padding:56px 24px;}
+.main{max-width:900px;margin:0 auto;padding:48px 24px;}
 
 /* HERO */
 .hero{text-align:center;margin-bottom:48px;}
-.ticker-preview{background:#0D1117;border-radius:12px;padding:0;overflow:hidden;margin:0 auto 32px;box-shadow:0 8px 32px rgba(0,0,0,.2);border:1px solid #1A6BF5;}
-.ticker-bar{height:44px;display:flex;align-items:center;border-bottom:1px solid #1A6BF5;}
-.t-brand{display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid #1C2030;height:100%;}
-.t-icon{width:22px;height:22px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
-.t-name{font-size:12px;font-weight:700;color:#E6EDF3;}
-.t-name span{color:#1A6BF5;}
-.t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #1C2030;height:100%;}
-.t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#8A95A3;font-size:11px;padding:3px 8px;width:100px;}
-.t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:10px;font-weight:600;padding:3px 8px;}
-.t-tape{flex:1;overflow:hidden;display:flex;align-items:center;padding:0 8px;gap:0;}
-.t-tick{display:inline-flex;align-items:center;gap:5px;padding:0 12px;border-right:1px solid #1C2030;height:44px;font-size:11px;}
-.t-sym{font-weight:700;color:#E6EDF3;}
-.t-prc{color:#8A95A3;}
-.t-up{color:#0DB56B;font-weight:600;}
-.t-dn{color:#D13F30;font-weight:600;}
-.t-status{display:flex;align-items:center;gap:4px;padding:0 10px;border-right:1px solid #1C2030;border-left:1px solid #1C2030;height:100%;}
-.t-dot{width:5px;height:5px;border-radius:50%;background:#D13F30;}
-.t-st{font-size:9px;font-weight:700;color:#5A6478;letter-spacing:.06em;}
-.t-ad{width:160px;height:100%;border-left:1px solid #1C2030;display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;background:linear-gradient(135deg,#0a1628,#0d2145);}
-.t-exit{width:36px;height:100%;border-left:1px solid #1C2030;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-weight:700;font-size:13px;}
-.desktop-mockup{background:#1A1F2A;height:80px;display:flex;align-items:center;justify-content:center;}
-.fake-win{background:#252535;border-radius:4px;width:120px;height:48px;border:1px solid #333;display:flex;align-items:flex-start;padding:4px 6px;gap:3px;}
-.w-dot{width:6px;height:6px;border-radius:50%;}
-.desktop-note{font-size:10px;color:#3D4D60;text-align:center;margin-top:6px;}
-
 .hero h1{font-size:36px;font-weight:700;letter-spacing:-1px;margin-bottom:10px;}
 .hero h1 span{color:#1A6BF5;}
 .hero p{font-size:16px;color:#4A5568;max-width:520px;margin:0 auto 32px;}
 
-/* STEPS */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
-.step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.step-num{width:28px;height:28px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;margin-bottom:10px;}
-.step h3{font-size:14px;font-weight:600;margin-bottom:6px;}
-.step p{font-size:13px;color:#4A5568;line-height:1.6;}
-.step code{background:#F2F4F7;padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;}
+/* ── LIVE DEMO ─────────────────────────────────────────────────────────────── */
+.demo-wrapper{background:#1A1F2A;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);margin-bottom:48px;border:1px solid #2A3040;}
+
+/* Mac window chrome */
+.mac-chrome{background:#2D3748;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1A1F2A;}
+.mac-dot{width:12px;height:12px;border-radius:50%;}
+
+/* THE TICKER BAR */
+.ticker-bar{background:#0D1117;height:44px;display:flex;align-items:center;border-bottom:2px solid #1A6BF5;position:relative;overflow:hidden;}
+.t-brand{display:flex;align-items:center;gap:7px;padding:0 14px;border-right:1px solid #1C2030;height:100%;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.t-brand:hover{background:#111827;}
+.t-icon{width:22px;height:22px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+.t-name{font-size:12px;font-weight:700;color:#E6EDF3;}
+.t-name span{color:#1A6BF5;}
+.t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
+.t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#E6EDF3;font-size:12px;font-family:'DM Sans',sans-serif;padding:3px 8px;width:110px;outline:none;}
+.t-input:focus{border-color:#1A6BF5;}
+.t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;padding:4px 10px;cursor:pointer;}
+.t-btn:hover{background:#1558D6;}
+.tape-viewport{flex:1;overflow:hidden;position:relative;height:100%;mask-image:linear-gradient(to right,transparent 0%,black 3%,black 97%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0%,black 3%,black 97%,transparent 100%);}
+.tape{display:flex;position:absolute;height:100%;align-items:center;will-change:transform;}
+.tick{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:44px;cursor:pointer;border-right:1px solid #1C2030;transition:background .1s;flex-shrink:0;}
+.tick:hover{background:#111827;}
+.tick-sym{font-size:12px;font-weight:700;color:#E6EDF3;}
+.tick-price{font-size:12px;color:#8A95A3;font-family:'DM Mono',monospace;}
+.tick-chg{font-size:11px;font-weight:600;font-family:'DM Mono',monospace;}
+.up{color:#0DB56B;}.dn{color:#D13F30;}.flat{color:#5A6478;}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.dot.up{background:#0DB56B;}.dot.dn{background:#D13F30;}
+.t-status{display:flex;align-items:center;gap:5px;padding:0 12px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
+.s-dot{width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite;}
+.s-dot.open{background:#0DB56B;}.s-dot.closed{background:#D13F30;animation:none;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.s-txt{font-size:10px;font-weight:700;letter-spacing:.06em;}
+.s-time{font-size:10px;color:#3D4D60;font-family:'DM Mono',monospace;}
+.t-ad{width:190px;height:100%;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer;}
+.ad-slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;opacity:0;transition:opacity .6s;}
+.ad-slide.active{opacity:1;}
+.ad-logo{font-size:12px;font-weight:700;white-space:nowrap;}
+.ad-sep{color:#2A3040;}
+.ad-body{display:flex;flex-direction:column;gap:1px;}
+.ad-hl{font-size:11px;font-weight:600;white-space:nowrap;}
+.ad-sub{font-size:9.5px;color:#5A6478;white-space:nowrap;}
+.ad-cta{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+.t-exit{width:40px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
+.t-exit:hover{background:rgba(209,63,48,.35);}
+
+/* Fake desktop */
+.fake-desktop{background:#1A1F2A;padding:16px;min-height:200px;display:flex;flex-direction:column;gap:10px;}
+.fake-win{background:#252535;border-radius:8px;border:1px solid #333;overflow:hidden;transition:all .3s;}
+.win-bar{background:#2D3748;padding:8px 12px;display:flex;align-items:center;gap:6px;}
+.win-bar-dot{width:10px;height:10px;border-radius:50%;}
+.win-title{font-size:11px;color:#8A95A3;margin-left:4px;}
+.win-content{padding:10px 14px;font-size:11px;color:#484F58;height:50px;display:flex;align-items:center;}
+.demo-label{font-size:11px;color:#3D4D60;text-align:center;padding:8px 0 4px;font-style:italic;}
+
+/* CALLOUT ANNOTATIONS */
+.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:40px;}
+.callout{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.callout-icon{font-size:22px;margin-bottom:6px;}
+.callout h4{font-size:13px;font-weight:600;margin-bottom:4px;}
+.callout p{font-size:12px;color:#4A5568;line-height:1.5;}
 
 /* DOWNLOAD */
-.download-card{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:28px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:32px;}
-.download-card h2{font-size:20px;font-weight:700;margin-bottom:6px;}
+.download-card{background:#fff;border:1.5px solid #1A6BF5;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 16px rgba(26,107,245,.1);margin-bottom:32px;}
+.download-card h2{font-size:22px;font-weight:700;margin-bottom:6px;}
 .download-card p{font-size:14px;color:#4A5568;margin-bottom:20px;}
 .dl-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.dl-btn{padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:8px;transition:opacity .15s;}
+.dl-btn{padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s;}
 .dl-btn:hover{opacity:.88;}
 .dl-primary{background:#0D1117;color:#fff;}
 .dl-secondary{background:#F2F4F7;color:#0D1117;border:1.5px solid #E2E6ED;}
 
-/* TERMINAL BLOCK */
-.terminal{background:#0D1117;border-radius:10px;padding:16px 20px;margin:16px 0;border:1px solid #30363D;}
-.terminal code{color:#8DE8A0;font-family:'DM Mono',monospace;font-size:13px;line-height:2;}
-.terminal code span{color:#8A95A3;}
-.t-prompt{color:#1A6BF5;}
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:32px;}
+@media(max-width:600px){.steps,.callouts{grid-template-columns:1fr;}}
+.step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.step-num{width:26px;height:26px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;margin-bottom:10px;}
+.step h3{font-size:13.5px;font-weight:600;margin-bottom:5px;}
+.step p{font-size:12.5px;color:#4A5568;line-height:1.6;}
+.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace;}
 
-/* FEATURES */
-.features{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;}
-.feat{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 1px 3px rgba(0,0,0,.04);}
-.feat-icon{font-size:20px;flex-shrink:0;}
-.feat h4{font-size:13.5px;font-weight:600;margin-bottom:3px;}
-.feat p{font-size:12.5px;color:#4A5568;line-height:1.6;}
+.terminal{background:#0D1117;border-radius:10px;padding:14px 18px;margin:16px 0;border:1px solid #30363D;}
+.terminal div{font-family:'DM Mono',monospace;font-size:12.5px;line-height:2.2;color:#8DE8A0;}
+.terminal .prompt{color:#1A6BF5;}
+.terminal .comment{color:#484F58;}
 
-footer{text-align:center;padding:32px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;margin-top:40px;}
+footer{text-align:center;padding:28px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;margin-top:32px;}
 footer a{color:#8A95A3;text-decoration:none;margin:0 8px;}
 footer a:hover{color:#1A6BF5;}
 </style>
 </head>
 <body>
+
 <header>
   <a href="/" class="logo">
     <div class="logo-icon">P</div>
@@ -95,44 +127,81 @@ footer a:hover{color:#1A6BF5;}
 
 <div class="main">
 
-  <!-- HERO -->
   <div class="hero">
-    <!-- Ticker preview -->
-    <div class="ticker-preview">
-      <div class="ticker-bar">
-        <div class="t-brand"><div class="t-icon">P</div><div class="t-name">Pulse<span>Stock</span></div></div>
-        <div class="t-search"><input class="t-input" placeholder="Ticker..." value="AAPL" readonly/><button class="t-btn">Analyze ↗</button></div>
-        <div class="t-tape">
-          <div class="t-tick"><span class="t-sym">AAPL</span><span class="t-prc">$207.34</span><span class="t-up">+1.2%</span></div>
-          <div class="t-tick"><span class="t-sym">NVDA</span><span class="t-prc">$131.82</span><span class="t-up">+2.8%</span></div>
-          <div class="t-tick"><span class="t-sym">MSFT</span><span class="t-prc">$442.16</span><span class="t-dn">−0.4%</span></div>
-          <div class="t-tick"><span class="t-sym">TSLA</span><span class="t-prc">$248.50</span><span class="t-up">+3.1%</span></div>
-          <div class="t-tick"><span class="t-sym">META</span><span class="t-prc">$612.44</span><span class="t-up">+0.9%</span></div>
-        </div>
-        <div class="t-status"><div class="t-dot"></div><span class="t-st">CLOSED</span></div>
-        <div class="t-ad"><span style="color:#00AEEF;font-weight:700;font-size:11px;">Webull</span><span style="color:#5A6478;">|</span><span style="color:#E6EDF3;font-size:10px;">Trade free</span></div>
-        <div class="t-exit">✕</div>
-      </div>
-      <div class="desktop-mockup">
-        <div style="display:flex;gap:8px;align-items:flex-end;">
-          <div class="fake-win"><div class="win-dots" style="display:flex;gap:3px;"><div class="w-dot" style="background:#FF5F56;"></div><div class="w-dot" style="background:#FFBD2E;"></div><div class="w-dot" style="background:#27C93F;"></div></div></div>
-          <div class="fake-win" style="width:160px;"><div style="display:flex;gap:3px;"><div class="w-dot" style="background:#FF5F56;"></div><div class="w-dot" style="background:#FFBD2E;"></div><div class="w-dot" style="background:#27C93F;"></div></div></div>
-        </div>
-      </div>
-      <div class="desktop-note" style="padding:6px 0 8px;">↑ Ticker bar pins to top of screen · Windows sit below it</div>
+    <h1>PulseStock <span>Desktop Ticker</span></h1>
+    <p>A persistent 44px bar that pins to the top of your screen. Live quotes, one-click AI analysis, rotating broker ads — always visible while you work.</p>
+  </div>
+
+  <!-- LIVE INTERACTIVE DEMO -->
+  <div class="demo-wrapper">
+    <div class="mac-chrome">
+      <div class="mac-dot" style="background:#FF5F56;"></div>
+      <div class="mac-dot" style="background:#FFBD2E;"></div>
+      <div class="mac-dot" style="background:#27C93F;"></div>
+      <span style="font-size:11px;color:#8A95A3;margin-left:8px;">PulseStock Ticker — Live Demo</span>
     </div>
 
-    <h1>PulseStock <span>Desktop Ticker</span></h1>
-    <p>A persistent ticker bar that lives at the top of your screen. Live quotes, one-click analysis, rotating broker ads — always visible while you work.</p>
+    <!-- THE ACTUAL TICKER BAR -->
+    <div class="ticker-bar">
+      <div class="t-brand" title="Open PulseStock" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
+        <div class="t-icon">P</div>
+        <div class="t-name">Pulse<span>Stock</span></div>
+      </div>
+      <div class="t-search">
+        <input id="demo-input" class="t-input" placeholder="Ticker..." maxlength="10" onkeydown="if(event.key==='Enter')demoSearch()"/>
+        <button class="t-btn" onclick="demoSearch()">Analyze ↗</button>
+      </div>
+      <div class="tape-viewport">
+        <div class="tape" id="demo-tape"></div>
+      </div>
+      <div class="t-status">
+        <div class="s-dot" id="demo-sdot"></div>
+        <span class="s-txt" id="demo-stxt" style="color:#5A6478;"></span>
+        <span class="s-time" id="demo-stime"></span>
+      </div>
+      <div class="t-ad" id="demo-ad"></div>
+      <div class="t-exit" title="Close ticker" onclick="alert('In the real app this closes the ticker bar.')">✕</div>
+    </div>
+
+    <!-- FAKE DESKTOP BELOW -->
+    <div class="fake-desktop">
+      <div class="fake-win">
+        <div class="win-bar">
+          <div class="win-bar-dot" style="background:#FF5F56;"></div>
+          <div class="win-bar-dot" style="background:#FFBD2E;"></div>
+          <div class="win-bar-dot" style="background:#27C93F;"></div>
+          <span class="win-title">Chrome — pulsestock-nu.vercel.app</span>
+        </div>
+        <div class="win-content">Your browser window sits below the ticker bar</div>
+      </div>
+      <div class="fake-win">
+        <div class="win-bar">
+          <div class="win-bar-dot" style="background:#FF5F56;"></div>
+          <div class="win-bar-dot" style="background:#FFBD2E;"></div>
+          <div class="win-bar-dot" style="background:#27C93F;"></div>
+          <span class="win-title">Terminal</span>
+        </div>
+        <div class="win-content">Other apps work normally underneath</div>
+      </div>
+    </div>
+    <div class="demo-label">↑ Interactive demo — type a ticker and click Analyze ↗ · Prices update every 15s on the real app</div>
+  </div>
+
+  <!-- CALLOUTS -->
+  <div class="callouts">
+    <div class="callout"><div class="callout-icon">📊</div><h4>Live Quotes</h4><p>Real-time prices every 15 seconds via Finnhub</p></div>
+    <div class="callout"><div class="callout-icon">🔍</div><h4>Search Any Stock</h4><p>Type ticker + Enter → full AI analysis opens instantly</p></div>
+    <div class="callout"><div class="callout-icon">📌</div><h4>Always Visible</h4><p>Pins to top of screen, works across all apps</p></div>
+    <div class="callout"><div class="callout-icon">⚙️</div><h4>Customizable</h4><p>Right-click to edit your ticker list anytime</p></div>
   </div>
 
   <!-- DOWNLOAD -->
   <div class="download-card">
     <h2>Download for Mac</h2>
-    <p>Free · Requires macOS 10.15+ · Intel & Apple Silicon</p>
+    <p>Free · macOS 10.15+ · Intel Mac · Requires Node.js</p>
     <div class="dl-btns">
-      <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="dl-btn dl-primary">⬇ Download from GitHub</a>
-      <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="dl-btn dl-secondary">📦 Download ZIP</a>
+      <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="dl-btn dl-primary">⬇ Download ZIP</a>
+      <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="dl-btn dl-secondary">View on GitHub ↗</a>
     </div>
   </div>
 
@@ -141,38 +210,27 @@ footer a:hover{color:#1A6BF5;}
     <div class="step">
       <div class="step-num">1</div>
       <h3>Install Node.js</h3>
-      <p>Download and install <strong>Node.js LTS</strong> from <code>nodejs.org</code> if you don't have it. Run <code>node --version</code> to check.</p>
+      <p>Download Node.js LTS from <code>nodejs.org</code>. Verify with <code>node --version</code> in Terminal.</p>
     </div>
     <div class="step">
       <div class="step-num">2</div>
       <h3>Download & Extract</h3>
-      <p>Download the ZIP above and extract it. Or clone with:<br/><code>git clone github.com/mscharbo-commits/pulsestock-ticker</code></p>
+      <p>Download the ZIP above and extract it to your Downloads folder.</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <h3>Install & Launch</h3>
-      <p>Open Terminal in the folder and run:<br/><code>npm install</code><br/><code>npm start 2>/dev/null</code></p>
+      <h3>Launch</h3>
+      <p>Open Terminal, navigate to the folder, and run the commands below.</p>
     </div>
   </div>
 
-  <!-- TERMINAL BLOCK -->
   <div class="terminal">
-    <code>
-      <div><span class="t-prompt">$</span> git clone https://github.com/mscharbo-commits/pulsestock-ticker</div>
-      <div><span class="t-prompt">$</span> cd pulsestock-ticker</div>
-      <div><span class="t-prompt">$</span> npm install</div>
-      <div><span class="t-prompt">$</span> npm start 2>/dev/null</div>
-    </code>
-  </div>
-
-  <!-- FEATURES -->
-  <div class="features">
-    <div class="feat"><div class="feat-icon">📊</div><div><h4>Live Quotes</h4><p>Real-time prices and % change for your custom ticker list. Updates every 15 seconds via Finnhub.</p></div></div>
-    <div class="feat"><div class="feat-icon">🔍</div><div><h4>One-Click Analysis</h4><p>Type any ticker and hit Enter — opens the full PulseStock AI analysis in your browser instantly.</p></div></div>
-    <div class="feat"><div class="feat-icon">📌</div><div><h4>Always Visible</h4><p>Pins to the top of your screen. Works across all your apps — Chrome, Terminal, Excel, anything.</p></div></div>
-    <div class="feat"><div class="feat-icon">⚙️</div><div><h4>Customizable</h4><p>Right-click to edit your ticker list. Add or remove any stock. Settings persist across restarts.</p></div></div>
-    <div class="feat"><div class="feat-icon">🚀</div><div><h4>Auto-Launch</h4><p>Starts automatically when your Mac boots. Always there when you need it, invisible when you don't.</p></div></div>
-    <div class="feat"><div class="feat-icon">💰</div><div><h4>Free</h4><p>The Desktop Ticker is free for all users. No account required to download and run.</p></div></div>
+    <div><span class="prompt">$</span> cd ~/Downloads/pulsestock-ticker</div>
+    <div><span class="prompt">$</span> npm install</div>
+    <div><span class="prompt">$</span> npm start 2>/dev/null</div>
+    <div class="comment"># Ticker bar appears at top of screen</div>
+    <div class="comment"># Right-click bar to edit your tickers</div>
+    <div class="comment"># Click ✕ to close</div>
   </div>
 
 </div>
@@ -183,5 +241,121 @@ footer a:hover{color:#1A6BF5;}
   <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank">GitHub</a>
   <br/><br/>© 2026 PulseStock, Inc. · Not financial advice.
 </footer>
+
+<script>
+// ── TICKER DATA ───────────────────────────────────────────────────────────────
+var stocks = [
+  {s:'AAPL', p:207.34, c:1.2},
+  {s:'NVDA', p:131.82, c:2.8},
+  {s:'MSFT', p:442.16, c:-0.4},
+  {s:'TSLA', p:248.50, c:3.1},
+  {s:'META', p:612.44, c:0.9},
+  {s:'AMZN', p:198.22, c:-0.7},
+  {s:'JPM',  p:248.10, c:0.5},
+  {s:'GOOGL',p:178.92, c:1.4},
+  {s:'XOM',  p:112.34, c:-1.1},
+  {s:'V',    p:294.56, c:0.6},
+  {s:'BRK-B',p:468.20, c:0.3},
+  {s:'LLY',  p:842.10, c:2.1},
+];
+
+// ── BUILD TAPE ────────────────────────────────────────────────────────────────
+function buildTape() {
+  var tape = document.getElementById('demo-tape');
+  var items = [...stocks, ...stocks, ...stocks];
+  tape.innerHTML = items.map(function(s) {
+    var cls = s.c > 0 ? 'up' : s.c < 0 ? 'dn' : 'flat';
+    var chg = (s.c > 0 ? '+' : '') + s.c.toFixed(2) + '%';
+    return '<div class="tick" onclick="openStock(\'' + s.s + '\')" title="Click to analyze ' + s.s + '">'
+      + '<div class="dot ' + cls + '"></div>'
+      + '<span class="tick-sym">' + s.s + '</span>'
+      + '<span class="tick-price">$' + s.p.toFixed(2) + '</span>'
+      + '<span class="tick-chg ' + cls + '">' + chg + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+// ── ANIMATE TAPE ──────────────────────────────────────────────────────────────
+var tapePx = 0;
+function animateTape() {
+  var tape = document.getElementById('demo-tape');
+  if (!tape) return;
+  tapePx -= 0.5;
+  var items = tape.children;
+  if (items.length > 0) {
+    var oneSetWidth = items[0].offsetWidth * stocks.length;
+    if (Math.abs(tapePx) >= oneSetWidth) tapePx += oneSetWidth;
+  }
+  tape.style.transform = 'translateX(' + tapePx + 'px)';
+  requestAnimationFrame(animateTape);
+}
+
+// ── MARKET STATUS ─────────────────────────────────────────────────────────────
+function updateStatus() {
+  var now = new Date();
+  var et = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  var h = et.getHours(), m = et.getMinutes(), d = et.getDay();
+  var weekday = d >= 1 && d <= 5;
+  var open = weekday && (h > 9 || (h===9 && m>=30)) && h < 16;
+  var pre  = weekday && h >= 4 && (h < 9 || (h===9 && m<30));
+  var ah   = weekday && h >= 16 && h < 20;
+  var dot  = document.getElementById('demo-sdot');
+  var txt  = document.getElementById('demo-stxt');
+  var time = document.getElementById('demo-stime');
+  var ts   = et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+  if (open)      { dot.className='s-dot open'; txt.textContent='OPEN';   txt.style.color='#0DB56B'; }
+  else if (pre)  { dot.className='s-dot pre';  txt.textContent='PRE';    txt.style.color='#F59E0B'; }
+  else if (ah)   { dot.className='s-dot pre';  txt.textContent='AH';     txt.style.color='#F59E0B'; }
+  else           { dot.className='s-dot closed';txt.textContent='CLOSED';txt.style.color='#5A6478'; }
+  time.textContent = ts + ' ET';
+}
+
+// ── ADS ───────────────────────────────────────────────────────────────────────
+var ads = [
+  {logo:'Webull', lc:'#00AEEF', hl:'Trade commission-free', sub:'$0 commissions', cta:'Open account', cc:'#00AEEF', url:'https://webull.com'},
+  {logo:'IBKR', lc:'#E31837', hl:'Advanced trading tools', sub:'Lowest margin rates', cta:'Learn more', cc:'#E31837', url:'https://interactivebrokers.com'},
+  {logo:'Tastytrade', lc:'#FF6B00', hl:'Options & futures', sub:'$1 to open · $0 to close', cta:'Trade free', cc:'#FF6B00', url:'https://tastytrade.com'},
+];
+var adIdx = 0;
+
+function buildAds() {
+  var zone = document.getElementById('demo-ad');
+  zone.innerHTML = ads.map(function(a, i) {
+    return '<div class="ad-slide' + (i===0?' active':'') + '" style="background:linear-gradient(135deg,#0a1628,#0d2145)">'
+      + '<span class="ad-logo" style="color:'+a.lc+'">'+a.logo+'</span>'
+      + '<span class="ad-sep">|</span>'
+      + '<div class="ad-body"><span class="ad-hl">'+a.hl+'</span><span class="ad-sub">'+a.sub+'</span></div>'
+      + '<span class="ad-cta" style="color:'+a.cc+';border-color:'+a.cc+'">'+a.cta+'</span>'
+      + '</div>';
+  }).join('');
+}
+
+function rotateAd() {
+  var slides = document.querySelectorAll('.ad-slide');
+  slides[adIdx].classList.remove('active');
+  adIdx = (adIdx + 1) % ads.length;
+  slides[adIdx].classList.add('active');
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function demoSearch() {
+  var t = document.getElementById('demo-input').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  if (!t) return;
+  openStock(t);
+  document.getElementById('demo-input').value = '';
+}
+
+function openStock(ticker) {
+  window.open('https://pulsestock-nu.vercel.app/?ticker=' + ticker, '_blank');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildTape();
+buildAds();
+updateStatus();
+requestAnimationFrame(animateTape);
+setInterval(rotateAd, 8000);
+setInterval(updateStatus, 30000);
+</script>
 </body>
 </html>
