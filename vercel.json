@@ -14,6 +14,14 @@
     {
       "src": "/signin.html",
       "dest": "/signin.html"
+    },
+    {
+      "src": "/desktop",
+      "dest": "/desktop.html"
+    },
+    {
+      "src": "/desktop.html",
+      "dest": "/desktop.html"
     }
   ]
 }
