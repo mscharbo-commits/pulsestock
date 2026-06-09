@@ -149,9 +149,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
 .quick-nav{display:block;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
-.qn-btn{font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;border:2px solid #D0D7E2;background:#fff;color:#2D3A4A;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 2px 5px rgba(0,0,0,.1);letter-spacing:.01em;}
-.qn-btn:hover{background:#EBF1FE;color:#1A6BF5;border-color:#1A6BF5;box-shadow:0 3px 10px rgba(26,107,245,.2);transform:translateY(-1px);}
-.qn-btn.active{background:#1A6BF5;color:#fff;border-color:#1A6BF5;box-shadow:0 3px 12px rgba(26,107,245,.35);transform:translateY(-1px);}
+.qn-btn{font-size:12px;font-weight:500;padding:5px 13px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
+
+/* COMPANY PROFILE */
+.profile-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
 .profile-description{font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:14px;}
 .profile-meta{display:flex;flex-direction:column;gap:8px;}
 .profile-meta-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);}
@@ -1089,7 +1091,7 @@ async function doAnalyze(){
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 90),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
-  setTimeout(function(){ fetchInsiderTransactions(ticker); }, 500);
+  setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 500);
   setTimeout(function(){ fetchIntelligence(ticker); }, 800);
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
@@ -2720,13 +2722,10 @@ let TICKER_SYMBOLS = [
   {sym:'QQQ',   label:'NASDAQ',  idx:true},
   {sym:'DIA',   label:'DOW',     idx:true},
   {sym:'IWM',   label:'R2000',   idx:true},
-  {sym:'VIX',   label:'VIX',     idx:true},
   {sym:'GLD',   label:'Gold',    idx:true},
   {sym:'USO',   label:'Oil',     idx:true},
   {sym:'TLT',   label:'10Y',     idx:true},
   {sym:'UUP',   label:'USD',     idx:true},
-  {sym:'BTC-USD',label:'BTC',    idx:true},
-  {sym:'ETH-USD',label:'ETH',    idx:true},
   {sym:'AAPL',  label:'',        idx:false},
   {sym:'NVDA',  label:'',        idx:false},
   {sym:'MSFT',  label:'',        idx:false},
