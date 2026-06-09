@@ -4051,13 +4051,16 @@ async function chatAsk(ticker, question) {
   }
 
   try {
+    console.log('[chatAsk] sending to API, ticker:', ticker, 'question:', question);
     var resp = await fetch('/api/analyze-cached', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ticker: ticker + '_chat_' + Date.now(), tier:'free', messages: messages})
     });
+    console.log('[chatAsk] response status:', resp.status);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     var data = await resp.json();
+    console.log('[chatAsk] got data:', !!data.text);
     var answer = (data.text || 'No answer available.').replace(/\n/g,'<br>');
     _chatHistory[ticker].push({role:'assistant', content: data.text||''});
     var aiBodyEl = document.getElementById(aiBodyId);
