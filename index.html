@@ -2225,12 +2225,7 @@ async function renderPortfolio(){
     <div class="port-stat"><div class="port-stat-label">Total Return</div><div class="port-stat-value ${ret>=0?'up':'down'}">${ret>=0?'+':''}${ret.toFixed(2)}%</div></div>`;
 
   populatePortL2Select();
-  setTimeout(function(){
-    portfolio.forEach(function(h){
-      var btn=document.getElementById('tbtn-'+h.ticker);
-      if(btn) btn.style.opacity=TICKER_SYMBOLS.find(function(t){return t.sym===h.ticker;})?'1':'0.4';
-    });
-  },200);
+
   // Update ticker toggle button states after render
   setTimeout(function(){
     portfolio.forEach(function(h){
@@ -2254,7 +2249,7 @@ async function renderPortfolio(){
         <div class="hr-cell ${q?(q.pct>=0?'up':'down'):''}">${q?'$'+price.toFixed(2):'Loading…'}</div>
         <div class="hr-cell ${day>=0?'up':'down'}">${day>=0?'+':'-'}$${Math.abs(day).toFixed(0)}</div>
         <div class="hr-cell ${pnl>=0?'up':'down'}">${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(0)}<br/><span style="font-size:11px;opacity:.8;">${pnl>=0?'+':''}${pp.toFixed(1)}%</span></div>
-        <div class="hr-cell" style="display:flex;gap:4px;align-items:center;"><button onclick="toggleTickerBar('${h.ticker}')" id="tbtn-${h.ticker}" title="Toggle in ticker bar" style="background:none;border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:12px;cursor:pointer;opacity:0.4;">📈</button><button onclick="removeHolding('${h.ticker}')" style="background:var(--red-bg,#FDECEA);color:var(--red);border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">✕</button></div>
+        <div class="hr-cell"><button onclick="removeHolding('${h.ticker}')" style="background:var(--red-bg,#FDECEA);color:var(--red);border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">✕</button></div>
       </div>`;
     }).join('')}`;
 }
@@ -2278,6 +2273,13 @@ function addPortfolioTicker(){
   h.push({ticker:t,shares:shares,avg:avg,date:new Date().toISOString().split('T')[0]});
   localStorage.setItem('portfolio',JSON.stringify(h));
   if(inp)inp.value='';
+  // Ask about ticker bar
+  if(confirm('Add ' + t + ' to the ticker bar?')){
+    if(!TICKER_SYMBOLS.find(function(s){return s.sym===t;})){
+      TICKER_SYMBOLS.push({sym:t,label:'',idx:false});
+      loadTickerBar();
+    }
+  }
   renderPortfolio();
 }
 
