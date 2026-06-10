@@ -261,7 +261,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .chat-msg-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .chat-msg-user .chat-msg-label{color:var(--accent);}
 .chat-msg-ai .chat-msg-label{color:var(--text3);}
-.chat-msg-text{font-size:13.5px;color:var(--text);line-height:1.7;}
+.chat-msg-text{font-size:13px;color:var(--text);line-height:1.65;}
+.chat-msg-text p{margin:0 0 8px;}
+.chat-msg-text p:last-child{margin-bottom:0;}
+.chat-msg-text h3,.chat-msg-text h4{margin:10px 0 4px;}
+.chat-msg-text ul{margin:4px 0 8px;padding-left:18px;}
+.chat-msg-text li{margin:2px 0;}
 .ai-section{margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
 .ai-section-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);}
 .ai-section-body{font-size:14.5px;color:#0D1117;line-height:1.9;padding:16px 18px;font-weight:400;}
@@ -4025,7 +4030,7 @@ async function chatAsk(ticker, question) {
   var aid = 'ai' + Date.now();
   var a = document.createElement('div');
   a.className = 'chat-msg chat-msg-ai';
-  a.innerHTML = '<div class="chat-msg-label">&#129504; Claude</div><div class="chat-msg-text" id="' + aid + '"><em style="color:var(--text3)">Thinking&#8230;</em></div>';
+  a.innerHTML = '<div class="chat-msg-label">🧠 Claude</div><div class="chat-msg-text" id="' + aid + '"><em style="color:var(--text3)">Thinking&#8230;</em></div>';
   msgsEl.appendChild(a);
   msgsEl.scrollTop = msgsEl.scrollHeight;
   document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){ c.disabled = true; });
