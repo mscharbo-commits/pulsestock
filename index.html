@@ -1534,7 +1534,7 @@ async function doAnalyze(){
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);">
         <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:13.5px;font-weight:600;">💬 Ask AI about ${ticker}</div>
-          <div style="font-size:11px;color:var(--text3);">Powered by Claude</div>
+          <div style="font-size:11px;color:var(--text3);">AI-Powered Analysis</div>
         </div>
         <div id="chat-chips-${ticker}" style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);">
           <button class="chat-chip" onclick="chatAsk('${ticker}','Why is ${ticker} moving today?')">Why is it moving today?</button>
@@ -1752,7 +1752,7 @@ async function runAIAnalysis(ticker, name, sector){
     ', Beta ' + (f.beta||'N/A') + ', Buybacks ' + (f.bb||'N/A') + '.';
 
   output.style.display = 'block';
-  output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
+  output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">AI-Powered Analysis</span></div><div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
 
   try {
     // Use cached endpoint — saves Claude costs, returns cached result if < 3hrs old
@@ -3919,7 +3919,7 @@ async function runPortfolioAI() {
     + '- [Specific actionable recommendation with target allocation %]\n\n'
     + 'Be direct and specific. Reference actual tickers, prices, and percentages from the data provided.';
 
-  output.innerHTML = '<div class="ai-analysis-card" style="margin-top:16px;"><div class="ai-analysis-header"><h3>🧠 AI Portfolio Analysis</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="port-ai-stream"><span style="color:var(--text3);">Analyzing your portfolio...</span><span class="ai-cursor"></span></div></div>';
+  output.innerHTML = '<div class="ai-analysis-card" style="margin-top:16px;"><div class="ai-analysis-header"><h3>🧠 AI Portfolio Analysis</h3><span style="font-size:12px;color:var(--text3);">AI-Powered Analysis</span></div><div class="ai-streaming" id="port-ai-stream"><span style="color:var(--text3);">Analyzing your portfolio...</span><span class="ai-cursor"></span></div></div>';
 
   try {
     const resp = await fetch('/api/analyze', {
@@ -4030,7 +4030,7 @@ async function chatAsk(ticker, question) {
   var aid = 'ai' + Date.now();
   var a = document.createElement('div');
   a.className = 'chat-msg chat-msg-ai';
-  a.innerHTML = '<div class="chat-msg-label">🧠 Claude</div><div class="chat-msg-text" id="' + aid + '"><em style="color:var(--text3)">Thinking&#8230;</em></div>';
+  a.innerHTML = '<div class="chat-msg-label">🧠 PulseAI</div><div class="chat-msg-text" id="' + aid + '"><em style="color:var(--text3)">Thinking&#8230;</em></div>';
   msgsEl.appendChild(a);
   msgsEl.scrollTop = msgsEl.scrollHeight;
   document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){ c.disabled = true; });
