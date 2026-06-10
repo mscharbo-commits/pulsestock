@@ -179,8 +179,11 @@ async function saveGist(picks, performance) {
 }
 
 export default async function handler(req) {
-  const auth = req.headers.get('authorization');
-  if (auth !== `Bearer ${CRON_SECRET}`) return new Response('Unauthorized', {status:401});
+  const url = new URL(req.url);
+  const authHeader = req.headers.get('authorization') || '';
+  const authQuery = url.searchParams.get('secret') || '';
+  const token = authHeader.replace('Bearer ', '') || authQuery;
+  if (token !== CRON_SECRET) return new Response(JSON.stringify({error:'Unauthorized - check your CRON_SECRET'}), {status:401, headers:{'Content-Type':'application/json'}});
 
   try {
     console.log('[cron-picks] Starting deep analysis...');
