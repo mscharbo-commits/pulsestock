@@ -554,6 +554,113 @@ async function sendMessage(){
   if(!content) return;
   input.value='';
   await sb.from('messages').insert({user_id:currentUser.id,username:currentProfile.username,content,room_id:currentRoom});
+  // Detect trade mentions and offer to create a pick
+  const trade = detectTrade(content);
+  if(trade) offerPickFromChat(trade);
+}
+
+function detectTrade(text) {
+  // Match patterns like:
+  // "bought AAPL at 291 target 310 stop 280"
+  // "long NVDA 450, target 500, stop 430"
+  // "BUY TSLA 250 tp 280 sl 235"
+  // "sold MSFT at 415"
+  const t = text.toUpperCase();
+  
+  // Direction
+  const isBuy = /\b(BOUGHT|LONG|BUY|CALLS?|ENTERED LONG)\b/.test(t);
+  const isSell = /\b(SOLD|SHORT|SELL|PUTS?|ENTERED SHORT|SHORTED)\b/.test(t);
+  if (!isBuy && !isSell) return null;
+  
+  // Ticker — 1-5 uppercase letters after direction word or standalone
+  const tickerMatch = t.match(/\b(BOUGHT|LONG|BUY|SOLD|SHORT|SELL)\s+([A-Z]{1,5})\b/) ||
+                      t.match(/\b([A-Z]{1,5})\s+(?:AT|@|\$)\s*[\d.]+/);
+  if (!tickerMatch) return null;
+  const ticker = tickerMatch[tickerMatch.length - 1];
+  // Filter out common false positives
+  if (['AT','THE','FOR','AND','OR','IS','IN','ON','UP','TO','TP','SL','PT'].includes(ticker)) return null;
+  
+  // Prices — entry, target, stop
+  const prices = [];
+  const pricePattern = /(?:AT|@|ENTRY|BOUGHT|\$)\s*[\$]?([\d.]+)/g;
+  let m;
+  while ((m = pricePattern.exec(t)) !== null) prices.push(parseFloat(m[1]));
+  // Also grab standalone prices
+  const allPrices = [];
+  const allPricePattern = /\$([\d.]+)|(?:^|\s)([\d]{2,4}(?:\.[\d]{1,2})?)(?=\s|$|,)/g;
+  while ((m = allPricePattern.exec(text)) !== null) {
+    const p = parseFloat(m[1]||m[2]);
+    if (p > 0.5 && p < 100000) allPrices.push(p);
+  }
+  
+  // Target
+  const targetMatch = t.match(/(?:TARGET|TP|PT|PRICE TARGET)\s*[\$]?([\d.]+)/);
+  const target = targetMatch ? parseFloat(targetMatch[1]) : null;
+  
+  // Stop
+  const stopMatch = t.match(/(?:STOP|SL|STOP.?LOSS|STOPLOSS)\s*[\$]?([\d.]+)/);
+  const stop = stopMatch ? parseFloat(stopMatch[1]) : null;
+  
+  // Entry price
+  const entryMatch = t.match(/(?:AT|@|ENTRY|BOUGHT AT|ENTERED AT)\s*[\$]?([\d.]+)/);
+  const entry = entryMatch ? parseFloat(entryMatch[1]) : (allPrices[0] || null);
+  
+  if (!ticker || ticker.length < 1) return null;
+  
+  return {
+    ticker,
+    direction: isSell ? 'SELL' : 'BUY',
+    entry,
+    target,
+    stop,
+    original: text
+  };
+}
+
+function offerPickFromChat(trade) {
+  // Show a small toast/banner asking if they want to create a pick
+  const existing = document.getElementById('pick-offer-banner');
+  if (existing) existing.remove();
+  
+  const banner = document.createElement('div');
+  banner.id = 'pick-offer-banner';
+  banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A6BF5;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:9999;display:flex;align-items:center;gap:12px;max-width:480px;';
+  
+  const dir = trade.direction === 'BUY' ? '🟢' : '🔴';
+  banner.innerHTML = `
+    <span>${dir} Detected ${trade.direction} ${trade.ticker}${trade.entry?' @ $'+trade.entry:''} — add as a pick?</span>
+    <button onclick="prefillPickFromChat(${JSON.stringify(trade).replace(/"/g,'&quot;')})" style="background:#fff;color:#1A6BF5;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;">Add Pick</button>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+  setTimeout(() => { if(banner.parentElement) banner.remove(); }, 8000);
+}
+
+function prefillPickFromChat(trade) {
+  // Switch to picks tab and prefill the form
+  const picksTab = document.querySelector('[onclick*="picks"]');
+  if (picksTab) picksTab.click();
+  
+  setTimeout(() => {
+    const tickerEl = document.getElementById('pick-ticker');
+    const dirEl = document.getElementById('pick-direction');
+    const entryEl = document.getElementById('pick-entry');
+    const targetEl = document.getElementById('pick-target');
+    const stopEl = document.getElementById('pick-stop');
+    const notesEl = document.getElementById('pick-notes');
+    
+    if (tickerEl) tickerEl.value = trade.ticker;
+    if (dirEl) dirEl.value = trade.direction;
+    if (entryEl && trade.entry) entryEl.value = trade.entry;
+    if (targetEl && trade.target) targetEl.value = trade.target;
+    if (stopEl && trade.stop) stopEl.value = trade.stop;
+    if (notesEl) notesEl.value = 'From chat: ' + trade.original.slice(0, 80);
+    
+    document.getElementById('pick-offer-banner')?.remove();
+    // Scroll to form
+    tickerEl?.scrollIntoView({behavior:'smooth', block:'center'});
+    tickerEl?.focus();
+  }, 300);
 }
 
 async function postPick(){
