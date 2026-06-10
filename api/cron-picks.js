@@ -182,8 +182,10 @@ export default async function handler(req) {
   const url = new URL(req.url);
   const authHeader = req.headers.get('authorization') || '';
   const authQuery = url.searchParams.get('secret') || '';
-  const token = authHeader.replace('Bearer ', '') || authQuery;
-  if (token !== CRON_SECRET) return new Response(JSON.stringify({error:'Unauthorized - check your CRON_SECRET'}), {status:401, headers:{'Content-Type':'application/json'}});
+  const provided = authHeader.replace('Bearer ', '') || authQuery;
+  // Accept either the env CRON_SECRET or the simple manual key
+  const valid = (CRON_SECRET && provided === CRON_SECRET) || provided === 'pulsestock2026';
+  if (!valid) return new Response(JSON.stringify({error:'Invalid secret. Use your CRON_SECRET or contact admin.'}), {status:401, headers:{'Content-Type':'application/json'}});
 
   try {
     console.log('[cron-picks] Starting deep analysis...');
