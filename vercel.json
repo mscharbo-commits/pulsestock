@@ -4,6 +4,10 @@
     {
       "path": "/api/cron-regsho",
       "schedule": "0 10 * * 1-5"
+    },
+    {
+      "path": "/api/cron-picks",
+      "schedule": "15 14 * * 1-5"
     }
   ],
   "routes": [
@@ -14,19 +18,29 @@
     {
       "src": "/desktop",
       "dest": "/desktop.html"
+    },
+    {
+      "src": "/morning-picks",
+      "dest": "/morning-picks.html"
     }
   ],
   "headers": [
     {
       "source": "/(.*).html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     },
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
       ]
     }
   ]
