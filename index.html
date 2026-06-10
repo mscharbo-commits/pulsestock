@@ -1197,6 +1197,33 @@ function renderNews(ticker, articles){
   el.innerHTML = makePaginator(articles, 10, renderNewsItems, newsContainerId);
 }
 
+async function loadMoreNews(ticker) {
+  var state = _newsState[ticker] || { days: 30, allArticles: [] };
+  var btn = document.querySelector('#news-load-more-' + ticker + ' button');
+  if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+
+  var newDays = state.days + 30;
+  var articles = await fetchNews(ticker, newDays);
+
+  // Deduplicate
+  var seen = new Set(state.allArticles.map(function(a){ return a.id || a.headline; }));
+  var fresh = articles.filter(function(a){ return !seen.has(a.id || a.headline); });
+
+  _newsState[ticker] = { days: newDays, allArticles: state.allArticles.concat(fresh) };
+  renderNews(ticker, _newsState[ticker].allArticles);
+
+  var moreBtn = document.getElementById('news-load-more-' + ticker);
+  if (moreBtn) {
+    if (fresh.length >= 5 && newDays < 365) {
+      moreBtn.style.display = 'block';
+      if (btn) { btn.textContent = 'Load older news ↓'; btn.disabled = false; }
+    } else {
+      moreBtn.style.display = 'none';
+    }
+  }
+}
+
+
 async function fetchAnalyst(ticker){
   try{
     const r = await fetch('/api/analyst?ticker='+encodeURIComponent(ticker));
@@ -1617,7 +1644,7 @@ async function doAnalyze(){
   </div>`;
 
   loadQuoteSentiment(ticker);
-  renderNews(ticker, newsData);
+  _newsState[ticker] = { days: 7, allArticles: newsData || [] }; renderNews(ticker, newsData);
   renderEdgar(ticker, edgarData);
   // Load filings and market data after main content
   setTimeout(function(){
