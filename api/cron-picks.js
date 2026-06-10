@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge', maxDuration: 300 };
+export const config = { maxDuration: 60 };
 
 const GIST_TOKEN = process.env.GITHUB_TOKEN;
 const FINNHUB_KEY = process.env.FINNHUB_KEY;
@@ -210,32 +210,28 @@ export default async function handler(req) {
 
     const picks = [];
     // Process in batches of 5 to avoid rate limits
-    for (let i = 0; i < UNIVERSE.length; i += 5) {
-      const batch = UNIVERSE.slice(i, i+5);
-      // Small delay between batches to avoid Anthropic rate limits
-      if (i > 0) await new Promise(r => setTimeout(r, 2000));
-      const results = await Promise.all(batch.map(async stock => {
-        try {
-          const d = await getStockData(stock.sym);
-          if (!d.price) return null;
-          const analysis = await analyzePick(stock, d, macro);
-          return {
-            sym: stock.sym, name: stock.name, sector: stock.sector,
-            price: d.price, change: d.change, pct: d.pct,
-            rsi: d.rsi, sma20: d.sma20, aboveSma20: d.aboveSma20, aboveSma50: d.aboveSma50,
-            pe: d.pe, beta: d.beta,
-            analystBuy: d.analystBuy, analystSell: d.analystSell,
-            rating: analysis.rating, confidence: analysis.confidence,
-            reason: analysis.reason, target: analysis.target,
-            technicalSignal: analysis.technicalSignal,
-            fundamentalScore: analysis.fundamentalScore,
-            macroAlignment: analysis.macroAlignment,
-            date: new Date().toISOString().split('T')[0],
-            timestamp: Date.now(),
-          };
-        } catch(e) { console.error(`[cron-picks] Error on ${stock.sym}:`, e.message); return null; }
-      }));
-      picks.push(...results.filter(Boolean));
+        for (const stock of stocksToday) {
+      try {
+        console.log('[cron-picks] Analyzing', stock.sym);
+        const d = await getStockData(stock.sym);
+        if (!d.price) { console.log('[cron-picks] No price for', stock.sym); continue; }
+        const analysis = await analyzePick(stock, d, macro);
+        picks.push({
+          sym: stock.sym, name: stock.name, sector: stock.sector,
+          price: d.price, change: d.change, pct: d.pct,
+          rsi: d.rsi, sma20: d.sma20, aboveSma20: d.aboveSma20, aboveSma50: d.aboveSma50,
+          pe: d.pe, beta: d.beta,
+          analystBuy: d.analystBuy, analystSell: d.analystSell,
+          rating: analysis.rating, confidence: analysis.confidence,
+          reason: analysis.reason, target: analysis.target,
+          technicalSignal: analysis.technicalSignal,
+          fundamentalScore: analysis.fundamentalScore,
+          macroAlignment: analysis.macroAlignment,
+          date: new Date().toISOString().split('T')[0],
+          timestamp: Date.now(),
+          priceAtPick: d.price,
+        });
+      } catch(e) { console.error('[cron-picks] Error on', stock.sym, e.message); }
     }
 
     // Load + update performance log
