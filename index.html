@@ -2225,6 +2225,13 @@ async function renderPortfolio(){
     <div class="port-stat"><div class="port-stat-label">Total Return</div><div class="port-stat-value ${ret>=0?'up':'down'}">${ret>=0?'+':''}${ret.toFixed(2)}%</div></div>`;
 
   populatePortL2Select();
+  // Update ticker toggle button states after render
+  setTimeout(function(){
+    portfolio.forEach(function(h){
+      var btn = document.getElementById('tbtn-' + h.ticker);
+      if(btn) btn.style.opacity = TICKER_SYMBOLS.find(function(t){ return t.sym === h.ticker; }) ? '1' : '0.35';
+    });
+  }, 100);
   document.getElementById('holdings-table').innerHTML=`
     <div class="holdings-header" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr 40px;"><span>Holding</span><span>Entry Date</span><span>Shares</span><span>Avg Cost</span><span>Current</span><span>Today</span><span>Total P&L</span></div>
     ${portfolio.map(h=>{
@@ -3198,6 +3205,22 @@ function addTickerFromEditor() {
   TICKER_SYMBOLS.push({sym: sym, label: '', idx: false});
   input.value = '';
   renderTickerEditorList();
+}
+
+function toggleTickerBar(sym) {
+  var inTicker = TICKER_SYMBOLS.find(function(t){ return t.sym === sym; });
+  if(inTicker) {
+    // Remove from ticker
+    TICKER_SYMBOLS = TICKER_SYMBOLS.filter(function(t){ return t.sym !== sym; });
+  } else {
+    // Add to ticker
+    TICKER_SYMBOLS.push({ sym: sym, label: '', idx: false });
+  }
+  // Update button appearance
+  var btn = document.getElementById('tbtn-' + sym);
+  if(btn) btn.style.opacity = inTicker ? '0.35' : '1';
+  // Refresh ticker bar
+  loadTickerBar();
 }
 
 function saveTickerEditor() {
