@@ -100,7 +100,8 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
   <div class="page-header">
     <h1>🌅 PulseStock Morning Picks</h1>
     <p>AI-powered daily market analysis across 30 curated stocks. Updated each trading day at market open.</p>
-    <div class="meta-row">
+    <div id="macro-bar" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace;"></div>
+  <div class="meta-row">
       <span class="meta-badge" id="meta-date">Loading...</span>
       <span class="meta-time" id="meta-time"></span>
       <button class="run-btn" id="run-btn" onclick="runScan()">⚡ Run Now</button>
@@ -198,6 +199,11 @@ function renderPicks(picks) {
         <span class="pick-chg ${up?'up':'down'}">${up?'+':''}${p.pct.toFixed(2)}%</span>
       </div>
       <div class="pick-reason">${p.reason}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        ${p.technicalSignal && p.technicalSignal!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">📊 ${p.technicalSignal}</span>` : ''}
+        ${p.fundamentalScore && p.fundamentalScore!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">📋 ${p.fundamentalScore}</span>` : ''}
+        ${p.macroAlignment && p.macroAlignment!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">🌍 ${p.macroAlignment}</span>` : ''}
+      </div>
       ${targetPct ? `<div class="pick-target">30-day target: <span>$${p.target.toFixed(2)}</span> <span style="color:${parseFloat(targetPct)>0?'var(--green)':'var(--red)'};">(${parseFloat(targetPct)>0?'+':''}${targetPct}%)</span></div>` : ''}
     </div>`;
   }).join('') + '</div>';
@@ -227,7 +233,23 @@ async function runScan() {
     });
     if (resp.ok) {
       btn.textContent = '✅ Done! Refreshing...';
-      setTimeout(() => { loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Now'; }, 1500);
+      setTimeout(() => { function renderMacroBar(m) {
+  const bar = document.getElementById('macro-bar');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  const fmt = (v, label) => {
+    const n = parseFloat(v);
+    const col = n > 0 ? 'var(--green)' : n < 0 ? 'var(--red)' : 'var(--text3)';
+    return `<span><span style="color:var(--text3);">${label}</span> <span style="color:${col};font-weight:600;">${n>0?'+':''}${v}%</span></span>`;
+  };
+  bar.innerHTML = '<span style="color:var(--text3);font-weight:600;margin-right:4px;">PRE-MARKET:</span>'
+    + fmt(m.spyPct, 'SPY') + fmt(m.qqqPct, 'QQQ')
+    + `<span><span style="color:var(--text3);">VIX</span> <span style="font-weight:600;">${m.vix}</span></span>`
+    + fmt(m.tltPct, 'TLT') + fmt(m.uupPct, 'USD')
+    + `<span style="margin-left:8px;padding:2px 10px;border-radius:10px;font-weight:700;background:${m.riskOn?'var(--green-bg)':'var(--red-bg)'};color:${m.riskOn?'var(--green)':'var(--red)'};">${m.riskOn?'RISK ON':'RISK OFF'}</span>`;
+}
+
+loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Now'; }, 1500);
     } else {
       btn.textContent = '⚡ Run Now';
       btn.disabled = false;
