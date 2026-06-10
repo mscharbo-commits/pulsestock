@@ -954,44 +954,29 @@ async function loadHotPicks(){
 }
 
 // ── AUTH ──
-function showAuth(mode){
+function showAuth(mode='login'){
   isLogin=mode==='login';
-  document.getElementById('auth-modal').style.display='flex';
-  document.getElementById('signup-fields').style.display=isLogin?'none':'block';
   document.getElementById('auth-title').textContent=isLogin?'Welcome back':'Create account';
-  document.getElementById('auth-subtitle').textContent=isLogin?'Log in to your PulseStock account.':'Join the community to share picks and track your record.';
+  document.getElementById('auth-subtitle').textContent=isLogin?'Log in to your PulseStock account.':'Join PulseStock to share picks and track your record.';
   document.getElementById('auth-btn').textContent=isLogin?'Log in':'Create account';
   document.getElementById('auth-toggle-text').textContent=isLogin?"Don't have an account?":'Already have an account?';
   document.getElementById('auth-toggle-btn').textContent=isLogin?'Sign up':'Log in';
+  document.getElementById('signup-fields').style.display=isLogin?'none':'block';
+  const fpBtn=document.getElementById('forgot-pw-btn');
+  if(fpBtn) fpBtn.style.display=isLogin?'inline':'none';
+  document.getElementById('auth-error').style.display='none';
+  document.getElementById('auth-modal').style.display='flex';
+}function toggleAuth(){
+  isLogin=!isLogin;
+  document.getElementById('auth-title').textContent=isLogin?'Welcome back':'Create account';
+  document.getElementById('auth-subtitle').textContent=isLogin?'Log in to your PulseStock account.':'Join PulseStock to share picks and track your record.';
+  document.getElementById('auth-btn').textContent=isLogin?'Log in':'Create account';
+  document.getElementById('auth-toggle-text').textContent=isLogin?"Don't have an account?":'Already have an account?';
+  document.getElementById('auth-toggle-btn').textContent=isLogin?'Sign up':'Log in';
+  document.getElementById('signup-fields').style.display=isLogin?'none':'block';
+  document.getElementById('forgot-pw-btn').style.display=isLogin?'inline':'none';
   document.getElementById('auth-error').style.display='none';
 }
-function toggleAuth(){showAuth(isLogin?'signup':'login');}
-function closeModal(id){document.getElementById(id).style.display='none';}
-
-async function submitAuth(){
-  const email=document.getElementById('auth-email').value.trim();
-  const password=document.getElementById('auth-password').value;
-  const username=document.getElementById('auth-username').value.trim();
-  const errEl=document.getElementById('auth-error');
-  const btn=document.getElementById('auth-btn');
-  btn.textContent='Please wait...';btn.disabled=true;errEl.style.display='none';
-  try{
-    if(isLogin){
-      const{error}=await sb.auth.signInWithPassword({email,password});
-      if(error)throw error;
-    }else{
-      if(!username||username.length<3)throw new Error('Username must be at least 3 characters');
-      const{data,error}=await sb.auth.signUp({email,password});
-      if(error)throw error;
-      const color=COLORS[Math.floor(Math.random()*COLORS.length)];
-      await sb.from('profiles').insert({id:data.user.id,username,avatar_color:color});
-      await setUser(data.user);
-    }
-    closeModal('auth-modal');updateUI();
-  }catch(err){errEl.textContent=err.message;errEl.style.display='block';}
-  btn.textContent=isLogin?'Log in':'Create account';btn.disabled=false;
-}
-
 async function signOut(){await sb.auth.signOut();currentUser=null;currentProfile=null;currentRole='member';updateUI();}
 
 function switchTab(tab,btn){
