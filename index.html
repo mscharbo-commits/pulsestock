@@ -406,7 +406,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 
 <header>
   <div class="header-inner">
-    <div class="logo" onclick="showPage('analyze',document.querySelector('.nav-tab'))" style="cursor:pointer;" title="Home">
+    <div class="logo">
       <div class="logo-icon">P</div>
       <span class="logo-name">Pulse<span>Stock</span></span>
     </div>
@@ -568,10 +568,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px;">My Portfolio</h2>
         <p style="color:var(--text2);font-size:14px;">Track your holdings and overall performance.</p>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-primary" onclick="addHolding()">+ Add Holding</button>
-        <button onclick="removeLastHolding()" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--surface);border:1.5px solid var(--border);font-size:14px;color:var(--red);font-weight:500;" title="Remove last holding">− Remove</button>
-      </div>
+      <button class="btn-primary" onclick="addHolding()">+ Add Holding</button>
     </div>
     <div class="port-summary" id="port-summary"></div>
     <div class="holdings-table" id="holdings-table"></div>
@@ -702,8 +699,6 @@ function showPage(id,btn){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
-  // Push state for browser back button
-  history.pushState({page:id}, '', window.location.pathname + (id==='analyze'?'':'#'+id));
   if(id==='portfolio'){ renderPortfolio(); setTimeout(populatePortL2Select, 100); }
 }
 function qs(t){
@@ -2250,17 +2245,6 @@ function removeHolding(ticker){
   portfolio = portfolio.filter(h => h.ticker !== ticker);
   savePortfolio();
   renderPortfolio();
-}
-
-function removeLastHolding(){
-  var holdings = JSON.parse(localStorage.getItem('portfolio') || '[]');
-  if(!holdings.length){ alert('No holdings to remove.'); return; }
-  var last = holdings[holdings.length-1];
-  if(confirm('Remove ' + last.ticker + ' from portfolio?')){
-    holdings.pop();
-    localStorage.setItem('portfolio', JSON.stringify(holdings));
-    renderPortfolio();
-  }
 }
 
 function addHolding(){
@@ -3941,13 +3925,6 @@ function makePaginator(items, perPage, renderFn, containerId) {
 
 
 loadTickerBar();
-
-// ── BROWSER BACK BUTTON ─────────────────────────────────────────────────────
-window.addEventListener('popstate', function(e) {
-  var id = (e.state && e.state.page) || 'analyze';
-  var btn = document.querySelector('[onclick*="showPage(\''+id+'"]') || document.querySelector('.nav-tab');
-  if (btn) showPage(id, btn);
-});
 
 // ── URL PARAMETER HANDLER ─────────────────────────────────────────────────
 // Handles ?ticker=AAPL from PulseStock Desktop Ticker and direct links
