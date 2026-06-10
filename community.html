@@ -523,8 +523,9 @@ function appendMessage(msg,scroll=true){
           ${perfStr?`<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">${perfStr}</div>`:''}
           <div class="pick-actions">
             <button class="upvote-btn" onclick="upvotePick('${pick.id}',this)">👍 <span>${pick.upvotes||0}</span></button>
-            <span class="result-pending">⏳ Pending</span>
+            ${pick.result==='win'?'<span class="result-win">✅ Win</span>':pick.result==='loss'?'<span class="result-loss">❌ Loss</span>':pick.result==='closed'?`<span style="font-size:11px;font-weight:600;color:var(--text2);">Closed ${pick.return_pct!=null?(pick.return_pct>=0?'<span style=\"color:var(--green)\">+'+pick.return_pct.toFixed(1)+'%</span>':'<span style=\"color:var(--red)\">'+pick.return_pct.toFixed(1)+'%</span>'):''}</span>`:'<span class="result-pending">⏳ Pending</span>'}
             <span style="font-size:11px;color:var(--text3);">${pick.timeframe||'1 month'}</span>
+            ${currentUser&&pick.user_id===currentUser.id&&!pick.result?`<button onclick="closePick('${pick.id}','${pick.ticker}','${pick.actual_entry_price||pick.entry_price}','${pick.direction}')" style="font-size:11px;padding:3px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-weight:600;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">Close Pick</button>`:''}
           </div>
         </div>
         ${modActions}
@@ -565,7 +566,18 @@ async function postPick(){
   const notes=document.getElementById('pick-notes').value.trim();
   const timeframe=document.getElementById('pick-timeframe').value;
   if(!ticker||!entry||!target||!stop){alert('Please fill in all price fields.');return;}
-  const{data:pick,error}=await sb.from('picks').insert({user_id:currentUser.id,username:currentProfile.username,ticker,direction,entry_price:entry,target_price:target,stop_loss:stop,notes}).select().single();
+  // Snap live price at post time as actual_entry_price
+  let actualEntry = entry; // fallback to user-entered
+  try {
+    const qr = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+    const qd = await qr.json();
+    if (qd && qd.c > 0) actualEntry = qd.c;
+  } catch(e) {}
+  const{data:pick,error}=await sb.from('picks').insert({
+    user_id:currentUser.id, username:currentProfile.username,
+    ticker, direction, entry_price:entry, target_price:target, stop_loss:stop, notes,
+    actual_entry_price:actualEntry, posted_at:new Date().toISOString()
+  }).select().single();
   if(error){alert('Error: '+error.message);return;}
   await sb.from('messages').insert({user_id:currentUser.id,username:currentProfile.username,content:'__PICK__'+JSON.stringify({...pick,timeframe}),room_id:currentRoom});
   // Auto-cast sentiment vote matching pick direction
@@ -725,25 +737,92 @@ async function createRoom(){
 }
 
 // ── LEADERBOARD ──
-async function loadLeaderboard(){
-  const{data}=await sb.from('picks').select('username,result,upvotes');
+async async function closePick(pickId, ticker, entryStr, direction) {
+  const entry = parseFloat(entryStr);
+  // Get live price
+  let exitPrice = null;
+  try {
+    const qr = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+    const qd = await qr.json();
+    if (qd && qd.c > 0) exitPrice = qd.c;
+  } catch(e) {}
+
+  if (!exitPrice) {
+    exitPrice = parseFloat(prompt(`Enter exit price for ${ticker}:`));
+    if (!exitPrice) return;
+  }
+
+  const returnPct = direction === 'BUY'
+    ? ((exitPrice - entry) / entry) * 100
+    : ((entry - exitPrice) / entry) * 100;
+
+  const result = returnPct >= 0 ? 'win' : 'loss';
+
+  if (!confirm(`Close ${ticker} at $${exitPrice.toFixed(2)}? Return: ${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%`)) return;
+
+  const { error } = await sb.from('picks').update({
+    result,
+    exit_price: exitPrice,
+    exit_time: new Date().toISOString(),
+    return_pct: parseFloat(returnPct.toFixed(2)),
+    closed_at: new Date().toISOString()
+  }).eq('id', pickId);
+
+  if (error) { alert('Error closing pick: ' + error.message); return; }
+
+  // Post close message to chat
+  await sb.from('messages').insert({
+    user_id: currentUser.id,
+    username: currentProfile.username,
+    content: `Closed ${ticker} at $${exitPrice.toFixed(2)} — ${returnPct >= 0 ? '✅ +' : '❌ '}${returnPct.toFixed(2)}%`,
+    room_id: currentRoom
+  });
+
+  loadMessages();
+  loadLeaderboard();
+}
+
+function loadLeaderboard(){
+  const{data}=await sb.from('picks').select('username,result,upvotes,return_pct,actual_entry_price,exit_price,direction,ticker,posted_at,closed_at');
   if(!data||!data.length){document.getElementById('leaderboard').innerHTML='<div class="empty" style="padding:16px;">No picks yet. Be the first!</div>';return;}
   const users={};
   data.forEach(p=>{
-    if(!users[p.username])users[p.username]={picks:0,wins:0,upvotes:0};
-    users[p.username].picks++;
-    if(p.result==='win')users[p.username].wins++;
-    users[p.username].upvotes+=p.upvotes||0;
+    if(!users[p.username])users[p.username]={picks:0,wins:0,losses:0,upvotes:0,totalReturn:0,closedPicks:0,returns:[]};
+    const u=users[p.username];
+    u.picks++;
+    u.upvotes+=p.upvotes||0;
+    if(p.result==='win'||p.result==='loss'||p.result==='closed'){
+      u.closedPicks++;
+      if(p.result==='win')u.wins++;
+      if(p.result==='loss')u.losses++;
+      if(p.return_pct!=null){u.totalReturn+=p.return_pct;u.returns.push(p.return_pct);}
+    }
   });
-  const ranked=Object.entries(users).map(([name,s])=>({name,...s,wr:s.picks?Math.round(s.wins/s.picks*100):0})).sort((a,b)=>b.wr-a.wr||b.upvotes-a.upvotes).slice(0,8);
+  const ranked=Object.entries(users).map(([name,s])=>{
+    const wr=s.closedPicks?Math.round(s.wins/s.closedPicks*100):0;
+    const avgReturn=s.returns.length?(s.totalReturn/s.returns.length):0;
+    const avgWin=s.returns.filter(r=>r>0).length?s.returns.filter(r=>r>0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r>0).length:0;
+    const avgLoss=s.returns.filter(r=>r<0).length?s.returns.filter(r=>r<0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r<0).length:0;
+    return {name,...s,wr,avgReturn,avgWin,avgLoss};
+  }).sort((a,b)=>b.totalReturn-a.totalReturn||b.wr-a.wr).slice(0,8);
+
   const medals=['🥇','🥈','🥉'];
   document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
     const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
-    return `<div class="leader-row">
-      <div style="font-size:13px;font-weight:700;width:20px;text-align:center;">${medals[i]||i+1}</div>
-      <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
-      <div style="flex:1;"><div class="leader-name">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.upvotes} 👍</div></div>
-      <div class="leader-winrate">${u.wr}%</div>
+    const retColor=u.totalReturn>=0?'var(--green)':'var(--red)';
+    return `<div class="leader-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <div style="font-size:13px;font-weight:700;width:20px;">${medals[i]||i+1}</div>
+        <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
+        <div style="flex:1;"><div class="leader-name">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
+        <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}%</div>
+      </div>
+      <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);">
+        <span>Win rate: <strong style="color:var(--text);">${u.wr}%</strong></span>
+        <span>Avg gain: <strong style="color:var(--green);">${u.avgWin>0?'+'+u.avgWin.toFixed(1)+'%':'—'}</strong></span>
+        <span>Avg loss: <strong style="color:var(--red);">${u.avgLoss<0?u.avgLoss.toFixed(1)+'%':'—'}</strong></span>
+        <span>👍 ${u.upvotes}</span>
+      </div>
     </div>`;
   }).join('');
 }
