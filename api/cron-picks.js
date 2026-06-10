@@ -160,12 +160,26 @@ Respond in this EXACT JSON format only, no other text:
       headers: {'Content-Type':'application/json','x-api-key':process.env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
       body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,messages:[{role:'user',content:prompt}]})
     });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('[analyzePick] Claude error:', resp.status, errText.slice(0,200));
+      return {rating:'WATCH',confidence:50,reason:'API error - retrying tomorrow',target:d.price,technicalSignal:'N/A',fundamentalScore:'N/A',macroAlignment:'N/A'};
+    }
     const data = await resp.json();
     const text = (data?.content?.[0]?.text||'').trim();
-    const parsed = JSON.parse(text);
+    // Extract JSON even if Claude adds extra text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response: ' + text.slice(0,100));
+    const parsed = JSON.parse(jsonMatch[0]);
+    // Validate required fields
+    if (!parsed.rating || !['BUY','WATCH','AVOID'].includes(parsed.rating)) parsed.rating = 'WATCH';
+    if (!parsed.confidence) parsed.confidence = 50;
+    if (!parsed.reason) parsed.reason = 'Analysis complete';
+    if (!parsed.target) parsed.target = d.price;
     return parsed;
   } catch(e) {
-    return {rating:'WATCH',confidence:50,reason:'Insufficient data for confident rating',target:d.price,technicalSignal:'N/A',fundamentalScore:'N/A',macroAlignment:'N/A'};
+    console.error('[analyzePick] Parse error:', e.message);
+    return {rating:'WATCH',confidence:50,reason:'Analysis unavailable',target:d.price,technicalSignal:'N/A',fundamentalScore:'N/A',macroAlignment:'N/A'};
   }
 }
 
@@ -198,6 +212,8 @@ export default async function handler(req) {
     // Process in batches of 5 to avoid rate limits
     for (let i = 0; i < UNIVERSE.length; i += 5) {
       const batch = UNIVERSE.slice(i, i+5);
+      // Small delay between batches to avoid Anthropic rate limits
+      if (i > 0) await new Promise(r => setTimeout(r, 2000));
       const results = await Promise.all(batch.map(async stock => {
         try {
           const d = await getStockData(stock.sym);
