@@ -1045,7 +1045,7 @@ async function reloadNews(ticker, days){
   renderNews(ticker, articles);
   // Show Load More button if we got a full page (likely more available)
   var moreBtn = document.getElementById('news-load-more-' + ticker);
-  if(moreBtn) moreBtn.style.display = articles.length >= 25 ? 'block' : 'none';
+  if(moreBtn) moreBtn.style.display = articles.length >= 10 ? 'block' : 'none';
   if(rangeEl) rangeEl.textContent = 'Last ' + days + ' day' + (days > 1 ? 's' : '');
 }
 
@@ -1053,8 +1053,8 @@ async function loadMoreNews(ticker){
   var state = _newsState[ticker] || { days: 7, allArticles: [] };
   var btn = document.querySelector('#news-load-more-' + ticker + ' button');
   if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
-  // Fetch next window — go back further
-  var newDays = state.days + 14;
+  // Fetch next window — go back further (30 days at a time)
+  var newDays = state.days + 30;
   var articles = await fetchNews(ticker, newDays);
   // Only show articles we haven't shown yet (by id or datetime)
   var existingIds = new Set(state.allArticles.map(function(a){ return a.id || a.datetime + a.headline; }));
@@ -1070,10 +1070,11 @@ async function loadMoreNews(ticker){
     while(tempDiv.firstChild){ el.appendChild(tempDiv.firstChild); }
   }
   var rangeEl = document.getElementById('news-range-' + ticker);
-  if(rangeEl) rangeEl.textContent = 'Last ' + newDays + ' days';
+  var rangeYears = newDays >= 365 ? (newDays/365).toFixed(1) + ' years' : newDays + ' days';
+  if(rangeEl) rangeEl.textContent = 'Last ' + rangeYears;
   var moreBtn = document.getElementById('news-load-more-' + ticker);
   if(moreBtn){
-    if(newArticles.length >= 10 && newDays < 180){
+    if(newArticles.length >= 5 && newDays < 730){  // Go back up to 2 years
       moreBtn.style.display = 'block';
       if(btn){ btn.textContent = 'Load older news ↓'; btn.disabled = false; }
     } else {
@@ -1168,10 +1169,10 @@ async function doAnalyze(){
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 7),fetchEdgar(ticker)]);
+  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
-  setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 500);
+  setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 2000);
   setTimeout(function(){ fetchIntelligence(ticker); }, 800);
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
@@ -1261,6 +1262,30 @@ async function doAnalyze(){
 
     </div><!-- end chart section -->
 
+    <div id="indicators-${ticker}">
+    <div class="indicator-panel" id="ind-panel">
+      <div class="indicator-tabs">
+        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      </div>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
+      </div>
+      <div class="ind-legend" id="ind-legend"></div>
+    </div>
+
+    <div class="range-row">
+      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
+      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
+      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
+    </div>
+    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
+  </div>
+
     <!-- LEVEL II & TIME & SALES -->
     <div id="marketdata-${ticker}" class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
@@ -1332,29 +1357,6 @@ async function doAnalyze(){
       </div>
     </div>
 
-    <div id="indicators-${ticker}">
-    <div class="indicator-panel" id="ind-panel">
-      <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
-      </div>
-      <div class="indicator-chart-wrap">
-        <canvas id="ind-chart"></canvas>
-      </div>
-      <div class="ind-legend" id="ind-legend"></div>
-    </div>
-
-    <div class="range-row">
-      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
-      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
-      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
-    </div>
-    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
-  </div>
 
     </div><!-- end indicators section -->
 
