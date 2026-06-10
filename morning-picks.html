@@ -274,7 +274,12 @@ async function runScan() {
   btn.textContent = '⏳ Analyzing 30 stocks...';
   try {
     const resp = await fetch('/api/cron-picks?secret=' + encodeURIComponent(ACCESS_CODE));
-    const data = await resp.json();
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+      alert('Scan timed out — 30 stocks is too many for one run. Try again, it may have partially saved.');
+      btn.textContent = '⚡ Run Scan'; btn.disabled = false; return;
+    }
     if (resp.ok && data.success) {
       btn.textContent = '✅ Done! Loading...';
       setTimeout(() => { loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Scan'; }, 2000);
