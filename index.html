@@ -1306,6 +1306,32 @@ async function doAnalyze(){
 
     </div><!-- end chart section -->
 
+    <div id="indicators-${ticker}">
+    <div class="indicator-panel" id="ind-panel">
+      <div class="indicator-tabs">
+        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      </div>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
+      </div>
+      <div class="ind-legend" id="ind-legend"></div>
+    </div>
+
+    <div class="range-row">
+      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
+      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
+      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
+    </div>
+    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
+  </div>
+
+    </div><!-- end indicators section -->
+
     <!-- LEVEL II & TIME & SALES -->
     <div id="marketdata-${ticker}" class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
@@ -1376,32 +1402,6 @@ async function doAnalyze(){
         <div id="nbbo-list-${ticker}" style="font-size:13px;color:var(--text3);">Loading...</div>
       </div>
     </div>
-
-    <div id="indicators-${ticker}">
-    <div class="indicator-panel" id="ind-panel">
-      <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
-      </div>
-      <div class="indicator-chart-wrap">
-        <canvas id="ind-chart"></canvas>
-      </div>
-      <div class="ind-legend" id="ind-legend"></div>
-    </div>
-
-    <div class="range-row">
-      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
-      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
-      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
-    </div>
-    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
-  </div>
-
-    </div><!-- end indicators section -->
 
   ${f.pe?`
   <div id="valuation-${ticker}">
