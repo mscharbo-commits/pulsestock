@@ -1049,27 +1049,25 @@ async function loadMoreNews(ticker){
     return !existingIds.has(a.id || a.datetime + a.headline); 
   });
   _newsState[ticker] = { days: newDays, allArticles: state.allArticles.concat(newArticles) };
-  // Append new articles to existing list
-  var el = document.getElementById('news-list-' + ticker);
-  if(el && newArticles.length > 0){
-    var tempDiv = document.createElement('div');
-    tempDiv.innerHTML = renderNewsItems(newArticles);
-    while(tempDiv.firstChild){ el.appendChild(tempDiv.firstChild); }
-  }
-  var rangeEl = document.getElementById('news-range-' + ticker);
-  var rangeYears = newDays >= 365 ? (newDays/365).toFixed(1) + ' years' : newDays + ' days';
-  if(rangeEl) rangeEl.textContent = 'Last ' + rangeYears;
-  // Rebuild paginator with all articles
+  // Rebuild paginator with ALL articles so new pages appear correctly
   var allArts = _newsState[ticker].allArticles;
   var newsContainerId = 'news-list-' + ticker;
-  var el2 = document.getElementById(newsContainerId);
-  if(el2 && allArts.length > 0){
-    window.__pgTicker = ticker;
-    el2.innerHTML = makePaginator(allArts, 10, renderNewsItems, newsContainerId);
-    var totalPgs = Math.ceil(allArts.length / 10);
-    if(window.__pg && window.__pg[newsContainerId]) window.__pg[newsContainerId](totalPgs - 1);
+  var el = document.getElementById(newsContainerId);
+  if(el) {
+    if(allArts.length > 0) {
+      window.__pgTicker = ticker;
+      el.innerHTML = makePaginator(allArts, 10, renderNewsItems, newsContainerId);
+      var totalPgs = Math.ceil(allArts.length / 10);
+      if(window.__pg && window.__pg[newsContainerId]) {
+        window.__pg[newsContainerId](totalPgs - 1);
+      }
+    } else {
+      if(btn) { btn.textContent = 'No more articles'; btn.disabled = true; }
+    }
   }
-  if(btn){ btn.textContent = 'Load older news ↓'; btn.disabled = false; }
+  var rangeEl = document.getElementById('news-range-' + ticker);
+  if(rangeEl) rangeEl.textContent = 'Last ' + (newDays >= 365 ? (newDays/365).toFixed(1) + ' yrs' : newDays + ' days');
+  if(btn && btn.disabled !== true) { btn.textContent = 'Load older news ↓'; btn.disabled = false; }
 }
 
 // Global renderNewsItems for use by loadMoreNews
@@ -2835,7 +2833,17 @@ function initIndicatorPanel(ticker, price, pct) {
   indPriceData = generatePriceHistory(price, pct, indPeriod);
   indMode = 'rsi';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  setTimeout(function(){ renderIndicator(); }, 300);
+  // Use longer delay to ensure canvas is in DOM
+  var attempts = 0;
+  function tryRender() {
+    var canvas = document.getElementById('ind-chart');
+    if (canvas) {
+      renderIndicator();
+    } else if (attempts++ < 10) {
+      setTimeout(tryRender, 200);
+    }
+  }
+  setTimeout(tryRender, 300);
 }
 
 // ── MARKET TICKER BAR ──
@@ -3233,38 +3241,22 @@ async function fetchInsiderTransactions(ticker) {
   if(!el) return;
   try {
     // Call Finnhub directly from browser — faster, no Vercel timeout
-    var res = await fetchWithTimeout(
-      'https://finnhub.io/api/v1/stock/insider-transactions?symbol=' + encodeURIComponent(ticker) + '&token=' + FINNHUB_KEY,
-      10000
-    );
+    // Use server-side endpoint to avoid CORS issues
+    var res = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 10000);
     if(!res || res.error) throw new Error(res ? res.error : 'No data');
 
-    // Parse raw Finnhub response
-    var raw = (res.data || []).filter(function(t) {
-      return t.transactionCode === 'P' || t.transactionCode === 'S';
-    });
-    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
-    var cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
-    var recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
-
-    var titleMap = {'Chief Executive Officer':'CEO','Chief Financial Officer':'CFO','Chief Operating Officer':'COO','Chief Technology Officer':'CTO','President':'President','Director':'Director','Chairman':'Chairman','General Counsel':'Gen. Counsel'};
-    function cleanTitle(t) {
-      if(!t) return '';
-      for(var k in titleMap) { if(t.indexOf(k)!==-1) return titleMap[k]; }
-      return t.split(' ').slice(0,3).join(' ');
-    }
-
-    var transactions = recent.map(function(t) {
-      var shares = Math.abs(t.change || 0);
-      var price  = t.transactionPrice || 0;
+    var transactions = (res.transactions || []).map(function(t) {
+      var shares = t.shares || 0;
+      var price  = t.price || 0;
       return {
-        name:  t.name || 'Unknown',
-        title: cleanTitle(t.officerTitle || ''),
-        type:  t.transactionCode === 'P' ? 'buy' : 'sell',
+        name:  t.name 
+        || 'Unknown',
+        title: t.title || '',
+        type:  t.type || (t.transactionCode === 'P' ? 'buy' : 'sell'),
         shares: shares,
         price:  price || null,
         value:  shares * price || null,
-        date:   t.transactionDate,
+        date:   t.date || t.transactionDate,
       };
     });
 
