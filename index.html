@@ -2661,11 +2661,19 @@ function showIndicatorStatic(mode, btn) {
 
 function renderIndicator() {
   if (!indTicker) return;
-  // Regenerate price data if empty
-  if (!indPriceData.length && indCurrentPrice > 0) {
+  // If price is 0, try to get it from FUNDAMENTALS or quote cache
+  if (indCurrentPrice === 0) {
+    var cachedQ = quoteCache && quoteCache[indTicker] && quoteCache[indTicker].data;
+    if (cachedQ && cachedQ.price) {
+      indCurrentPrice = cachedQ.price;
+      indCurrentPct = cachedQ.pct || 0;
+    }
+  }
+  // Regenerate price data if empty or price was 0
+  if ((!indPriceData.length || indPriceData[0] === 0) && indCurrentPrice > 0) {
     indPriceData = generatePriceHistory(indCurrentPrice, indCurrentPct, indPeriod);
   }
-  if (!indPriceData.length) return;
+  if (!indPriceData.length || !indCurrentPrice) return;
   var prices = indPriceData;
   var n = prices.length;
   var labels = prices.map(function(p,i){ return i; });
