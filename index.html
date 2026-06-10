@@ -4036,7 +4036,19 @@ async function chatAsk(ticker, question) {
       body: JSON.stringify({ ticker: ticker, question: question })
     });
     var data = await resp.json();
-    var text = (data.text || data.error || 'No response.').replace(/\n/g, '<br>');
+    var raw = data.text || data.error || 'No response.';
+    // Convert markdown to HTML
+    var text = raw
+      .replace(/^### (.+)$/gm, '<h4 style="margin:10px 0 4px;font-size:13px;font-weight:700;color:var(--text)">$1</h4>')
+      .replace(/^## (.+)$/gm, '<h3 style="margin:12px 0 5px;font-size:14px;font-weight:700;color:var(--text)">$1</h3>')
+      .replace(/^# (.+)$/gm, '<h3 style="margin:12px 0 5px;font-size:14px;font-weight:700;color:var(--text)">$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li style="margin:3px 0;padding-left:4px;">$1</li>')
+      .replace(/(<li.*<\/li>\n?)+/g, '<ul style="margin:6px 0;padding-left:16px;">$&</ul>')
+      .replace(/\n\n/g, '</p><p style="margin:8px 0">')
+      .replace(/\n/g, '<br>');
+    text = '<p style="margin:0">' + text + '</p>';
     var el = document.getElementById(aid);
     if (el) el.innerHTML = text;
   } catch (e) {
