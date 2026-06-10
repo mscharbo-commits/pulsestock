@@ -15,42 +15,51 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 .logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;}
 .logo-name span{color:var(--accent);}
 .main{max-width:1100px;margin:0 auto;padding:32px 24px;}
-.page-header{margin-bottom:28px;}
+
+/* Gate screen */
+#gate{display:flex;align-items:center;justify-content:center;min-height:80vh;}
+.gate-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shadow);}
+.gate-card h2{font-size:22px;font-weight:700;margin-bottom:8px;}
+.gate-card p{font-size:14px;color:var(--text2);margin-bottom:24px;}
+.gate-input{width:100%;padding:11px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;margin-bottom:12px;text-align:center;letter-spacing:.1em;}
+.gate-input:focus{outline:none;border-color:var(--accent);}
+.gate-btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+.gate-btn:hover{background:#0F4FC4;}
+.gate-error{color:var(--red);font-size:13px;margin-top:8px;display:none;}
+
+/* Main content */
+#content{display:none;}
+.page-header{margin-bottom:24px;}
 .page-header h1{font-size:28px;font-weight:700;letter-spacing:-.8px;margin-bottom:6px;}
 .page-header p{font-size:14px;color:var(--text2);}
 .meta-row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
 .meta-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--accent-light);color:var(--accent);}
 .meta-time{font-size:12px;color:var(--text3);}
-.run-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:auto;}
+.run-btn{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:auto;}
 .run-btn:hover{background:#0F4FC4;}
 .run-btn:disabled{opacity:.6;cursor:not-allowed;}
 
-/* Summary bar */
+#macro-bar{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:16px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace;}
+
 .summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
 .summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);text-align:center;}
 .summary-num{font-size:32px;font-weight:700;font-family:'DM Mono',monospace;}
 .summary-label{font-size:12px;color:var(--text3);font-weight:500;margin-top:4px;}
-.num-buy{color:var(--green);}
-.num-watch{color:var(--amber);}
-.num-avoid{color:var(--red);}
+.num-buy{color:var(--green);}.num-watch{color:var(--amber);}.num-avoid{color:var(--red);}
 
-/* Filter tabs */
 .filter-tabs{display:flex;gap:6px;margin-bottom:20px;}
-.ftab{padding:7px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
-.ftab-all{background:var(--text);color:#fff;}
-.ftab-buy{background:var(--green-bg);color:var(--green);}
-.ftab-watch{background:var(--amber-bg);color:var(--amber);}
-.ftab-avoid{background:var(--red-bg);color:var(--red);}
-.ftab:not(.active){background:var(--surface);color:var(--text3);border:1.5px solid var(--border);}
-.ftab.active{}
+.ftab{padding:7px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--text3);transition:all .15s;}
+.ftab.active.all{background:var(--text);color:#fff;border-color:var(--text);}
+.ftab.active.buy{background:var(--green-bg);color:var(--green);border-color:var(--green);}
+.ftab.active.watch{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
+.ftab.active.avoid{background:var(--red-bg);color:var(--red);border-color:var(--red);}
 
-/* Picks grid */
 .picks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
 .pick-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);transition:transform .15s;cursor:pointer;}
-.pick-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.1);}
-.pick-card-buy{border-left:4px solid var(--green);}
-.pick-card-watch{border-left:4px solid var(--amber);}
-.pick-card-avoid{border-left:4px solid var(--red);}
+.pick-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.1);}
+.pick-card-BUY{border-left:4px solid var(--green);}
+.pick-card-WATCH{border-left:4px solid var(--amber);}
+.pick-card-AVOID{border-left:4px solid var(--red);}
 .pick-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
 .pick-sym{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;}
 .pick-name{font-size:12px;color:var(--text3);margin-top:2px;}
@@ -64,22 +73,20 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 .pick-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .pick-price{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;}
 .pick-chg{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
-.pick-chg.up{color:var(--green);}
-.pick-chg.down{color:var(--red);}
+.up{color:var(--green);}.down{color:var(--red);}
 .pick-reason{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;padding:10px 12px;background:var(--bg);border-radius:8px;}
+.pick-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.pick-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2,#F2F4F7);color:var(--text2);}
 .pick-target{font-size:12px;color:var(--text3);}
-.pick-target span{color:var(--text);font-weight:600;font-family:'DM Mono',monospace;}
 
-/* Performance section */
 .perf-section{margin-top:40px;}
 .perf-header{font-size:18px;font-weight:700;letter-spacing:-.4px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .perf-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
-.perf-thead{display:grid;grid-template-columns:80px 100px 80px 80px 90px 90px 90px 1fr;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
-.perf-row{display:grid;grid-template-columns:80px 100px 80px 80px 90px 90px 90px 1fr;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;}
+.perf-thead,.perf-row{display:grid;grid-template-columns:90px 80px 70px 70px 80px 80px 1fr;padding:10px 16px;font-size:12px;border-bottom:1px solid var(--border);align-items:center;}
+.perf-thead{background:var(--bg);font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
 .perf-row:last-child{border-bottom:none;}
 .perf-row:hover{background:var(--bg);}
 
-.loading{text-align:center;padding:60px;color:var(--text3);}
 .empty{text-align:center;padding:60px;color:var(--text3);}
 .empty h3{font-size:18px;margin-bottom:8px;color:var(--text2);}
 </style>
@@ -91,20 +98,34 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
     <span class="logo-name">Pulse<span>Stock</span></span>
   </a>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a href="/" style="font-size:13px;color:var(--text2);text-decoration:none;font-weight:500;">← Back to Analysis</a>
-    <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">Sign In</a>
+    <a href="/" style="font-size:13px;color:var(--text2);text-decoration:none;font-weight:500;">← Back</a>
+    <span id="logout-btn" onclick="logout()" style="font-size:13px;color:var(--text3);cursor:pointer;display:none;">Sign out</span>
   </div>
 </header>
 
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-card">
+    <div style="font-size:40px;margin-bottom:16px;">🌅</div>
+    <h2>Morning Picks</h2>
+    <p>Internal use only. Enter your access code to continue.</p>
+    <input id="gate-input" class="gate-input" type="password" placeholder="Access code" onkeydown="if(event.key==='Enter')checkGate()"/>
+    <button class="gate-btn" onclick="checkGate()">Enter →</button>
+    <div id="gate-error" class="gate-error">Incorrect access code.</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
 <div class="main">
   <div class="page-header">
     <h1>🌅 PulseStock Morning Picks</h1>
-    <p>AI-powered daily market analysis across 30 curated stocks. Updated each trading day at market open.</p>
-    <div id="macro-bar" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace;"></div>
-  <div class="meta-row">
+    <p>AI-powered daily analysis — fundamentals, technicals, macro & pre-market. Internal use only.</p>
+    <div id="macro-bar" style="display:none;"></div>
+    <div class="meta-row">
       <span class="meta-badge" id="meta-date">Loading...</span>
       <span class="meta-time" id="meta-time"></span>
-      <button class="run-btn" id="run-btn" onclick="runScan()">⚡ Run Now</button>
+      <button class="run-btn" id="run-btn" onclick="runScan()">⚡ Run Scan</button>
     </div>
   </div>
 
@@ -112,99 +133,124 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
     <div class="summary-card"><div class="summary-num num-buy" id="sum-buy">—</div><div class="summary-label">Buy Signals</div></div>
     <div class="summary-card"><div class="summary-num num-watch" id="sum-watch">—</div><div class="summary-label">Watch</div></div>
     <div class="summary-card"><div class="summary-num num-avoid" id="sum-avoid">—</div><div class="summary-label">Avoid</div></div>
-    <div class="summary-card"><div class="summary-num" id="sum-total" style="color:var(--accent)">—</div><div class="summary-label">Stocks Analyzed</div></div>
+    <div class="summary-card"><div class="summary-num" id="sum-total" style="color:var(--accent)">—</div><div class="summary-label">Analyzed</div></div>
   </div>
 
   <div class="filter-tabs">
-    <button class="ftab ftab-all active" onclick="filter('ALL',this)">All</button>
-    <button class="ftab ftab-buy" onclick="filter('BUY',this)">🟢 Buy</button>
-    <button class="ftab ftab-watch" onclick="filter('WATCH',this)">🟡 Watch</button>
-    <button class="ftab ftab-avoid" onclick="filter('AVOID',this)">🔴 Avoid</button>
+    <button class="ftab all active" onclick="filter('ALL',this,'all')">All</button>
+    <button class="ftab buy" onclick="filter('BUY',this,'buy')">🟢 Buy</button>
+    <button class="ftab watch" onclick="filter('WATCH',this,'watch')">🟡 Watch</button>
+    <button class="ftab avoid" onclick="filter('AVOID',this,'avoid')">🔴 Avoid</button>
   </div>
 
-  <div id="picks-container" class="loading">
-    <div style="font-size:32px;margin-bottom:12px;">📊</div>
-    Loading today's picks...
+  <div id="picks-container" class="empty">
+    <div style="font-size:40px;margin-bottom:12px;">📊</div>
+    <h3>No picks yet</h3>
+    <p>Click ⚡ Run Scan to generate today's analysis.</p>
   </div>
 
-  <!-- Performance Tracker -->
   <div class="perf-section">
-    <div class="perf-header">📈 Performance Tracker <span style="font-size:13px;font-weight:400;color:var(--text3);">Historical picks & returns</span></div>
+    <div class="perf-header">📈 Performance Tracker</div>
     <div id="perf-container" class="perf-table">
-      <div class="loading" style="padding:30px;">Loading performance data...</div>
+      <div class="empty" style="padding:30px;">No historical picks yet. Builds automatically each trading day.</div>
     </div>
   </div>
 </div>
+</div>
 
 <script>
+const ACCESS_CODE = 'pulsestock2026';
 let allPicks = [];
+
+function checkGate() {
+  const val = document.getElementById('gate-input').value.trim();
+  if (val === ACCESS_CODE) {
+    sessionStorage.setItem('ps_picks_auth', '1');
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('logout-btn').style.display = 'inline';
+    loadPicks();
+  } else {
+    document.getElementById('gate-error').style.display = 'block';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('ps_picks_auth');
+  location.reload();
+}
+
+// Auto-login if session still active
+if (sessionStorage.getItem('ps_picks_auth') === '1') {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'inline';
+  loadPicks();
+}
 
 async function loadPicks() {
   try {
     const resp = await fetch('/api/morning-picks');
     const data = await resp.json();
-
     if (!data.picks || !data.picks.length) {
-      document.getElementById('picks-container').innerHTML = `
-        <div class="empty">
-          <h3>No picks yet for today</h3>
-          <p>Click "⚡ Run Now" to generate this morning's analysis, or check back after 9:30am ET.</p>
-        </div>`;
+      document.getElementById('picks-container').innerHTML = '<div class="empty"><div style="font-size:40px;margin-bottom:12px;">📊</div><h3>No picks yet for today</h3><p>Click ⚡ Run Scan to generate this morning\'s analysis.</p></div>';
+      document.getElementById('meta-date').textContent = 'Not yet run';
+      renderPerformance(data.performance || []);
       return;
     }
-
     allPicks = data.picks;
-
-    // Update meta
     document.getElementById('meta-date').textContent = data.date || 'Today';
     if (data.generated) {
       const t = new Date(data.generated);
-      document.getElementById('meta-time').textContent = 'Generated at ' + t.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      document.getElementById('meta-time').textContent = 'Generated ' + t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
     }
-
+    if (data.macro) renderMacroBar(data.macro);
     renderPicks(allPicks);
     renderSummary(allPicks);
     renderPerformance(data.performance || []);
   } catch(e) {
-    document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>Error loading picks</h3><p>' + e.message + '</p></div>';
+    document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>Error</h3><p>' + e.message + '</p></div>';
   }
 }
 
-function renderPicks(picks) {
-  if (!picks.length) {
-    document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>No picks match filter</h3></div>';
-    return;
-  }
-  // Sort: BUY first by confidence, then WATCH, then AVOID
-  const order = {BUY:0, WATCH:1, AVOID:2};
-  picks = [...picks].sort((a,b) => order[a.rating]-order[b.rating] || b.confidence-a.confidence);
+function renderMacroBar(m) {
+  const bar = document.getElementById('macro-bar');
+  bar.style.display = 'flex';
+  const fmt = (v, label) => {
+    const n = parseFloat(v);
+    const col = n > 0 ? 'var(--green)' : n < 0 ? 'var(--red)' : 'var(--text3)';
+    return `<span><span style="color:var(--text3)">${label}</span> <span style="color:${col};font-weight:700;">${n>0?'+':''}${v}%</span></span>`;
+  };
+  bar.innerHTML = '<span style="color:var(--text3);font-weight:600;">PRE-MARKET:</span>'
+    + fmt(m.spyPct,'SPY') + fmt(m.qqqPct,'QQQ')
+    + `<span><span style="color:var(--text3)">VIX</span> <span style="font-weight:700;">${m.vix}</span></span>`
+    + fmt(m.tltPct,'TLT') + fmt(m.uupPct,'USD')
+    + `<span style="padding:2px 10px;border-radius:10px;font-weight:700;background:${m.riskOn?'var(--green-bg)':'var(--red-bg)'};color:${m.riskOn?'var(--green)':'var(--red)'};">${m.riskOn?'RISK ON':'RISK OFF'}</span>`;
+}
 
+function renderPicks(picks) {
+  if (!picks.length) { document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>No picks match filter</h3></div>'; return; }
+  const order = {BUY:0,WATCH:1,AVOID:2};
+  picks = [...picks].sort((a,b) => order[a.rating]-order[b.rating] || b.confidence-a.confidence);
   document.getElementById('picks-container').innerHTML = '<div class="picks-grid">' + picks.map(p => {
     const up = p.pct >= 0;
-    const targetPct = p.target && p.price ? (((p.target - p.price) / p.price) * 100).toFixed(1) : null;
+    const tPct = p.target && p.price ? (((p.target-p.price)/p.price)*100).toFixed(1) : null;
     return `<div class="pick-card pick-card-${p.rating}" onclick="window.location='/?ticker=${p.sym}'">
       <div class="pick-top">
-        <div>
-          <div class="pick-sym">${p.sym}</div>
-          <div class="pick-name">${p.name}</div>
-          <span class="pick-sector">${p.sector}</span>
-        </div>
-        <div class="rating-badge">
-          <div class="rating-pill rating-${p.rating}">${p.rating}</div>
-          <div class="confidence">${p.confidence}% confidence</div>
-        </div>
+        <div><div class="pick-sym">${p.sym}</div><div class="pick-name">${p.name}</div><span class="pick-sector">${p.sector}</span></div>
+        <div class="rating-badge"><div class="rating-pill rating-${p.rating}">${p.rating}</div><div class="confidence">${p.confidence}% confidence</div></div>
       </div>
       <div class="pick-price-row">
         <span class="pick-price">$${p.price.toFixed(2)}</span>
         <span class="pick-chg ${up?'up':'down'}">${up?'+':''}${p.pct.toFixed(2)}%</span>
       </div>
       <div class="pick-reason">${p.reason}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-        ${p.technicalSignal && p.technicalSignal!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">📊 ${p.technicalSignal}</span>` : ''}
-        ${p.fundamentalScore && p.fundamentalScore!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">📋 ${p.fundamentalScore}</span>` : ''}
-        ${p.macroAlignment && p.macroAlignment!=='N/A' ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--surface2);color:var(--text2);">🌍 ${p.macroAlignment}</span>` : ''}
+      <div class="pick-tags">
+        ${p.technicalSignal&&p.technicalSignal!=='N/A'?`<span class="pick-tag">📊 ${p.technicalSignal}</span>`:''}
+        ${p.fundamentalScore&&p.fundamentalScore!=='N/A'?`<span class="pick-tag">📋 ${p.fundamentalScore}</span>`:''}
+        ${p.macroAlignment&&p.macroAlignment!=='N/A'?`<span class="pick-tag">🌍 ${p.macroAlignment}</span>`:''}
       </div>
-      ${targetPct ? `<div class="pick-target">30-day target: <span>$${p.target.toFixed(2)}</span> <span style="color:${parseFloat(targetPct)>0?'var(--green)':'var(--red)'};">(${parseFloat(targetPct)>0?'+':''}${targetPct}%)</span></div>` : ''}
+      ${tPct?`<div class="pick-target">30d target: <span style="font-weight:600;font-family:'DM Mono',monospace;">$${p.target.toFixed(2)}</span> <span style="color:${parseFloat(tPct)>0?'var(--green)':'var(--red)'};">(${parseFloat(tPct)>0?'+':''}${tPct}%)</span></div>`:''}
     </div>`;
   }).join('') + '</div>';
 }
@@ -216,76 +262,52 @@ function renderSummary(picks) {
   document.getElementById('sum-total').textContent = picks.length;
 }
 
-function filter(rating, btn) {
+function filter(rating, btn, cls) {
   document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderPicks(rating === 'ALL' ? allPicks : allPicks.filter(p => p.rating === rating));
+  renderPicks(rating==='ALL' ? allPicks : allPicks.filter(p=>p.rating===rating));
 }
 
 async function runScan() {
-  const secret = prompt('Enter your CRON_SECRET (from Vercel Settings → Environment Variables):');
-  if (!secret) return;
   const btn = document.getElementById('run-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Analyzing 30 stocks (~60s)...';
+  btn.textContent = '⏳ Analyzing 30 stocks...';
   try {
-    const resp = await fetch('/api/cron-picks?secret=' + encodeURIComponent(secret));
+    const resp = await fetch('/api/cron-picks?secret=' + encodeURIComponent(ACCESS_CODE));
     const data = await resp.json();
     if (resp.ok && data.success) {
-      btn.textContent = '✅ Done! Refreshing...';
-      setTimeout(() => { loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Now'; }, 2000);
+      btn.textContent = '✅ Done! Loading...';
+      setTimeout(() => { loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Scan'; }, 2000);
     } else {
-      alert('Error: ' + (data.error || 'Check your CRON_SECRET in Vercel settings'));
-      btn.textContent = '⚡ Run Now';
+      alert('Error: ' + (data.error || 'Unknown error'));
+      btn.textContent = '⚡ Run Scan';
       btn.disabled = false;
     }
   } catch(e) {
     alert('Error: ' + e.message);
-    btn.textContent = '⚡ Run Now';
+    btn.textContent = '⚡ Run Scan';
     btn.disabled = false;
   }
 }
-
-loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Now'; }, 1500);
-    } else {
-      btn.textContent = '⚡ Run Now';
-      btn.disabled = false;
-      alert('Run from Vercel dashboard or wait for 9:15am cron.');
-    }
-  } catch(e) {
-    btn.textContent = '⚡ Run Now';
-    btn.disabled = false;
-  }
-}
-
-async function getCronSecret() { return ''; }
 
 function renderPerformance(perfPicks) {
-  if (!perfPicks.length) {
-    document.getElementById('perf-container').innerHTML = '<div class="loading" style="padding:30px;font-size:13px;color:var(--text3);">No historical picks yet. Performance data builds as daily picks accumulate.</div>';
-    return;
-  }
-
-  // Show last 20 picks
+  if (!perfPicks.length) return;
   const recent = [...perfPicks].reverse().slice(0, 30);
-  document.getElementById('perf-container').innerHTML = `
-    <div class="perf-thead"><span>Date</span><span>Ticker</span><span>Rating</span><span>Confidence</span><span>Price</span><span>Target</span><span>Sector</span><span>Reason</span></div>
-    ${recent.map(p => {
-      const targetPct = p.target && p.priceAtPick ? (((p.target-p.priceAtPick)/p.priceAtPick)*100).toFixed(1) : '—';
+  document.getElementById('perf-container').innerHTML =
+    '<div class="perf-thead"><span>Date</span><span>Ticker</span><span>Rating</span><span>Conf.</span><span>Price</span><span>Target</span><span>Reason</span></div>' +
+    recent.map(p => {
+      const tPct = p.target && p.priceAtPick ? (((p.target-p.priceAtPick)/p.priceAtPick)*100).toFixed(1) : null;
       return `<div class="perf-row">
-        <span style="font-size:11px;color:var(--text3);">${p.date}</span>
-        <span style="font-weight:700;font-family:'DM Mono',monospace;">${p.sym}</span>
-        <span><span class="rating-pill rating-${p.rating}" style="font-size:11px;padding:2px 8px;">${p.rating}</span></span>
-        <span style="color:var(--text3);">${p.confidence}%</span>
-        <span style="font-family:'DM Mono',monospace;">$${p.priceAtPick?.toFixed(2)||p.price?.toFixed(2)||'—'}</span>
-        <span style="font-family:'DM Mono',monospace;color:${parseFloat(targetPct)>0?'var(--green)':'var(--red)'};">${targetPct !== '—' ? (parseFloat(targetPct)>0?'+':'')+targetPct+'%' : '—'}</span>
-        <span style="font-size:11px;color:var(--text3);">${p.sector}</span>
-        <span style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.reason}</span>
+        <span style="font-size:11px;color:var(--text3)">${p.date}</span>
+        <span style="font-weight:700;font-family:'DM Mono',monospace">${p.sym}</span>
+        <span><span class="rating-pill rating-${p.rating}" style="font-size:11px;padding:2px 8px">${p.rating}</span></span>
+        <span style="color:var(--text3)">${p.confidence}%</span>
+        <span style="font-family:'DM Mono',monospace">$${(p.priceAtPick||p.price||0).toFixed(2)}</span>
+        <span style="color:${tPct&&parseFloat(tPct)>0?'var(--green)':'var(--red)'}">${tPct?(parseFloat(tPct)>0?'+':'')+tPct+'%':'—'}</span>
+        <span style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.reason||''}</span>
       </div>`;
-    }).join('')}`;
+    }).join('');
 }
-
-loadPicks();
 </script>
 </body>
 </html>
