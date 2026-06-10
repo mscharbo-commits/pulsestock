@@ -456,7 +456,20 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
     </div>
     <div id="analyze-result"></div>
-    
+    <div class="indicator-panel" id="ind-panel" style="display:none;margin-top:16px;">
+      <div class="indicator-tabs">
+        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      </div>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
+      </div>
+      <div class="ind-legend" id="ind-legend"></div>
+    </div>
   </div>
 
   <!-- SCREENER -->
@@ -1032,7 +1045,7 @@ async function reloadNews(ticker, days){
   renderNews(ticker, articles);
   // Show Load More button if we got a full page (likely more available)
   var moreBtn = document.getElementById('news-load-more-' + ticker);
-  if(moreBtn) moreBtn.style.display = articles.length >= 10 ? 'block' : 'none';
+  if(moreBtn) moreBtn.style.display = articles.length >= 25 ? 'block' : 'none';
   if(rangeEl) rangeEl.textContent = 'Last ' + days + ' day' + (days > 1 ? 's' : '');
 }
 
@@ -1040,8 +1053,8 @@ async function loadMoreNews(ticker){
   var state = _newsState[ticker] || { days: 7, allArticles: [] };
   var btn = document.querySelector('#news-load-more-' + ticker + ' button');
   if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
-  // Fetch next window — go back further (30 days at a time)
-  var newDays = state.days + 30;
+  // Fetch next window — go back further
+  var newDays = state.days + 14;
   var articles = await fetchNews(ticker, newDays);
   // Only show articles we haven't shown yet (by id or datetime)
   var existingIds = new Set(state.allArticles.map(function(a){ return a.id || a.datetime + a.headline; }));
@@ -1049,25 +1062,15 @@ async function loadMoreNews(ticker){
     return !existingIds.has(a.id || a.datetime + a.headline); 
   });
   _newsState[ticker] = { days: newDays, allArticles: state.allArticles.concat(newArticles) };
-  // Append new articles to existing list
-  var el = document.getElementById('news-list-' + ticker);
-  if(el && newArticles.length > 0){
-    var tempDiv = document.createElement('div');
-    tempDiv.innerHTML = renderNewsItems(newArticles);
-    while(tempDiv.firstChild){ el.appendChild(tempDiv.firstChild); }
-  }
-  var rangeEl = document.getElementById('news-range-' + ticker);
-  var rangeYears = newDays >= 365 ? (newDays/365).toFixed(1) + ' years' : newDays + ' days';
-  if(rangeEl) rangeEl.textContent = 'Last ' + rangeYears;
   // Rebuild paginator with all articles
   var allArts = _newsState[ticker].allArticles;
-  var newsContainerId = 'news-list-' + ticker;
-  var el2 = document.getElementById(newsContainerId);
-  if(el2 && allArts.length > 0){
+  var ncid = 'news-list-' + ticker;
+  var el = document.getElementById(ncid);
+  if(el && allArts.length > 0){
     window.__pgTicker = ticker;
-    el2.innerHTML = makePaginator(allArts, 10, renderNewsItems, newsContainerId);
-    var totalPgs = Math.ceil(allArts.length / 10);
-    if(window.__pg && window.__pg[newsContainerId]) window.__pg[newsContainerId](totalPgs - 1);
+    el.innerHTML = makePaginator(allArts, 10, renderNewsItems, ncid);
+    var tp = Math.ceil(allArts.length / 10);
+    if(window.__pg && window.__pg[ncid]) window.__pg[ncid](tp - 1);
   }
   if(btn){ btn.textContent = 'Load older news ↓'; btn.disabled = false; }
 }
@@ -1158,10 +1161,10 @@ async function doAnalyze(){
   const el=document.getElementById('analyze-result');
   el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
-  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 30),fetchEdgar(ticker)]);
+  const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 7),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
   // Load short interest first, then FTD after DOM is ready
-  setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 2000);
+  setTimeout(function(){ if(window._analyzeTicker!==ticker)return; fetchInsiderTransactions(ticker); }, 500);
   setTimeout(function(){ fetchIntelligence(ticker); }, 800);
   fetchShortInterest(ticker).then(function(d){ 
     renderShortInterest(ticker, d);
@@ -1251,30 +1254,6 @@ async function doAnalyze(){
 
     </div><!-- end chart section -->
 
-    <div id="indicators-${ticker}">
-    <div class="indicator-panel" id="ind-panel">
-      <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
-      </div>
-      <div class="indicator-chart-wrap">
-        <canvas id="ind-chart"></canvas>
-      </div>
-      <div class="ind-legend" id="ind-legend"></div>
-    </div>
-
-    <div class="range-row">
-      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
-      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
-      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
-    </div>
-    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
-  </div>
-
     <!-- LEVEL II & TIME & SALES -->
     <div id="marketdata-${ticker}" class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
@@ -1346,6 +1325,29 @@ async function doAnalyze(){
       </div>
     </div>
 
+    <div id="indicators-${ticker}">
+    <div class="indicator-panel" id="ind-panel">
+      <div class="indicator-tabs">
+        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      </div>
+      <div class="indicator-chart-wrap">
+        <canvas id="ind-chart"></canvas>
+      </div>
+      <div class="ind-legend" id="ind-legend"></div>
+    </div>
+
+    <div class="range-row">
+      <span>${l52!=='—'?'$'+l52+' 52w low':'Day low $'+quote.low.toFixed(2)}</span>
+      <span style="font-weight:500;color:var(--text);">$${quote.price.toFixed(2)} · Mkt cap ${mktCap}</span>
+      <span>${h52!=='—'?'$'+h52+' 52w high':'Day high $'+quote.high.toFixed(2)}</span>
+    </div>
+    ${h52!=='—'?`<div class="range-track"><div class="range-progress" style="width:${pricePct}%"></div><div class="range-thumb" style="left:${pricePct}%"></div></div>`:''}
+  </div>
 
     </div><!-- end indicators section -->
 
@@ -2835,17 +2837,7 @@ function initIndicatorPanel(ticker, price, pct) {
   indPriceData = generatePriceHistory(price, pct, indPeriod);
   indMode = 'rsi';
   document.querySelectorAll('.ind-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
-  // Use longer delay to ensure canvas is in DOM
-  var attempts = 0;
-  function tryRender() {
-    var canvas = document.getElementById('ind-chart');
-    if (canvas) {
-      renderIndicator();
-    } else if (attempts++ < 10) {
-      setTimeout(tryRender, 200);
-    }
-  }
-  setTimeout(tryRender, 300);
+  setTimeout(function(){ renderIndicator(); }, 300);
 }
 
 // ── MARKET TICKER BAR ──
@@ -3243,21 +3235,38 @@ async function fetchInsiderTransactions(ticker) {
   if(!el) return;
   try {
     // Call Finnhub directly from browser — faster, no Vercel timeout
-    // Use server-side endpoint to avoid CORS issues
-    var res = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 10000);
+    var res = await fetchWithTimeout(
+      'https://finnhub.io/api/v1/stock/insider-transactions?symbol=' + encodeURIComponent(ticker) + '&token=' + FINNHUB_KEY,
+      10000
+    );
     if(!res || res.error) throw new Error(res ? res.error : 'No data');
 
-    var transactions = (res.transactions || []).map(function(t) {
-      var shares = t.shares || 0;
-      var price  = t.price || 0;
+    // Parse raw Finnhub response
+    var raw = (res.data || []).filter(function(t) {
+      return t.transactionCode === 'P' || t.transactionCode === 'S';
+    });
+    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
+    var cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
+    var recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
+
+    var titleMap = {'Chief Executive Officer':'CEO','Chief Financial Officer':'CFO','Chief Operating Officer':'COO','Chief Technology Officer':'CTO','President':'President','Director':'Director','Chairman':'Chairman','General Counsel':'Gen. Counsel'};
+    function cleanTitle(t) {
+      if(!t) return '';
+      for(var k in titleMap) { if(t.indexOf(k)!==-1) return titleMap[k]; }
+      return t.split(' ').slice(0,3).join(' ');
+    }
+
+    var transactions = recent.map(function(t) {
+      var shares = Math.abs(t.change || 0);
+      var price  = t.transactionPrice || 0;
       return {
         name:  t.name || 'Unknown',
-        title: t.title || '',
-        type:  t.type || (t.transactionCode === 'P' ? 'buy' : 'sell'),
+        title: cleanTitle(t.officerTitle || ''),
+        type:  t.transactionCode === 'P' ? 'buy' : 'sell',
         shares: shares,
         price:  price || null,
         value:  shares * price || null,
-        date:   t.date || t.transactionDate,
+        date:   t.transactionDate,
       };
     });
 
@@ -3637,7 +3646,7 @@ function makePaginator(items, perPage, renderFn, containerId) {
         pgHtml+='<button class="pg-btn'+(p===page?' active':'')+'" onclick="window.__pg[\''+cid+'\']('+p+')">'+(p+1)+'</button>';
       }
       if(page===total-1){
-        pgHtml+='<button class="pg-btn pg-load-more" onclick="if(window.__pgTicker)loadMoreNews(window.__pgTicker)">Load More &#8595;</button>';
+        pgHtml+='<button class="pg-btn" onclick="if(window.__pgTicker)loadMoreNews(window.__pgTicker)">Load More &#8595;</button>';
       } else {
         pgHtml+='<button class="pg-btn" onclick="window.__pg[\''+cid+'\']('+( page+1)+')">' + 'Next &#8594;</button>';
       }
