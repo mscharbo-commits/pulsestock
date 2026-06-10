@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron-picks",
-      "schedule": "15 14 * * 1-5"
+      "schedule": "30 13 * * 1-5"
     }
   ],
   "routes": [
