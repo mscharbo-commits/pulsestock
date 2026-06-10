@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Morning Picks</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.4px;}
+.logo-name span{color:var(--accent);}
+.main{max-width:1100px;margin:0 auto;padding:32px 24px;}
+.page-header{margin-bottom:28px;}
+.page-header h1{font-size:28px;font-weight:700;letter-spacing:-.8px;margin-bottom:6px;}
+.page-header p{font-size:14px;color:var(--text2);}
+.meta-row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
+.meta-badge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--accent-light);color:var(--accent);}
+.meta-time{font-size:12px;color:var(--text3);}
+.run-btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-left:auto;}
+.run-btn:hover{background:#0F4FC4;}
+.run-btn:disabled{opacity:.6;cursor:not-allowed;}
+
+/* Summary bar */
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);text-align:center;}
+.summary-num{font-size:32px;font-weight:700;font-family:'DM Mono',monospace;}
+.summary-label{font-size:12px;color:var(--text3);font-weight:500;margin-top:4px;}
+.num-buy{color:var(--green);}
+.num-watch{color:var(--amber);}
+.num-avoid{color:var(--red);}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;margin-bottom:20px;}
+.ftab{padding:7px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.ftab-all{background:var(--text);color:#fff;}
+.ftab-buy{background:var(--green-bg);color:var(--green);}
+.ftab-watch{background:var(--amber-bg);color:var(--amber);}
+.ftab-avoid{background:var(--red-bg);color:var(--red);}
+.ftab:not(.active){background:var(--surface);color:var(--text3);border:1.5px solid var(--border);}
+.ftab.active{}
+
+/* Picks grid */
+.picks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.pick-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);transition:transform .15s;cursor:pointer;}
+.pick-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.1);}
+.pick-card-buy{border-left:4px solid var(--green);}
+.pick-card-watch{border-left:4px solid var(--amber);}
+.pick-card-avoid{border-left:4px solid var(--red);}
+.pick-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.pick-sym{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;}
+.pick-name{font-size:12px;color:var(--text3);margin-top:2px;}
+.pick-sector{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--text3);border:1px solid var(--border);margin-top:4px;display:inline-block;}
+.rating-badge{text-align:right;}
+.rating-pill{font-size:13px;font-weight:800;padding:5px 14px;border-radius:20px;display:inline-block;letter-spacing:.04em;}
+.rating-BUY{background:var(--green-bg);color:var(--green);}
+.rating-WATCH{background:var(--amber-bg);color:var(--amber);}
+.rating-AVOID{background:var(--red-bg);color:var(--red);}
+.confidence{font-size:11px;color:var(--text3);margin-top:4px;}
+.pick-price-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pick-price{font-size:20px;font-weight:600;font-family:'DM Mono',monospace;}
+.pick-chg{font-size:13px;font-weight:600;font-family:'DM Mono',monospace;}
+.pick-chg.up{color:var(--green);}
+.pick-chg.down{color:var(--red);}
+.pick-reason{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;padding:10px 12px;background:var(--bg);border-radius:8px;}
+.pick-target{font-size:12px;color:var(--text3);}
+.pick-target span{color:var(--text);font-weight:600;font-family:'DM Mono',monospace;}
+
+/* Performance section */
+.perf-section{margin-top:40px;}
+.perf-header{font-size:18px;font-weight:700;letter-spacing:-.4px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.perf-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.perf-thead{display:grid;grid-template-columns:80px 100px 80px 80px 90px 90px 90px 1fr;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.perf-row{display:grid;grid-template-columns:80px 100px 80px 80px 90px 90px 90px 1fr;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;}
+.perf-row:last-child{border-bottom:none;}
+.perf-row:hover{background:var(--bg);}
+
+.loading{text-align:center;padding:60px;color:var(--text3);}
+.empty{text-align:center;padding:60px;color:var(--text3);}
+.empty h3{font-size:18px;margin-bottom:8px;color:var(--text2);}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">
+    <div class="logo-icon">P</div>
+    <span class="logo-name">Pulse<span>Stock</span></span>
+  </a>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="/" style="font-size:13px;color:var(--text2);text-decoration:none;font-weight:500;">← Back to Analysis</a>
+    <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;">Sign In</a>
+  </div>
+</header>
+
+<div class="main">
+  <div class="page-header">
+    <h1>🌅 PulseStock Morning Picks</h1>
+    <p>AI-powered daily market analysis across 30 curated stocks. Updated each trading day at market open.</p>
+    <div class="meta-row">
+      <span class="meta-badge" id="meta-date">Loading...</span>
+      <span class="meta-time" id="meta-time"></span>
+      <button class="run-btn" id="run-btn" onclick="runScan()">⚡ Run Now</button>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="summary-card"><div class="summary-num num-buy" id="sum-buy">—</div><div class="summary-label">Buy Signals</div></div>
+    <div class="summary-card"><div class="summary-num num-watch" id="sum-watch">—</div><div class="summary-label">Watch</div></div>
+    <div class="summary-card"><div class="summary-num num-avoid" id="sum-avoid">—</div><div class="summary-label">Avoid</div></div>
+    <div class="summary-card"><div class="summary-num" id="sum-total" style="color:var(--accent)">—</div><div class="summary-label">Stocks Analyzed</div></div>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="ftab ftab-all active" onclick="filter('ALL',this)">All</button>
+    <button class="ftab ftab-buy" onclick="filter('BUY',this)">🟢 Buy</button>
+    <button class="ftab ftab-watch" onclick="filter('WATCH',this)">🟡 Watch</button>
+    <button class="ftab ftab-avoid" onclick="filter('AVOID',this)">🔴 Avoid</button>
+  </div>
+
+  <div id="picks-container" class="loading">
+    <div style="font-size:32px;margin-bottom:12px;">📊</div>
+    Loading today's picks...
+  </div>
+
+  <!-- Performance Tracker -->
+  <div class="perf-section">
+    <div class="perf-header">📈 Performance Tracker <span style="font-size:13px;font-weight:400;color:var(--text3);">Historical picks & returns</span></div>
+    <div id="perf-container" class="perf-table">
+      <div class="loading" style="padding:30px;">Loading performance data...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allPicks = [];
+
+async function loadPicks() {
+  try {
+    const resp = await fetch('/api/morning-picks');
+    const data = await resp.json();
+
+    if (!data.picks || !data.picks.length) {
+      document.getElementById('picks-container').innerHTML = `
+        <div class="empty">
+          <h3>No picks yet for today</h3>
+          <p>Click "⚡ Run Now" to generate this morning's analysis, or check back after 9:30am ET.</p>
+        </div>`;
+      return;
+    }
+
+    allPicks = data.picks;
+
+    // Update meta
+    document.getElementById('meta-date').textContent = data.date || 'Today';
+    if (data.generated) {
+      const t = new Date(data.generated);
+      document.getElementById('meta-time').textContent = 'Generated at ' + t.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+    }
+
+    renderPicks(allPicks);
+    renderSummary(allPicks);
+    renderPerformance(data.performance || []);
+  } catch(e) {
+    document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>Error loading picks</h3><p>' + e.message + '</p></div>';
+  }
+}
+
+function renderPicks(picks) {
+  if (!picks.length) {
+    document.getElementById('picks-container').innerHTML = '<div class="empty"><h3>No picks match filter</h3></div>';
+    return;
+  }
+  // Sort: BUY first by confidence, then WATCH, then AVOID
+  const order = {BUY:0, WATCH:1, AVOID:2};
+  picks = [...picks].sort((a,b) => order[a.rating]-order[b.rating] || b.confidence-a.confidence);
+
+  document.getElementById('picks-container').innerHTML = '<div class="picks-grid">' + picks.map(p => {
+    const up = p.pct >= 0;
+    const targetPct = p.target && p.price ? (((p.target - p.price) / p.price) * 100).toFixed(1) : null;
+    return `<div class="pick-card pick-card-${p.rating}" onclick="window.location='/?ticker=${p.sym}'">
+      <div class="pick-top">
+        <div>
+          <div class="pick-sym">${p.sym}</div>
+          <div class="pick-name">${p.name}</div>
+          <span class="pick-sector">${p.sector}</span>
+        </div>
+        <div class="rating-badge">
+          <div class="rating-pill rating-${p.rating}">${p.rating}</div>
+          <div class="confidence">${p.confidence}% confidence</div>
+        </div>
+      </div>
+      <div class="pick-price-row">
+        <span class="pick-price">$${p.price.toFixed(2)}</span>
+        <span class="pick-chg ${up?'up':'down'}">${up?'+':''}${p.pct.toFixed(2)}%</span>
+      </div>
+      <div class="pick-reason">${p.reason}</div>
+      ${targetPct ? `<div class="pick-target">30-day target: <span>$${p.target.toFixed(2)}</span> <span style="color:${parseFloat(targetPct)>0?'var(--green)':'var(--red)'};">(${parseFloat(targetPct)>0?'+':''}${targetPct}%)</span></div>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderSummary(picks) {
+  document.getElementById('sum-buy').textContent = picks.filter(p=>p.rating==='BUY').length;
+  document.getElementById('sum-watch').textContent = picks.filter(p=>p.rating==='WATCH').length;
+  document.getElementById('sum-avoid').textContent = picks.filter(p=>p.rating==='AVOID').length;
+  document.getElementById('sum-total').textContent = picks.length;
+}
+
+function filter(rating, btn) {
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPicks(rating === 'ALL' ? allPicks : allPicks.filter(p => p.rating === rating));
+}
+
+async function runScan() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing 30 stocks...';
+  try {
+    const resp = await fetch('/api/cron-picks', {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + await getCronSecret() }
+    });
+    if (resp.ok) {
+      btn.textContent = '✅ Done! Refreshing...';
+      setTimeout(() => { loadPicks(); btn.disabled = false; btn.textContent = '⚡ Run Now'; }, 1500);
+    } else {
+      btn.textContent = '⚡ Run Now';
+      btn.disabled = false;
+      alert('Run from Vercel dashboard or wait for 9:15am cron.');
+    }
+  } catch(e) {
+    btn.textContent = '⚡ Run Now';
+    btn.disabled = false;
+  }
+}
+
+async function getCronSecret() { return ''; }
+
+function renderPerformance(perfPicks) {
+  if (!perfPicks.length) {
+    document.getElementById('perf-container').innerHTML = '<div class="loading" style="padding:30px;font-size:13px;color:var(--text3);">No historical picks yet. Performance data builds as daily picks accumulate.</div>';
+    return;
+  }
+
+  // Show last 20 picks
+  const recent = [...perfPicks].reverse().slice(0, 30);
+  document.getElementById('perf-container').innerHTML = `
+    <div class="perf-thead"><span>Date</span><span>Ticker</span><span>Rating</span><span>Confidence</span><span>Price</span><span>Target</span><span>Sector</span><span>Reason</span></div>
+    ${recent.map(p => {
+      const targetPct = p.target && p.priceAtPick ? (((p.target-p.priceAtPick)/p.priceAtPick)*100).toFixed(1) : '—';
+      return `<div class="perf-row">
+        <span style="font-size:11px;color:var(--text3);">${p.date}</span>
+        <span style="font-weight:700;font-family:'DM Mono',monospace;">${p.sym}</span>
+        <span><span class="rating-pill rating-${p.rating}" style="font-size:11px;padding:2px 8px;">${p.rating}</span></span>
+        <span style="color:var(--text3);">${p.confidence}%</span>
+        <span style="font-family:'DM Mono',monospace;">$${p.priceAtPick?.toFixed(2)||p.price?.toFixed(2)||'—'}</span>
+        <span style="font-family:'DM Mono',monospace;color:${parseFloat(targetPct)>0?'var(--green)':'var(--red)'};">${targetPct !== '—' ? (parseFloat(targetPct)>0?'+':'')+targetPct+'%' : '—'}</span>
+        <span style="font-size:11px;color:var(--text3);">${p.sector}</span>
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.reason}</span>
+      </div>`;
+    }).join('')}`;
+}
+
+loadPicks();
+</script>
+</body>
+</html>
