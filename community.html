@@ -782,7 +782,7 @@ async function closePick(pickId, ticker, entryStr, direction) {
   loadLeaderboard();
 }
 
-function loadLeaderboard(){
+async function loadLeaderboard(){
   const{data}=await sb.from('picks').select('username,result,upvotes,return_pct,actual_entry_price,exit_price,direction,ticker,posted_at,closed_at');
   if(!data||!data.length){document.getElementById('leaderboard').innerHTML='<div class="empty" style="padding:16px;">No picks yet. Be the first!</div>';return;}
   const users={};
