@@ -1334,7 +1334,6 @@ async function doAnalyze(){
 
     <div id="indicators-${ticker}">
     <div class="indicator-panel" id="ind-panel">
-      <div style="font-size:11px;color:orange;padding:4px 8px;" id="ind-debug"></div>
       <div class="indicator-tabs">
         <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
         <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
@@ -1587,7 +1586,7 @@ async function doAnalyze(){
     initMarketData(ticker);
   }, 200);
   initTVChart(ticker);
-  initIndicatorPanel(ticker, quote.price, quote.pct);
+  initIndicatorPanel(ticker, quote.price || quote.c || 0, quote.pct || quote.dp || 0);
   // Balance quick-nav rows by measured width
   requestAnimationFrame(function(){
     var t = ticker;
@@ -2661,12 +2660,12 @@ function showIndicatorStatic(mode, btn) {
 }
 
 function renderIndicator() {
-  var dbg = document.getElementById('ind-debug');
-  if(dbg) dbg.textContent = 'price=' + indPriceData.length + ' ticker=' + indTicker + ' canvas=' + !!document.getElementById('ind-chart');
-  if (!indPriceData.length || !indTicker) {
-    if(dbg) dbg.textContent += ' EARLY RETURN';
-    return;
+  if (!indTicker) return;
+  // Regenerate price data if empty
+  if (!indPriceData.length && indCurrentPrice > 0) {
+    indPriceData = generatePriceHistory(indCurrentPrice, indCurrentPct, indPeriod);
   }
+  if (!indPriceData.length) return;
   var prices = indPriceData;
   var n = prices.length;
   var labels = prices.map(function(p,i){ return i; });
@@ -3248,11 +3247,32 @@ async function fetchInsiderTransactions(ticker) {
   if(!el) return;
   try {
     // Call Finnhub directly from browser — faster, no Vercel timeout
-    var res = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 10000);
-    if(!res || res.error) throw new Error(res ? res.error : 'No data');
-    renderInsider(ticker, { ticker: ticker, transactions: res.transactions || [], source: res.source || 'SEC Form 4' });
+    // Try Finnhub direct first (faster), fallback to server-side
+    var res = await fetchWithTimeout(
+      'https://finnhub.io/api/v1/stock/insider-transactions?symbol=' + encodeURIComponent(ticker) + '&token=' + FINNHUB_KEY,
+      8000
+    );
+    if(!res || !res.data) {
+      // Fallback to server-side endpoint
+      res = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 10000);
+      if(!res || res.error) throw new Error('No insider data available');
+      renderInsider(ticker, { ticker: ticker, transactions: res.transactions || [], source: res.source || 'SEC Form 4' });
+      return;
+    }
+    var raw = (res.data || []).filter(function(t) {
+      return t.transactionCode === 'P' || t.transactionCode === 'S';
+    });
+    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
+    var cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
+    var recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
+    var transactions = recent.map(function(t) {
+      var shares = Math.abs(t.change || 0);
+      var price = t.transactionPrice || 0;
+      return { name: t.name||'Unknown', title: t.officerTitle||'', type: t.transactionCode==='P'?'buy':'sell', shares: shares, price: price||null, value: shares*price||null, date: t.transactionDate };
+    });
+    renderInsider(ticker, { ticker: ticker, transactions: transactions, source: 'SEC Form 4 / Finnhub' });
   } catch(e) {
-    if(el) el.innerHTML = '<div style="font-size:12px;color:red;padding:8px 0;">Insider error: ' + e.message + '</div>';
+    if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">No insider transactions found.</div>';
   }
 }
 
