@@ -1334,6 +1334,7 @@ async function doAnalyze(){
 
     <div id="indicators-${ticker}">
     <div class="indicator-panel" id="ind-panel">
+      <div style="font-size:11px;color:orange;padding:4px 8px;" id="ind-debug"></div>
       <div class="indicator-tabs">
         <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
         <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
@@ -2660,7 +2661,12 @@ function showIndicatorStatic(mode, btn) {
 }
 
 function renderIndicator() {
-  if (!indPriceData.length || !indTicker) return;
+  var dbg = document.getElementById('ind-debug');
+  if(dbg) dbg.textContent = 'price=' + indPriceData.length + ' ticker=' + indTicker + ' canvas=' + !!document.getElementById('ind-chart');
+  if (!indPriceData.length || !indTicker) {
+    if(dbg) dbg.textContent += ' EARLY RETURN';
+    return;
+  }
   var prices = indPriceData;
   var n = prices.length;
   var labels = prices.map(function(p,i){ return i; });
@@ -3246,7 +3252,7 @@ async function fetchInsiderTransactions(ticker) {
     if(!res || res.error) throw new Error(res ? res.error : 'No data');
     renderInsider(ticker, { ticker: ticker, transactions: res.transactions || [], source: res.source || 'SEC Form 4' });
   } catch(e) {
-    if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Insider data unavailable</div>';
+    if(el) el.innerHTML = '<div style="font-size:12px;color:red;padding:8px 0;">Insider error: ' + e.message + '</div>';
   }
 }
 
