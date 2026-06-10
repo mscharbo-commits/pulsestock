@@ -1059,18 +1059,15 @@ async function loadMoreNews(ticker){
   var rangeEl = document.getElementById('news-range-' + ticker);
   var rangeYears = newDays >= 365 ? (newDays/365).toFixed(1) + ' years' : newDays + ' days';
   if(rangeEl) rangeEl.textContent = 'Last ' + rangeYears;
-  // Rebuild paginator with all articles so new pages appear
-  var allArticles = _newsState[ticker].allArticles;
+  // Rebuild paginator with all articles
+  var allArts = _newsState[ticker].allArticles;
   var newsContainerId = 'news-list-' + ticker;
   var el2 = document.getElementById(newsContainerId);
-  if(el2 && allArticles.length > 0){
+  if(el2 && allArts.length > 0){
     window.__pgTicker = ticker;
-    el2.innerHTML = makePaginator(allArticles, 10, renderNewsItems, newsContainerId);
-    // Jump to last page to show new content
-    var totalPages = Math.ceil(allArticles.length / 10);
-    if(window.__pg && window.__pg[newsContainerId]) {
-      window.__pg[newsContainerId](totalPages - 1);
-    }
+    el2.innerHTML = makePaginator(allArts, 10, renderNewsItems, newsContainerId);
+    var totalPgs = Math.ceil(allArts.length / 10);
+    if(window.__pg && window.__pg[newsContainerId]) window.__pg[newsContainerId](totalPgs - 1);
   }
   if(btn){ btn.textContent = 'Load older news ↓'; btn.disabled = false; }
 }
@@ -3647,9 +3644,9 @@ function makePaginator(items, perPage, renderFn, containerId) {
         pgHtml+='<button class="pg-btn'+(p===page?' active':'')+'" onclick="window.__pg[\''+cid+'\']('+p+')">'+(p+1)+'</button>';
       }
       if(page===total-1){
-        pgHtml+='<button class="pg-btn pg-load-more" onclick="if(window.__pgTicker){loadMoreNews(window.__pgTicker);}">Load More &#8595;</button>';
+        pgHtml+='<button class="pg-btn pg-load-more" onclick="if(window.__pgTicker)loadMoreNews(window.__pgTicker)">Load More &#8595;</button>';
       } else {
-        pgHtml+='<button class="pg-btn" onclick="window.__pg[\''+cid+'\']('+( page+1)+')">Next &#8594;</button>';
+        pgHtml+='<button class="pg-btn" onclick="window.__pg[\''+cid+'\']('+( page+1)+')">' + 'Next &#8594;</button>';
       }
       pgHtml+='<span class="pg-info">'+(start+1)+'–'+Math.min(start+perPage,items.length)+' of '+items.length+'</span>';
       pgHtml+='</div>';
