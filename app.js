@@ -472,11 +472,12 @@ async function reloadNews(ticker, days){
 }
 
 async function loadMoreNews(ticker){
-  var state = _newsState[ticker] || { days: 7, allArticles: [] };
-  var btn = document.querySelector('#news-load-more-' + ticker + ' button');
+  var state = _newsState[ticker] || { days: 30, allArticles: [] };
+  // btn might be the paginator Load More button (passed as event target) or the old load-more div
+  var btn = document.querySelector('.pg-load-more') || document.querySelector('#news-load-more-' + ticker + ' button');
   if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
-  // Fetch next window — go back further
-  var newDays = state.days + 14;
+  // Fetch next window — go back 30 more days
+  var newDays = state.days + 30;
   var articles = await fetchNews(ticker, newDays);
   // Only show articles we haven't shown yet (by id or datetime)
   var existingIds = new Set(state.allArticles.map(function(a){ return a.id || a.datetime + a.headline; }));
@@ -3068,7 +3069,7 @@ function makePaginator(items, perPage, renderFn, containerId) {
         pgHtml+='<button class="pg-btn'+(p===page?' active':'')+'" onclick="window.__pg[\''+cid+'\']('+p+')">'+(p+1)+'</button>';
       }
       if(page===total-1){
-        pgHtml+='<button class="pg-btn" onclick="if(window.__pgTicker)loadMoreNews(window.__pgTicker)">Load More &#8595;</button>';
+        pgHtml+='<button class="pg-btn pg-load-more" onclick="var t=document.getElementById(\''+cid+'\').getAttribute(\'data-ticker\');if(t)loadMoreNews(t);">Load More &#8595;</button>';
       } else {
         pgHtml+='<button class="pg-btn" onclick="window.__pg[\''+cid+'\']('+( page+1)+')">' + 'Next &#8594;</button>';
       }
@@ -3078,6 +3079,9 @@ function makePaginator(items, perPage, renderFn, containerId) {
     }
     return html;
   }
+  // Store ticker on container for Load More access
+  var containerEl = document.getElementById(cid);
+  if(containerEl) containerEl.setAttribute('data-ticker', window.__pgTicker || '');
   window.__pg = window.__pg || {};
   window.__pg[cid] = function(page) {
     var el = document.getElementById(cid);
