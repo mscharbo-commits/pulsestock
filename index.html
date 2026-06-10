@@ -568,7 +568,13 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <h2 style="font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:4px;">My Portfolio</h2>
         <p style="color:var(--text2);font-size:14px;">Track your holdings and overall performance.</p>
       </div>
-      <button class="btn-primary" onclick="addHolding()">+ Add Holding</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="port-ticker-input" type="text" placeholder="Ticker (e.g. AAPL)" maxlength="10"
+          style="width:150px;padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Mono',monospace;text-transform:uppercase;background:var(--surface);"
+          onkeydown="if(event.key==='Enter')addPortfolioTicker()" oninput="this.value=this.value.toUpperCase()"/>
+        <button class="btn-primary" onclick="addPortfolioTicker()" style="padding:9px 16px;font-size:13px;">+ Add</button>
+        <button onclick="removePortfolioTicker()" style="padding:9px 16px;border-radius:var(--radius-sm);background:var(--surface);border:1.5px solid var(--border);font-size:13px;color:var(--red);font-weight:600;cursor:pointer;">− Remove</button>
+      </div>
     </div>
     <div class="port-summary" id="port-summary"></div>
     <div class="holdings-table" id="holdings-table"></div>
@@ -2245,6 +2251,36 @@ function removeHolding(ticker){
   portfolio = portfolio.filter(h => h.ticker !== ticker);
   savePortfolio();
   renderPortfolio();
+}
+
+function addPortfolioTicker(){
+  var inp=document.getElementById('port-ticker-input');
+  var t=(inp?inp.value.trim().toUpperCase():'');
+  if(!t){t=(prompt('Enter ticker symbol:')||'').trim().toUpperCase();}
+  if(!t) return;
+  var h=JSON.parse(localStorage.getItem('portfolio')||'[]');
+  if(h.find(function(x){return x.ticker===t;})){alert(t+' already in portfolio.');if(inp)inp.value='';return;}
+  var shares=parseFloat((prompt('Shares (enter 0 to skip):')||'0').replace(/,/g,''))||0;
+  var avg=parseFloat((prompt('Avg cost per share (enter 0 to skip):')||'0').replace(/[$,]/g,''))||0;
+  h.push({ticker:t,shares:shares,avg:avg,date:new Date().toISOString().split('T')[0]});
+  localStorage.setItem('portfolio',JSON.stringify(h));
+  if(inp)inp.value='';
+  renderPortfolio();
+}
+
+function removePortfolioTicker(){
+  var inp=document.getElementById('port-ticker-input');
+  var t=(inp?inp.value.trim().toUpperCase():'');
+  var h=JSON.parse(localStorage.getItem('portfolio')||'[]');
+  if(!h.length){alert('Portfolio is empty.');return;}
+  if(!t){
+    var list=h.map(function(x,i){return (i+1)+'. '+x.ticker;}).join('\n');
+    t=(prompt('Remove which ticker?\n\n'+list+'\n\nType ticker:')|| '').trim().toUpperCase();
+  }
+  if(!t) return;
+  var idx=h.findIndex(function(x){return x.ticker===t;});
+  if(idx===-1){alert(t+' not in portfolio.');return;}
+  if(confirm('Remove '+t+'?')){h.splice(idx,1);localStorage.setItem('portfolio',JSON.stringify(h));if(inp)inp.value='';renderPortfolio();}
 }
 
 function addHolding(){
