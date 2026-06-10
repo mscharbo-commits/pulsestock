@@ -2273,8 +2273,7 @@ function addPortfolioTicker(){
   h.push({ticker:t,shares:shares,avg:avg,date:new Date().toISOString().split('T')[0]});
   localStorage.setItem('portfolio',JSON.stringify(h));
   if(inp)inp.value='';
-  // Ask about ticker bar
-  if(confirm('Add ' + t + ' to the ticker bar?')){
+  if(confirm('Also add '+t+' to the ticker bar?')){
     if(!TICKER_SYMBOLS.find(function(s){return s.sym===t;})){
       TICKER_SYMBOLS.push({sym:t,label:'',idx:false});
       loadTickerBar();
