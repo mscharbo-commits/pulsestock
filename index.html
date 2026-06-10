@@ -1195,6 +1195,8 @@ function renderNews(ticker, articles){
   }).join('');
   }
   el.innerHTML = makePaginator(articles, 10, renderNewsItems, newsContainerId);
+  var moreBtn = document.getElementById('news-load-more-' + ticker);
+  if (moreBtn) moreBtn.style.display = articles.length >= 10 ? 'block' : 'none';
 }
 
 async function loadMoreNews(ticker) {
