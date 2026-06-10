@@ -456,19 +456,19 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
     </div>
     <div id="analyze-result"></div>
-    <div class="indicator-panel" id="ind-panel" style="display:none;margin-top:16px;">
+    <div class="indicator-panel" id="ind-panel-static" style="display:none;margin-top:16px;">
       <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+        <button class="ind-tab active" onclick="showIndicatorStatic('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('stoch',this)">Stochastic</button>
       </div>
       <div class="indicator-chart-wrap">
-        <canvas id="ind-chart"></canvas>
+        <canvas id="ind-chart-static"></canvas>
       </div>
-      <div class="ind-legend" id="ind-legend"></div>
+      <div class="ind-legend" id="ind-legend-static"></div>
     </div>
   </div>
 
@@ -1248,15 +1248,15 @@ async function doAnalyze(){
     <!-- TIME PERIOD SELECTOR synced with indicator panel -->
     <div style="display:flex;gap:4px;margin-bottom:10px;margin-top:-6px;align-items:center;">
       <span style="font-size:11px;color:var(--text3);font-weight:500;margin-right:4px;">Indicators:</span>
-      <button class="ind-period-btn" onclick="setIndPeriod(1,this)">1D</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(5,this)">5D</button>
-      <button class="ind-period-btn active" onclick="setIndPeriod(30,this)">1M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(90,this)">3M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(180,this)">6M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(252,this)">YTD</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(365,this)">1Y</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(1825,this)">5Y</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(3650,this)">All</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(1,this)">1D</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(5,this)">5D</button>
+      <button class="ind-period-btn active" onclick="setIndPeriodStatic(30,this)">1M</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(90,this)">3M</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(180,this)">6M</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(252,this)">YTD</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(365,this)">1Y</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(1825,this)">5Y</button>
+      <button class="ind-period-btn" onclick="setIndPeriodStatic(3650,this)">All</button>
     </div>
 
     </div><!-- end chart section -->
@@ -1333,19 +1333,19 @@ async function doAnalyze(){
     </div>
 
     <div id="indicators-${ticker}">
-    <div class="indicator-panel" id="ind-panel">
+    <div class="indicator-panel" id="ind-panel-static">
       <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+        <button class="ind-tab active" onclick="showIndicatorStatic('rsi',this)">RSI</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('macd',this)">MACD</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('bb',this)">Bollinger Bands</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('ema',this)">EMA Crossover</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('volume',this)">Volume</button>
+        <button class="ind-tab" onclick="showIndicatorStatic('stoch',this)">Stochastic</button>
       </div>
       <div class="indicator-chart-wrap">
-        <canvas id="ind-chart"></canvas>
+        <canvas id="ind-chart-static"></canvas>
       </div>
-      <div class="ind-legend" id="ind-legend"></div>
+      <div class="ind-legend" id="ind-legend-static"></div>
     </div>
 
     <div class="range-row">
@@ -2652,7 +2652,7 @@ function calcStochastic(prices, period) {
   return { k: k, d: d };
 }
 
-function showIndicator(mode, btn) {
+function showIndicatorStatic(mode, btn) {
   indMode = mode;
   document.querySelectorAll('.ind-tab').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
@@ -2824,7 +2824,7 @@ function renderIndicator() {
 
 var indPeriod = 30;
 
-function setIndPeriod(days, btn) {
+function setIndPeriodStatic(days, btn) {
   indPeriod = days;
   document.querySelectorAll('.ind-period-btn').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
@@ -3242,42 +3242,9 @@ async function fetchInsiderTransactions(ticker) {
   if(!el) return;
   try {
     // Call Finnhub directly from browser — faster, no Vercel timeout
-    var res = await fetchWithTimeout(
-      'https://finnhub.io/api/v1/stock/insider-transactions?symbol=' + encodeURIComponent(ticker) + '&token=' + FINNHUB_KEY,
-      10000
-    );
+    var res = await fetchWithTimeout('/api/insider?ticker=' + encodeURIComponent(ticker), 10000);
     if(!res || res.error) throw new Error(res ? res.error : 'No data');
-
-    // Parse raw Finnhub response
-    var raw = (res.data || []).filter(function(t) {
-      return t.transactionCode === 'P' || t.transactionCode === 'S';
-    });
-    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
-    var cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
-    var recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
-
-    var titleMap = {'Chief Executive Officer':'CEO','Chief Financial Officer':'CFO','Chief Operating Officer':'COO','Chief Technology Officer':'CTO','President':'President','Director':'Director','Chairman':'Chairman','General Counsel':'Gen. Counsel'};
-    function cleanTitle(t) {
-      if(!t) return '';
-      for(var k in titleMap) { if(t.indexOf(k)!==-1) return titleMap[k]; }
-      return t.split(' ').slice(0,3).join(' ');
-    }
-
-    var transactions = recent.map(function(t) {
-      var shares = Math.abs(t.change || 0);
-      var price  = t.transactionPrice || 0;
-      return {
-        name:  t.name || 'Unknown',
-        title: cleanTitle(t.officerTitle || ''),
-        type:  t.transactionCode === 'P' ? 'buy' : 'sell',
-        shares: shares,
-        price:  price || null,
-        value:  shares * price || null,
-        date:   t.transactionDate,
-      };
-    });
-
-    renderInsider(ticker, { ticker: ticker, transactions: transactions, source: 'SEC Form 4 / Finnhub' });
+    renderInsider(ticker, { ticker: ticker, transactions: res.transactions || [], source: res.source || 'SEC Form 4' });
   } catch(e) {
     if(el) el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Insider data unavailable</div>';
   }
