@@ -1,76 +1,53 @@
-export const config = { maxDuration: 15 };
+export const config = { runtime: 'edge' };
 
-const TITLE_MAP = {
-  'CEO':'CEO', 'CFO':'CFO', 'COO':'COO', 'CTO':'CTO', 'CMO':'CMO',
-  'President':'President', 'Director':'Director', 'Chairman':'Chairman',
-  'VP':'VP', 'SVP':'SVP', 'EVP':'EVP', 'General Counsel':'Gen. Counsel',
-  'Chief Executive':'CEO', 'Chief Financial':'CFO', 'Chief Operating':'COO',
-};
-
-function cleanTitle(t) {
-  if(!t) return '';
-  for(var k in TITLE_MAP) { if(t.includes(k)) return TITLE_MAP[k]; }
-  return t.split(' ').slice(0,3).join(' ');
-}
+const FINNHUB_KEY = process.env.FINNHUB_KEY;
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
 export default async function handler(req) {
-  const cors = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Methods':'GET,OPTIONS', 'Access-Control-Allow-Headers':'Content-Type' };
-  if(req.method==='OPTIONS') return new Response(null, {headers:cors});
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
-  let ticker;
-  try {
-    const base = req.url.startsWith('http') ? '' : 'https://x.com';
-    ticker = new URL(base + req.url).searchParams.get('ticker')?.toUpperCase();
-  } catch {
-    ticker = (req.url.split('?')[1]||'').split('&').map(p=>p.split('=')).find(p=>p[0]==='ticker')?.[1]?.toUpperCase();
-  }
-  if(!ticker) return new Response(JSON.stringify({error:'ticker required'}), {status:400, headers:{...cors,'Content-Type':'application/json'}});
-
-  const FINNHUB_KEY = process.env.FINNHUB_KEY;
-  if(!FINNHUB_KEY) return new Response(JSON.stringify({error:'No API key'}), {status:500, headers:{...cors,'Content-Type':'application/json'}});
+  const url = new URL(req.url);
+  const ticker = url.searchParams.get('ticker');
+  if (!ticker) return new Response(JSON.stringify({ error: 'No ticker' }), { status: 400, headers: CORS });
 
   try {
-    // Finnhub insider transactions endpoint
-    const res = await fetch(`https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${FINNHUB_KEY}`);
-    if(!res.ok) throw new Error(`Finnhub ${res.status}`);
-    const json = await res.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const raw = (json.data || []).filter(function(t) {
-      // Only P (purchase) and S (sale) — skip option exercises, awards, etc.
-      return t.transactionCode === 'P' || t.transactionCode === 'S';
-    });
+    const res = await fetch(
+      `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${FINNHUB_KEY}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
 
-    // Sort newest first
-    raw.sort(function(a,b){ return new Date(b.transactionDate) - new Date(a.transactionDate); });
+    if (!res.ok) throw new Error(`Finnhub ${res.status}`);
+    const data = await res.json();
 
-    // Filter to last 12 months
-    const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
-    const recent = raw.filter(function(t){ return new Date(t.transactionDate) >= cutoff; });
+    const raw = (data.data || []).filter(t => t.transactionCode === 'P' || t.transactionCode === 'S');
+    raw.sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const recent = raw.filter(t => new Date(t.transactionDate) >= cutoff);
 
-    const transactions = recent.map(function(t) {
-      var shares = Math.abs(t.share || 0);
-      var price  = t.transactionPrice || 0;
-      var value  = shares * price;
-      return {
-        name:   t.name || 'Unknown',
-        title:  cleanTitle(t.officerTitle || ''),
-        type:   t.transactionCode === 'P' ? 'buy' : 'sell',
-        code:   t.transactionCode,
-        shares: shares,
-        price:  price || null,
-        value:  value || null,
-        date:   t.transactionDate,
-        filingDate: t.filingDate,
-      };
-    });
+    const TITLES = { 'Chief Executive Officer': 'CEO', 'Chief Financial Officer': 'CFO', 'Chief Operating Officer': 'COO', 'Chief Technology Officer': 'CTO', 'President': 'President', 'Director': 'Director', 'Chairman': 'Chairman' };
+    function cleanTitle(t) {
+      if (!t) return '';
+      for (const k in TITLES) { if (t.includes(k)) return TITLES[k]; }
+      return t.split(' ').slice(0, 3).join(' ');
+    }
 
-    return new Response(JSON.stringify({
-      ticker, transactions,
-      source: 'SEC Form 4 / Finnhub',
-      fetchedAt: new Date().toISOString(),
-    }), { headers: {...cors,'Content-Type':'application/json','Cache-Control':'public,max-age=3600'} });
+    const transactions = recent.map(t => ({
+      name: t.name || 'Unknown',
+      title: cleanTitle(t.officerTitle || ''),
+      type: t.transactionCode === 'P' ? 'buy' : 'sell',
+      shares: Math.abs(t.change || 0),
+      price: t.transactionPrice || null,
+      value: Math.abs(t.change || 0) * (t.transactionPrice || 0) || null,
+      date: t.transactionDate,
+    }));
 
-  } catch(err) {
-    return new Response(JSON.stringify({error: err.message}), {status:500, headers:{...cors,'Content-Type':'application/json'}});
+    return new Response(JSON.stringify({ ticker, transactions, source: 'SEC Form 4 / Finnhub' }), { headers: CORS });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message, transactions: [] }), { status: 200, headers: CORS });
   }
 }
