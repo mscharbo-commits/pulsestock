@@ -425,7 +425,9 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     </nav>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="header-badge">AI-Powered · Live Data</div>
-      <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Sign In</a>
+      <div id="nav-auth">
+        <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;">Sign In</a>
+      </div>
       <a href="/desktop" style="padding:7px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:5px;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">🖥 Desktop Ticker</a>
     </div>
   </div>
@@ -4408,6 +4410,43 @@ async function chatAsk(ticker, question) {
   document.querySelectorAll('#chat-chips-' + ticker + ' .chat-chip').forEach(function(c){ c.disabled = false; });
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
+
+// ── SHARED AUTH (Supabase) ────────────────────────────────────────────────────
+(async function initAuth() {
+  const SUPA_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
+  const SUPA_KEY = 'sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
+  if (typeof supabase === 'undefined') return;
+  const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  // Get profile
+  const { data: profile } = await sb.from('profiles').select('username,avatar_color').eq('id', session.user.id).single();
+  const name = profile?.username || session.user.email.split('@')[0];
+  const color = profile?.avatar_color || '#1A6BF5';
+
+  // Replace Sign In button with user avatar + signout
+  const navAuth = document.getElementById('nav-auth');
+  if (navAuth) {
+    navAuth.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;cursor:pointer;" title="${name}" onclick="window.location='/community.html'">${name[0].toUpperCase()}</div>
+        <span style="font-size:13px;font-weight:500;color:var(--text2);">${name}</span>
+        <button onclick="signOutApp()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:none;color:var(--text3);cursor:pointer;">Sign out</button>
+      </div>`;
+  }
+
+  window._sbClient = sb;
+  window._sbUser = session.user;
+  window._sbProfile = profile;
+
+  async function signOutApp() {
+    await sb.auth.signOut();
+    window.location.reload();
+  }
+  window.signOutApp = signOutApp;
+})();
+
 </script>
 </body>
 </html><button onclick="sendChatQuestion('${ticker}','${name}')" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Send ↵</button>E html>
