@@ -435,7 +435,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     // Already logged in — go back to app
-    window.location.href = '/?loggedin=1';
+    window.location.href = '/';
   }
 })();
 
@@ -451,7 +451,7 @@ async function signIn() {
     errEl.textContent = error.message; errEl.style.display = 'block';
     btn.textContent = 'Sign In'; btn.disabled = false;
   } else {
-    window.location.href = '/?loggedin=1';
+    window.location.href = '/';
   }
 }
 
@@ -478,7 +478,7 @@ async function signUp() {
       avatar_color: ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309'][Math.floor(Math.random()*5)]
     });
   }
-  window.location.href = '/?loggedin=1';
+  window.location.href = '/';
 }
 
 async function resetPassword() {
@@ -821,7 +821,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     // Already logged in — go back to app
-    window.location.href = '/?loggedin=1';
+    window.location.href = '/';
   }
 })();
 
@@ -837,7 +837,7 @@ async function signIn() {
     errEl.textContent = error.message; errEl.style.display = 'block';
     btn.textContent = 'Sign In'; btn.disabled = false;
   } else {
-    window.location.href = '/?loggedin=1';
+    window.location.href = '/';
   }
 }
 
@@ -864,7 +864,7 @@ async function signUp() {
       avatar_color: ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309'][Math.floor(Math.random()*5)]
     });
   }
-  window.location.href = '/?loggedin=1';
+  window.location.href = '/';
 }
 
 async function resetPassword() {
