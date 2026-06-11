@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Support Staff Manual</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#F7F8FA;--surface:#fff;--border:#E2E6ED;--text:#0D1117;--text2:#4A5568;--text3:#8A95A3;--accent:#1A6BF5;--accent-light:#EBF1FE;--green:#0D9B6B;--green-bg:#E6F7F1;--red:#D13F30;--red-bg:#FDECEA;--amber:#B45309;--amber-bg:#FEF3C7;--radius:12px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{width:260px;background:#0D1117;min-height:100vh;position:fixed;left:0;top:0;overflow-y:auto;padding-bottom:40px;}
+.sidebar-logo{padding:24px 20px;border-bottom:1px solid #1A2535;display:flex;align-items:center;gap:10px;}
+.sidebar-logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;}
+.sidebar-logo-text{color:#fff;font-size:15px;font-weight:700;}
+.sidebar-logo-text span{color:#1A6BF5;}
+.sidebar-badge{background:#1A6BF5;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;}
+.nav-section{padding:16px 12px 4px;font-size:10px;font-weight:700;color:#4A5568;text-transform:uppercase;letter-spacing:.08em;}
+.nav-item{display:block;padding:9px 16px;color:#8A95A3;font-size:13px;font-weight:500;text-decoration:none;border-radius:6px;margin:1px 8px;transition:all .15s;cursor:pointer;}
+.nav-item:hover,.nav-item.active{background:#1A2535;color:#fff;}
+.nav-item.active{color:#1A6BF5;}
+
+/* Main */
+.main{margin-left:260px;flex:1;padding:40px;}
+.page{display:none;}
+.page.active{display:block;}
+.page-header{margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid var(--border);}
+.page-header h1{font-size:28px;font-weight:700;letter-spacing:-.8px;margin-bottom:6px;}
+.page-header p{font-size:15px;color:var(--text2);}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.card h2{font-size:17px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card h3{font-size:14px;font-weight:700;margin:16px 0 8px;color:var(--text);}
+.card p{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:10px;}
+.card ul{padding-left:20px;margin-bottom:10px;}
+.card ul li{font-size:14px;color:var(--text2);line-height:1.8;}
+
+/* Badges */
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.badge-green{background:var(--green-bg);color:var(--green);}
+.badge-red{background:var(--red-bg);color:var(--red);}
+.badge-amber{background:var(--amber-bg);color:var(--amber);}
+.badge-blue{background:var(--accent-light);color:var(--accent);}
+
+/* Steps */
+.steps{counter-reset:step;}
+.step{display:flex;gap:16px;margin-bottom:16px;align-items:flex-start;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-content h4{font-size:14px;font-weight:700;margin-bottom:4px;}
+.step-content p{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* Q&A */
+.qa{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.qa-q{padding:12px 16px;background:var(--bg);font-size:14px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.qa-a{padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.7;border-top:1px solid var(--border);}
+
+/* Alert box */
+.alert{padding:14px 18px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.6;}
+.alert-blue{background:var(--accent-light);border-left:4px solid var(--accent);color:#1A3A6B;}
+.alert-amber{background:var(--amber-bg);border-left:4px solid var(--amber);color:#7C2D12;}
+.alert-red{background:var(--red-bg);border-left:4px solid var(--red);color:#7F1D1D;}
+.alert-green{background:var(--green-bg);border-left:4px solid var(--green);color:#064E3B;}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 14px;background:var(--bg);color:var(--text3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+
+/* Escalation flow */
+.flow{display:flex;align-items:center;gap:0;margin:16px 0;flex-wrap:wrap;}
+.flow-step{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;text-align:center;min-width:120px;}
+.flow-step.green{border-color:var(--green);color:var(--green);background:var(--green-bg);}
+.flow-step.amber{border-color:var(--amber);color:var(--amber);background:var(--amber-bg);}
+.flow-step.red{border-color:var(--red);color:var(--red);background:var(--red-bg);}
+.flow-step.blue{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.flow-arrow{padding:0 10px;color:var(--text3);font-size:18px;}
+
+/* Code */
+code{background:#F2F4F7;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);}
+pre{background:#0D1117;color:#E2E6ED;padding:16px;border-radius:8px;font-family:'DM Mono',monospace;font-size:12px;overflow-x:auto;margin:10px 0;line-height:1.6;}
+
+/* Print */
+@media print{.sidebar{display:none;}.main{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">P</div>
+    <div>
+      <div class="sidebar-logo-text">Pulse<span>Stock</span></div>
+      <div style="font-size:11px;color:#4A5568;margin-top:1px;">Support Manual</div>
+    </div>
+  </div>
+
+  <div class="nav-section">Getting Started</div>
+  <a class="nav-item active" onclick="show('overview')">📋 Overview</a>
+  <a class="nav-item" onclick="show('tools')">🛠 Support Tools</a>
+  <a class="nav-item" onclick="show('tiers')">👥 User Tiers</a>
+
+  <div class="nav-section">Platform Guide</div>
+  <a class="nav-item" onclick="show('features')">⚡ Features Guide</a>
+  <a class="nav-item" onclick="show('account')">🔑 Account & Auth</a>
+  <a class="nav-item" onclick="show('community')">💬 Community</a>
+  <a class="nav-item" onclick="show('picks')">📈 Picks & Leaderboard</a>
+
+  <div class="nav-section">Support Workflows</div>
+  <a class="nav-item" onclick="show('escalation')">🚨 Escalation Flow</a>
+  <a class="nav-item" onclick="show('common')">❓ Common Issues</a>
+  <a class="nav-item" onclick="show('scripts')">💬 Response Scripts</a>
+
+  <div class="nav-section">Reference</div>
+  <a class="nav-item" onclick="show('contacts')">📞 Key Contacts</a>
+  <a class="nav-item" onclick="show('policies')">📜 Policies</a>
+</div>
+
+<div class="main">
+
+  <!-- OVERVIEW -->
+  <div id="page-overview" class="page active">
+    <div class="page-header">
+      <h1>📋 Support Staff Overview</h1>
+      <p>Welcome to the PulseStock support team. This manual covers everything you need to help users effectively.</p>
+    </div>
+
+    <div class="alert alert-blue"><strong>Mission:</strong> Deliver fast, knowledgeable support that makes users feel confident using PulseStock. Most questions can be resolved in under 2 minutes with this guide.</div>
+
+    <div class="card">
+      <h2>🌐 What is PulseStock?</h2>
+      <p>PulseStock is an AI-powered stock analysis platform. Users get real-time quotes, professional charts, AI-driven analysis, technical indicators, insider transactions, SEC filings, earnings data, and a community for sharing trade picks.</p>
+      <h3>Key URLs</h3>
+      <table>
+        <tr><th>Page</th><th>URL</th><th>Purpose</th></tr>
+        <tr><td>Main App</td><td><code>pulsestock-nu.vercel.app</code></td><td>Stock analysis, all features</td></tr>
+        <tr><td>Sign In / Up</td><td><code>/signin</code></td><td>Account login & registration</td></tr>
+        <tr><td>Community</td><td><code>/community.html</code></td><td>Chat rooms, trade picks, leaderboard</td></tr>
+        <tr><td>Morning Picks</td><td><code>/morning-picks</code></td><td>Daily AI stock picks (internal)</td></tr>
+        <tr><td>Desktop App</td><td><code>/desktop</code></td><td>Desktop ticker download page</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>⏰ Support Hours & Channels</h2>
+      <table>
+        <tr><th>Channel</th><th>Response Time</th><th>Hours</th></tr>
+        <tr><td>🤖 PulseAI Bot (Auto)</td><td>Instant</td><td>24/7</td></tr>
+        <tr><td>💬 Live Chat (You)</td><td>&lt; 5 min</td><td>Market hours + extended</td></tr>
+        <tr><td>📧 Email Ticket</td><td>&lt; 24 hours</td><td>Business days</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🎯 Your Core Responsibilities</h2>
+      <ul>
+        <li>Handle escalations from the PulseAI bot when it can't resolve an issue</li>
+        <li>Answer questions about features, account, billing, and technical issues</li>
+        <li>Report bugs to the development team with clear reproduction steps</li>
+        <li>Document recurring issues for product improvements</li>
+        <li>Maintain a friendly, professional tone at all times</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- TOOLS -->
+  <div id="page-tools" class="page">
+    <div class="page-header">
+      <h1>🛠 Support Tools</h1>
+      <p>Tools available to you as a support agent.</p>
+    </div>
+
+    <div class="card">
+      <h2>📥 Viewing Support Tickets</h2>
+      <p>All tickets are stored in Supabase. To view them:</p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><h4>Log into Supabase</h4><p>Go to <code>supabase.com</code> → sign in → open the PulseStock project (<code>ttcprqkoibiztibhpsrp</code>)</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><h4>Open Table Editor</h4><p>Click <strong>Table Editor</strong> in the left sidebar → select <code>support_tickets</code></p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><h4>Review tickets</h4><p>Each ticket shows: name, email, message, full AI conversation history, status (open/resolved), and timestamp</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content"><h4>Update status</h4><p>After resolving, update <code>status</code> field to <code>resolved</code> directly in the table</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>👤 Looking Up a User</h2>
+      <p>To find a user's account in Supabase:</p>
+      <ul>
+        <li>Go to <strong>Authentication → Users</strong> to search by email</li>
+        <li>Go to <strong>Table Editor → profiles</strong> to search by username</li>
+        <li>The <code>profiles</code> table has: username, avatar_color, role, created_at</li>
+        <li>The <code>picks</code> table shows all their trade picks and performance</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🔧 Vercel Dashboard</h2>
+      <p>For checking if the site is down or API errors:</p>
+      <ul>
+        <li>Go to <code>vercel.com</code> → pulsestock project</li>
+        <li><strong>Deployments</strong> tab — check if latest deploy is READY or ERROR</li>
+        <li><strong>Functions</strong> tab → Runtime Logs — see API errors in real time</li>
+        <li>If site is down: check for ERROR deployments and notify the dev team immediately</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- TIERS -->
+  <div id="page-tiers" class="page">
+    <div class="page-header">
+      <h1>👥 User Tiers</h1>
+      <p>Understanding what each user type has access to.</p>
+    </div>
+
+    <div class="card">
+      <h2>📊 Plan Comparison</h2>
+      <table>
+        <tr><th>Feature</th><th>Free</th><th>Basic</th><th>Trader Pro</th></tr>
+        <tr><td>Stock Analysis</td><td>✅ Haiku AI</td><td>✅ Haiku AI</td><td>✅ Sonnet AI (deeper)</td></tr>
+        <tr><td>Real-time Quotes</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td>Community Access</td><td>✅ Read</td><td>✅ Post picks</td><td>✅ Full access</td></tr>
+        <tr><td>Morning Picks</td><td>❌</td><td>❌</td><td>✅</td></tr>
+        <tr><td>Portfolio Tracker</td><td>✅ Basic</td><td>✅</td><td>✅ Advanced</td></tr>
+        <tr><td>AI Chat (Ask PulseAI)</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td>Support Priority</td><td>Bot only</td><td>Email</td><td>Live chat</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🏅 Community Roles</h2>
+      <table>
+        <tr><th>Role</th><th>Badge</th><th>Permissions</th></tr>
+        <tr><td>Admin</td><td><span class="badge badge-red">👑 Admin</span></td><td>Full access — ban, mute, delete, manage rooms</td></tr>
+        <tr><td>Moderator</td><td><span class="badge badge-amber">🛡️ Mod</span></td><td>Mute users, delete messages, manage rooms</td></tr>
+        <tr><td>Verified</td><td><span class="badge badge-blue">⭐ Verified</span></td><td>Trusted trader — verified track record</td></tr>
+        <tr><td>Member</td><td>—</td><td>Post messages and picks, upvote</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div id="page-features" class="page">
+    <div class="page-header">
+      <h1>⚡ Features Guide</h1>
+      <p>How every feature works — so you can explain it to users.</p>
+    </div>
+
+    <div class="card">
+      <h2>📊 Stock Analysis</h2>
+      <p>The core feature. User types a ticker (e.g. AAPL) in the search box and clicks Analyze.</p>
+      <h3>What loads on the results page:</h3>
+      <ul>
+        <li><strong>Quote card</strong> — live price, change %, day range, market cap</li>
+        <li><strong>Chart</strong> — TradingView interactive chart with multiple timeframes</li>
+        <li><strong>Indicators</strong> — RSI, MACD, Bollinger Bands, EMA Crossover, Volume, Stochastic</li>
+        <li><strong>Level II & T&S</strong> — bid/ask depth, time and sales (delayed)</li>
+        <li><strong>Valuation</strong> — P/E, P/B, PEG, EV/EBITDA ratios</li>
+        <li><strong>Fundamentals</strong> — revenue, earnings, margins, balance sheet</li>
+        <li><strong>Technical</strong> — moving averages, support/resistance, trend signals</li>
+        <li><strong>Short Interest</strong> — short float %, days to cover, FTD data</li>
+        <li><strong>Company</strong> — profile, description, sector, employees</li>
+        <li><strong>Financials</strong> — income statement, balance sheet, cash flow</li>
+        <li><strong>Intelligence</strong> — analyst ratings, price targets, upgrades/downgrades</li>
+        <li><strong>Insider</strong> — SEC Form 4 transactions (buys/sells by insiders)</li>
+        <li><strong>SEC Filings</strong> — 10-K, 10-Q, 8-K, proxy filings via EDGAR</li>
+        <li><strong>News</strong> — last 30 days, paginated, "Load older news" for history</li>
+        <li><strong>AI Analysis</strong> — deep analysis button + Ask PulseAI chat</li>
+        <li><strong>Community</strong> — sentiment votes and room link for that stock</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🤖 Ask PulseAI Chat</h2>
+      <p>Appears in the AI Analysis section after analyzing a stock. Uses live price data and recent news to answer questions.</p>
+      <h3>Quick chips available:</h3>
+      <ul>
+        <li>📊 Why moving today?</li>
+        <li>⚠️ Key risks</li>
+        <li>📈 Analyst views</li>
+        <li>💰 Good buy now?</li>
+        <li>🚀 Catalysts</li>
+      </ul>
+      <div class="alert alert-blue"><strong>Note:</strong> Chat uses live Finnhub price data + recent headlines for context. Quality of answers depends on available data. Not financial advice.</div>
+    </div>
+
+    <div class="card">
+      <h2>📰 News Section</h2>
+      <p>Shows last 30 days of news by default, paginated at 10 articles per page.</p>
+      <ul>
+        <li>Use the dropdown to change the date range (7 days / 2 weeks / 30 days)</li>
+        <li>Click <strong>"Load older news ↓"</strong> at the bottom to fetch 30 more days</li>
+        <li>Can go back up to 1 year for most stocks</li>
+        <li>For high-volume stocks like AAPL, 7 days fills 5 pages quickly</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>📱 Ticker Bar</h2>
+      <p>The scrolling bar at the top showing live prices. Shows indices (SPY, QQQ, GLD etc) plus individual stocks.</p>
+      <ul>
+        <li>Click <strong>✏️ Edit</strong> to add/remove stocks from the ticker bar</li>
+        <li>BTC and ETH are not supported (Finnhub free tier limitation)</li>
+        <li>Updates every time the page loads</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>💼 Portfolio</h2>
+      <p>Personal portfolio tracker stored in the user's browser (localStorage).</p>
+      <ul>
+        <li>Type a ticker in the input and click <strong>+ Add</strong> to add a holding</li>
+        <li>Prompts for shares and avg cost (both optional — can enter 0)</li>
+        <li>When adding, asks "Also add to ticker bar?" — user can choose</li>
+        <li>Click <strong>− Remove</strong> with ticker in input to remove a holding</li>
+        <li>Shows live P&L, total value, day change</li>
+      </ul>
+      <div class="alert alert-amber"><strong>Important:</strong> Portfolio data is stored in the browser only — it will be lost if the user clears browser data or switches browsers. Cloud sync is a planned feature.</div>
+    </div>
+
+    <div class="card">
+      <h2>🖥 Desktop Ticker App</h2>
+      <p>A separate Electron app that shows a floating ticker bar on the desktop.</p>
+      <ul>
+        <li>Available at <code>/desktop</code> page for download</li>
+        <li>Mac only currently (Intel x86_64)</li>
+        <li>Run: open the downloaded app, allow in Security & Privacy settings if blocked</li>
+        <li>Right-click to edit which tickers display</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ACCOUNT -->
+  <div id="page-account" class="page">
+    <div class="page-header">
+      <h1>🔑 Account & Authentication</h1>
+      <p>How user accounts work across PulseStock.</p>
+    </div>
+
+    <div class="alert alert-blue"><strong>Single Sign-On:</strong> One Supabase account works across the main app AND community. Users sign in once at <code>/signin</code> and are automatically logged into community.</div>
+
+    <div class="card">
+      <h2>🔐 Sign Up Process</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><h4>User goes to /signin</h4><p>Fills in username (3+ chars), email, and password (6+ chars)</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><h4>Account created in Supabase Auth</h4><p>Email + password stored securely. A profile record is created with username and random avatar color.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><h4>Redirected to main app</h4><p>User's name appears in the top-right nav. Avatar click goes to community.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔓 Forgot Password</h2>
+      <p>If a user says they can't log in or forgot their password:</p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><h4>Direct them to /signin</h4><p>Tell them to enter their email address in the Sign In form</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><h4>Click "Forgot password?"</h4><p>Link appears below the Sign In button. Supabase sends a reset email.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><h4>Check email</h4><p>Reset link expires in 1 hour. Tell them to check spam if not received.</p></div>
+      </div>
+      <div class="alert alert-amber"><strong>If email not received:</strong> Check Supabase Auth → Users to confirm the email exists. If not found, the user may have signed up with a different email.</div>
+    </div>
+
+    <div class="card">
+      <h2>🚫 Account Issues</h2>
+      <table>
+        <tr><th>Issue</th><th>Likely Cause</th><th>Resolution</th></tr>
+        <tr><td>"Invalid credentials"</td><td>Wrong password or email</td><td>Use forgot password flow</td></tr>
+        <tr><td>"User not found"</td><td>Email not registered</td><td>Check if they used a different email</td></tr>
+        <tr><td>Logged out on community</td><td>Session expired</td><td>Sign in again at /signin</td></tr>
+        <tr><td>Username taken</td><td>Already registered</td><td>Choose a different username</td></tr>
+        <tr><td>Can't post in community</td><td>Not logged in</td><td>Sign in first, then return to community</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- COMMUNITY -->
+  <div id="page-community" class="page">
+    <div class="page-header">
+      <h1>💬 Community Guide</h1>
+      <p>How the community rooms, chat, and moderation work.</p>
+    </div>
+
+    <div class="card">
+      <h2>🏠 Rooms</h2>
+      <p>Default rooms available to all users:</p>
+      <ul>
+        <li><strong>General</strong> — General market discussion</li>
+        <li><strong>Picks & Trades</strong> — Share trade setups</li>
+        <li><strong>Options Flow</strong> — Options and unusual activity</li>
+        <li><strong>Crypto</strong> — Bitcoin and crypto discussion</li>
+        <li><strong>Morning Briefing</strong> — Pre-market analysis</li>
+        <li><strong>Stock Rooms</strong> — Individual stock rooms (e.g. AAPL Room) created by users</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🚨 Moderation Actions</h2>
+      <div class="alert alert-red"><strong>Zero tolerance:</strong> Spam, pump & dump schemes, harassment, financial scams, and threats result in immediate ban.</div>
+      <table>
+        <tr><th>Action</th><th>When to Use</th><th>How</th></tr>
+        <tr><td>Mute user</td><td>Minor violation, first offense</td><td>Admin panel in community → Mute → set duration</td></tr>
+        <tr><td>Delete message</td><td>Rule-breaking content</td><td>Hover message → delete icon (mods/admins only)</td></tr>
+        <tr><td>Ban user</td><td>Serious or repeat violations</td><td>Admin panel → Ban user → add reason</td></tr>
+        <tr><td>Flag message</td><td>Needs review</td><td>Any user can flag → goes to mod queue</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🔔 Trade Detection Feature</h2>
+      <p>When a user types a trade in chat (e.g. "bought AAPL at 291 target 310 stop 280"), a blue banner appears asking if they want to create a formal pick.</p>
+      <ul>
+        <li>Detected keywords: bought, long, buy, sold, short, sell, calls, puts</li>
+        <li>Automatically extracts ticker, direction, entry, target, stop</li>
+        <li>User clicks "Add Pick" to pre-fill the pick form</li>
+        <li>If user reports banner not appearing — remind them it only triggers for their own messages</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PICKS -->
+  <div id="page-picks" class="page">
+    <div class="page-header">
+      <h1>📈 Picks & Leaderboard</h1>
+      <p>How trade picks, performance tracking, and the leaderboard work.</p>
+    </div>
+
+    <div class="card">
+      <h2>📝 Posting a Pick</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><h4>Go to Community → Picks tab</h4><p>Click the "Picks" tab in the community sidebar</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><h4>Fill in the form</h4><p>Ticker (required), Direction (BUY/SELL), Entry price, Target price, Stop loss, Notes (optional)</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><h4>Live price is snapped</h4><p>At the moment of posting, the current live price is automatically recorded as the actual entry price — users cannot manipulate this.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content"><h4>Pick appears as ⏳ Pending</h4><p>Stays pending until the user closes it manually or it hits target/stop</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔒 Closing a Pick</h2>
+      <p>Only the pick's author can close it.</p>
+      <ul>
+        <li>Find the pick in community — a <strong>"Close Pick"</strong> button appears on their own picks</li>
+        <li>Click Close Pick → system fetches the current live price</li>
+        <li>Shows confirmation: "Close AAPL at $295.00? Return: +1.37%"</li>
+        <li>On confirm: exit price, exit time, and return % are saved automatically</li>
+        <li>Result set to WIN (positive return) or LOSS (negative return) automatically</li>
+      </ul>
+      <div class="alert alert-blue"><strong>Integrity note:</strong> Both entry AND exit prices are pulled from live Finnhub data — users cannot manually enter prices, ensuring an honest track record.</div>
+    </div>
+
+    <div class="card">
+      <h2>🏆 Leaderboard Metrics</h2>
+      <table>
+        <tr><th>Metric</th><th>How Calculated</th></tr>
+        <tr><td>Total Return %</td><td>Sum of all closed pick return percentages</td></tr>
+        <tr><td>Win Rate</td><td>Wins ÷ Total closed picks × 100</td></tr>
+        <tr><td>Avg Gain</td><td>Average return of winning picks only</td></tr>
+        <tr><td>Avg Loss</td><td>Average return of losing picks only</td></tr>
+        <tr><td>Ranking</td><td>Sorted by Total Return % (highest first)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ESCALATION -->
+  <div id="page-escalation" class="page">
+    <div class="page-header">
+      <h1>🚨 Escalation Flow</h1>
+      <p>How issues move from AI bot to live support to engineering.</p>
+    </div>
+
+    <div class="card">
+      <h2>📊 Support Tiers</h2>
+      <div class="flow">
+        <div class="flow-step green">🤖 PulseAI Bot</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step amber">💬 Live Support (You)</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step red">⚙️ Engineering</div>
+      </div>
+      <h3>Tier 1 — PulseAI Bot (Automatic)</h3>
+      <ul>
+        <li>Handles how-to questions, feature explanations, common troubleshooting</li>
+        <li>Available 24/7 via the ? button on any page</li>
+        <li>Auto-escalates to Tier 2 for billing, account deletion, privacy, or repeated "I need a human"</li>
+      </ul>
+      <h3>Tier 2 — Live Support (Your Role)</h3>
+      <ul>
+        <li>Account issues, password resets, billing disputes</li>
+        <li>Complex technical issues the bot couldn't resolve</li>
+        <li>Community complaints and moderation escalations</li>
+        <li>Escalate to Engineering if you cannot resolve within 10 minutes</li>
+      </ul>
+      <h3>Tier 3 — Engineering</h3>
+      <ul>
+        <li>Site outages, data accuracy bugs, payment processing failures</li>
+        <li>Security incidents</li>
+        <li>Feature defects with reproducible steps</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🐛 Reporting a Bug</h2>
+      <p>When a user reports a bug, collect this information before escalating:</p>
+      <ul>
+        <li><strong>Browser & OS</strong> — e.g. "Chrome 124 on Mac"</li>
+        <li><strong>Steps to reproduce</strong> — exactly what they did</li>
+        <li><strong>Expected vs actual</strong> — what should happen vs what happened</li>
+        <li><strong>Screenshot or error message</strong> — if available</li>
+        <li><strong>Ticker/stock involved</strong> — if relevant</li>
+        <li><strong>Time of occurrence</strong> — helps correlate with server logs</li>
+      </ul>
+      <div class="alert alert-amber"><strong>Common non-bugs:</strong> "Data not updating" during after-hours (market closes at 4pm ET), "Chart not loading" on slow connections (refresh fixes), "Insider data empty" for very small stocks (Finnhub free tier limitation).</div>
+    </div>
+
+    <div class="card">
+      <h2>🚨 Site Down Protocol</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><h4>Confirm it's actually down</h4><p>Try visiting <code>pulsestock-nu.vercel.app</code> from a different network/device</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><h4>Check Vercel dashboard</h4><p>Look for ERROR deployments at <code>vercel.com</code> → pulsestock project</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><h4>Notify engineering immediately</h4><p>Do not wait. Provide the deployment error URL from Vercel.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content"><h4>Message waiting users</h4><p>Use the script: "We're aware of a technical issue and our team is working on a fix. Expected resolution in X minutes. Thank you for your patience."</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMON ISSUES -->
+  <div id="page-common" class="page">
+    <div class="page-header">
+      <h1>❓ Common Issues & Solutions</h1>
+      <p>Quick reference for the most frequent support questions.</p>
+    </div>
+
+    <div class="card">
+      <h2>🔧 Technical Issues</h2>
+      <div class="qa">
+        <div class="qa-q">Chart isn't loading / showing blank</div>
+        <div class="qa-a">1. Hard refresh: <code>Cmd+Shift+R</code> (Mac) or <code>Ctrl+Shift+R</code> (Windows)<br>2. Clear browser cache<br>3. Try a different browser<br>4. Check if TradingView.com is accessible (chart is powered by TradingView)</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Data showing as "—" or "N/A"</div>
+        <div class="qa-a">This is normal for: small/micro-cap stocks (limited Finnhub data), very new companies, ETFs and indices (no P/E ratio etc). If happening for major stocks like AAPL or MSFT, it may be a temporary API issue — try again in a few minutes.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Ticker bar showing "Loading market data..."</div>
+        <div class="qa-a">This means the Finnhub API call failed. Usually resolves on page refresh. If persistent, may be a Finnhub rate limit — should clear within 60 seconds.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Indicators section is empty</div>
+        <div class="qa-a">Indicators use simulated price data based on the live quote. Ensure the stock has a valid price loaded (shows in the quote card). If quote shows $0.00, the ticker may be invalid or delisted.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">AI Analysis stuck on "Analyzing..."</div>
+        <div class="qa-a">The AI call timed out. This can happen with very long analysis prompts. Refresh the page and try again. If consistently failing, check Vercel runtime logs for API errors.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">News section shows no articles</div>
+        <div class="qa-a">Try changing the date range dropdown to "Last 30 days". Some smaller stocks have limited news coverage on Finnhub. This is a data availability limitation, not a bug.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>👤 Account Issues</h2>
+      <div class="qa">
+        <div class="qa-q">Can't log in to community after logging into main site</div>
+        <div class="qa-a">Both use the same Supabase account. If still showing logged out in community: 1) Try a hard refresh 2) Sign out and back in at /signin 3) Clear cookies for pulsestock-nu.vercel.app</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Portfolio data disappeared</div>
+        <div class="qa-a">Portfolio is stored in browser localStorage. It will be lost if: browser data was cleared, user switched to a different browser, used private/incognito mode. Cloud sync is planned. Apologize and note this is a known limitation.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Username already taken during signup</div>
+        <div class="qa-a">Usernames are unique across the platform. Ask the user to choose a different username. We cannot reassign usernames from other accounts.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📈 Community / Picks Issues</h2>
+      <div class="qa">
+        <div class="qa-q">Can't post a pick — form not submitting</div>
+        <div class="qa-a">Must be logged in to post picks. Check they're signed in (name should show in header). All required fields (ticker, direction, entry, target, stop) must be filled.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">"Close Pick" button not appearing</div>
+        <div class="qa-a">The Close Pick button only appears on picks you posted yourself, and only while the pick is still open (pending). If the pick already has a result (win/loss), it cannot be closed again.</div>
+      </div>
+      <div class="qa">
+        <div class="qa-q">Chat messages not sending</div>
+        <div class="qa-a">User must be logged in and have a valid profile. Check they're in an active room (not a room that was deleted). If input shows "Sign up or log in to chat" — they need to authenticate first.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <div id="page-scripts" class="page">
+    <div class="page-header">
+      <h1>💬 Response Scripts</h1>
+      <p>Ready-to-use response templates for common situations.</p>
+    </div>
+
+    <div class="card">
+      <h2>👋 Opening Greetings</h2>
+      <pre>Hi [Name]! Thanks for reaching out to PulseStock support. I'm [Your Name] and I'm happy to help. What can I assist you with today?</pre>
+      <pre>Hello! You've reached PulseStock live support. How can I help you today?</pre>
+    </div>
+
+    <div class="card">
+      <h2>⏳ While Investigating</h2>
+      <pre>Thanks for the details. Let me look into this for you — give me just a moment.</pre>
+      <pre>I'm checking on this now. Could you confirm which browser you're using and what steps led to this issue?</pre>
+    </div>
+
+    <div class="card">
+      <h2>🐛 Bug Confirmed</h2>
+      <pre>Thank you for reporting this — I've confirmed it's a bug on our end. I've escalated this to our engineering team with the details you provided. You should see this fixed in the next update. We appreciate your patience and your help making PulseStock better!</pre>
+    </div>
+
+    <div class="card">
+      <h2>📊 Data Limitation (Not a Bug)</h2>
+      <pre>Great question! The [feature] data for [ticker] shows as N/A because PulseStock uses Finnhub's market data API, which has limited coverage for smaller/newer companies on the free tier. This isn't a bug — it's a data availability limitation. We're working on expanding our data sources. For major stocks like AAPL, MSFT, NVDA etc., all data should be fully populated.</pre>
+    </div>
+
+    <div class="card">
+      <h2>💼 Portfolio Data Loss</h2>
+      <pre>I'm sorry to hear your portfolio data was lost. Currently, PulseStock stores portfolio data in your browser's local storage, which means it can be cleared when browser data is cleared or when switching devices/browsers. I know this is frustrating — cloud portfolio sync is on our roadmap and will solve this in a future update. In the meantime, I'd recommend noting your holdings externally as a backup. Again, I sincerely apologize for the inconvenience.</pre>
+    </div>
+
+    <div class="card">
+      <h2>🚨 Site Down</h2>
+      <pre>We're aware of a technical issue affecting PulseStock and our engineering team is actively working on a fix. We expect to have the service restored within [X] minutes. We apologize for the disruption and appreciate your patience. We'll update you as soon as it's resolved.</pre>
+    </div>
+
+    <div class="card">
+      <h2>✅ Issue Resolved</h2>
+      <pre>I'm glad we could get that sorted out for you! Is there anything else I can help you with today? Feel free to reach out anytime — we're here to help.</pre>
+    </div>
+
+    <div class="card">
+      <h2>🔒 Escalating to Engineering</h2>
+      <pre>This issue requires attention from our technical team. I've created a detailed report with everything you've shared and escalated it as a priority. You'll receive an update via email at [email] within [timeframe]. Thank you for your patience and for helping us improve PulseStock.</pre>
+    </div>
+  </div>
+
+  <!-- CONTACTS -->
+  <div id="page-contacts" class="page">
+    <div class="page-header">
+      <h1>📞 Key Contacts</h1>
+      <p>Who to contact for what.</p>
+    </div>
+
+    <div class="card">
+      <h2>📋 Escalation Directory</h2>
+      <table>
+        <tr><th>Issue Type</th><th>Contact</th><th>How</th><th>Response Time</th></tr>
+        <tr><td>Site down / Build errors</td><td>Engineering Lead</td><td>Immediate message</td><td>&lt; 15 min</td></tr>
+        <tr><td>Security incident</td><td>Engineering Lead</td><td>Immediate message</td><td>&lt; 5 min</td></tr>
+        <tr><td>Billing dispute</td><td>Admin</td><td>Email ticket</td><td>&lt; 4 hours</td></tr>
+        <tr><td>Account deletion request</td><td>Admin</td><td>Email ticket</td><td>&lt; 24 hours</td></tr>
+        <tr><td>Data privacy request (GDPR)</td><td>Admin</td><td>Email ticket</td><td>&lt; 72 hours</td></tr>
+        <tr><td>Community ban appeal</td><td>Senior Moderator</td><td>Ticket</td><td>&lt; 48 hours</td></tr>
+        <tr><td>Feature bug report</td><td>Engineering</td><td>Ticket with steps</td><td>Next sprint</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🛠 Technical Resources</h2>
+      <table>
+        <tr><th>Resource</th><th>URL / Location</th><th>Access</th></tr>
+        <tr><td>Vercel Dashboard</td><td>vercel.com → pulsestock</td><td>Ask admin for access</td></tr>
+        <tr><td>Supabase Dashboard</td><td>supabase.com → ttcprqkoibiztibhpsrp</td><td>Ask admin for access</td></tr>
+        <tr><td>Support Tickets</td><td>Supabase → support_tickets table</td><td>Read-only for support staff</td></tr>
+        <tr><td>GitHub Repo</td><td>github.com/mscharbo-commits/pulsestock</td><td>View only</td></tr>
+        <tr><td>This Manual</td><td>Internal — bookmark this page</td><td>Always available</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- POLICIES -->
+  <div id="page-policies" class="page">
+    <div class="page-header">
+      <h1>📜 Policies & Guidelines</h1>
+      <p>Key policies every support staff member must know.</p>
+    </div>
+
+    <div class="card">
+      <h2>⚖️ Financial Advice Policy</h2>
+      <div class="alert alert-red"><strong>CRITICAL:</strong> PulseStock is an analysis tool, NOT a financial advisor. Support staff must NEVER give personalized investment advice, tell users to buy or sell specific securities, or imply that any analysis is a guarantee of returns.</div>
+      <p>Always include this disclaimer when discussing stock analysis features:</p>
+      <pre>"PulseStock provides data and AI analysis tools for informational purposes only. This is not financial advice. Always consult a qualified financial advisor before making investment decisions."</pre>
+    </div>
+
+    <div class="card">
+      <h2>🔐 Data Privacy Policy</h2>
+      <ul>
+        <li>Never share a user's email, username, or account details with other users</li>
+        <li>Never confirm whether a specific person has an account</li>
+        <li>Data deletion requests must be processed within 72 hours — escalate to admin immediately</li>
+        <li>Do not access user data beyond what's needed to resolve the support ticket</li>
+        <li>All access to Supabase is logged — use your assigned credentials only</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>💬 Communication Standards</h2>
+      <ul>
+        <li><strong>Always professional</strong> — even if the user is rude or frustrated</li>
+        <li><strong>Never argue</strong> — acknowledge their frustration, focus on solutions</li>
+        <li><strong>Be honest</strong> — if you don't know, say so and escalate. Don't guess.</li>
+        <li><strong>No promises</strong> — don't promise features or fixes unless confirmed by engineering</li>
+        <li><strong>Response time</strong> — acknowledge within 2 minutes, resolve within 10</li>
+        <li><strong>Sign off every conversation</strong> — confirm resolution before closing</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🚫 Community Rules (Enforce These)</h2>
+      <ul>
+        <li>No pump & dump schemes or coordinated buying</li>
+        <li>No guaranteed return claims ("This stock will go to $500!")</li>
+        <li>No harassment, threats, or hate speech</li>
+        <li>No spam or self-promotion</li>
+        <li>No sharing of personal financial information (account numbers, SSN etc)</li>
+        <li>Stock picks must use the formal picks system — not just chat messages</li>
+        <li>Debate is welcome, personal attacks are not</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
