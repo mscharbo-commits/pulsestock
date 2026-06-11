@@ -23,26 +23,5 @@
       "src": "/morning-picks",
       "dest": "/morning-picks.html"
     }
-  ],
-  "headers": [
-    {
-      "source": "/(.*).html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    }
-  ],
-  "_deploy": 1781183597
+  ]
 }
