@@ -423,12 +423,10 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
       <button class="nav-tab" onclick="showPage('watchlist',this);renderWatchlist();">⭐ Watchlist</button>
     </nav>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="header-badge">AI-Powered · Live Data</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px;">
       <div id="nav-auth">
         <a href="/signin" style="padding:7px 16px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;">Sign In</a>
       </div>
-      <a href="/desktop" style="padding:7px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-decoration:none;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:5px;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">🖥 Desktop Ticker</a>
     </div>
   </div>
 </header>
@@ -4451,7 +4449,7 @@ async function chatAsk(ticker, question) {
 
 <!-- ── SUPPORT WIDGET ─────────────────────────────────────────────────── -->
 <style>
-#support-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(26,107,245,.4);z-index:9998;transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+#support-btn{position:fixed;bottom:24px;right:24px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(26,107,245,.45);z-index:99999;transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;line-height:1;}
 #support-btn:hover{transform:scale(1.1);}
 #support-widget{position:fixed;bottom:88px;right:24px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:9999;display:none;flex-direction:column;overflow:hidden;font-family:'DM Sans',sans-serif;}
 #support-header{background:linear-gradient(135deg,#1A6BF5,#0F4FC4);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
