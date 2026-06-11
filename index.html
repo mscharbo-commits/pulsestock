@@ -4512,8 +4512,7 @@ function spAdd(text, cls) {
   var el = document.getElementById('spmsgs');
   var d = document.createElement('div');
   d.className = 'spm ' + cls;
-  d.innerHTML = text.replace(/
-/g, '<br>');
+  d.innerHTML = text.replace(/\n/g, '<br>');
   el.appendChild(d);
   el.scrollTop = el.scrollHeight;
   return d;
@@ -4532,8 +4531,7 @@ async function spSend() {
     var r = await fetch('/api/support', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:msg, history:spHist.slice(-6)})});
     var d = await r.json();
     var ans = d.text || 'Sorry, I could not get an answer right now.';
-    thinking.innerHTML = ans.replace(/
-/g,'<br>');
+    thinking.innerHTML = ans.replace(/\n/g,'<br>');
     thinking.style.color = '';
     spHist.push({role:'assistant', content:ans});
     if (d.escalate) {
