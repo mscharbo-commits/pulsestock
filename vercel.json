@@ -22,6 +22,10 @@
     {
       "src": "/morning-picks",
       "dest": "/morning-picks.html"
+    },
+    {
+      "src": "/support-manual",
+      "dest": "/support-manual.html"
     }
   ]
 }
