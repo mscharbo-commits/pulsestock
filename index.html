@@ -4448,6 +4448,148 @@ async function chatAsk(ticker, question) {
 })();
 
 </script>
+
+<!-- ── SUPPORT WIDGET ─────────────────────────────────────────────────── -->
+<style>
+#support-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(26,107,245,.4);z-index:9998;transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+#support-btn:hover{transform:scale(1.1);}
+#support-widget{position:fixed;bottom:88px;right:24px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:9999;display:none;flex-direction:column;overflow:hidden;font-family:'DM Sans',sans-serif;}
+#support-header{background:linear-gradient(135deg,#1A6BF5,#0F4FC4);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+#support-header h3{color:#fff;font-size:15px;font-weight:700;margin:0;}
+#support-header p{color:rgba(255,255,255,.8);font-size:12px;margin:2px 0 0;}
+#support-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.8;line-height:1;}
+#support-messages{height:280px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.sup-msg{max-width:85%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;}
+.sup-msg-ai{background:#F2F4F7;color:#0D1117;align-self:flex-start;border-radius:4px 12px 12px 12px;}
+.sup-msg-user{background:#1A6BF5;color:#fff;align-self:flex-end;border-radius:12px 4px 12px 12px;}
+.sup-msg-system{background:#FEF3C7;color:#B45309;align-self:center;font-size:11px;padding:6px 12px;border-radius:20px;text-align:center;}
+#support-quick{padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid #E2E6ED;}
+.sup-chip{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;border:1.5px solid #E2E6ED;background:#fff;color:#4A5568;cursor:pointer;transition:all .15s;}
+.sup-chip:hover{background:#EBF1FE;color:#1A6BF5;border-color:#1A6BF5;}
+#support-input-row{padding:10px 12px;border-top:1px solid #E2E6ED;display:flex;gap:8px;}
+#support-input{flex:1;border:1.5px solid #E2E6ED;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;}
+#support-input:focus{border-color:#1A6BF5;}
+#support-send{padding:8px 16px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+#support-escalate{display:none;padding:12px 16px;background:#FEF3C7;border-top:1px solid #E2E6ED;}
+#support-escalate p{font-size:12px;color:#B45309;margin-bottom:8px;}
+#support-escalate input{width:100%;padding:7px 10px;border:1px solid #E2E6ED;border-radius:6px;font-size:12px;margin-bottom:6px;font-family:inherit;}
+#support-escalate button{width:100%;padding:8px;background:#B45309;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+</style>
+
+<button id="support-btn" onclick="toggleSupport()" title="Help & Support">?</button>
+
+<div id="support-widget">
+  <div id="support-header">
+    <div>
+      <h3>🤖 PulseAI Support</h3>
+      <p>Ask anything — we're here to help</p>
+    </div>
+    <button id="support-close" onclick="toggleSupport()">✕</button>
+  </div>
+  <div id="support-messages">
+    <div class="sup-msg sup-msg-ai">Hi! I'm PulseAI Support. Ask me anything about PulseStock — features, how-tos, or troubleshooting. I'm here to help! 👋</div>
+  </div>
+  <div id="support-quick">
+    <button class="sup-chip" onclick="supAsk('How do I analyze a stock?')">Analyze a stock</button>
+    <button class="sup-chip" onclick="supAsk('How does the portfolio work?')">Portfolio</button>
+    <button class="sup-chip" onclick="supAsk('How do I post a pick in community?')">Post a pick</button>
+    <button class="sup-chip" onclick="supAsk('I found a bug')">Report a bug</button>
+  </div>
+  <div id="support-input-row">
+    <input id="support-input" type="text" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')supSend()"/>
+    <button id="support-send" onclick="supSend()">Send</button>
+  </div>
+  <div id="support-escalate">
+    <p>🙋 Want to reach our support team directly?</p>
+    <input id="sup-esc-name" type="text" placeholder="Your name"/>
+    <input id="sup-esc-email" type="email" placeholder="Your email"/>
+    <button onclick="supSubmitTicket()">Send to Support Team →</button>
+  </div>
+</div>
+
+<script>
+var supHistory = [];
+var supOpen = false;
+
+function toggleSupport() {
+  supOpen = !supOpen;
+  var w = document.getElementById('support-widget');
+  w.style.display = supOpen ? 'flex' : 'none';
+  if (supOpen) document.getElementById('support-input').focus();
+}
+
+function supAppend(text, role) {
+  var msgs = document.getElementById('support-messages');
+  var div = document.createElement('div');
+  div.className = 'sup-msg sup-msg-' + role;
+  div.innerHTML = text.replace(/\n/g, '<br>');
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function supAsk(question) {
+  document.getElementById('support-input').value = question;
+  await supSend();
+}
+
+async function supSend() {
+  var inp = document.getElementById('support-input');
+  var msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+
+  supAppend(msg, 'user');
+  supHistory.push({ role: 'user', content: msg });
+
+  var thinking = supAppend('Thinking...', 'ai');
+  thinking.style.color = '#8A95A3';
+
+  try {
+    var resp = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: supHistory.slice(-6) })
+    });
+    var data = await resp.json();
+    var answer = data.text || 'Sorry, I could not get an answer right now.';
+    thinking.innerHTML = answer.replace(/\n/g, '<br>');
+    thinking.style.color = '';
+    supHistory.push({ role: 'assistant', content: answer });
+
+    if (data.escalate) {
+      // Show escalation form
+      document.getElementById('support-escalate').style.display = 'block';
+      supAppend('It looks like you need human support. Fill in the form below and our team will get back to you shortly.', 'system');
+      // Hide quick chips
+      document.getElementById('support-quick').style.display = 'none';
+    }
+  } catch(e) {
+    thinking.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function supSubmitTicket() {
+  var name = document.getElementById('sup-esc-name').value.trim();
+  var email = document.getElementById('sup-esc-email').value.trim();
+  if (!email) { alert('Please enter your email.'); return; }
+
+  var lastMsg = supHistory.filter(h => h.role === 'user').pop()?.content || '';
+
+  try {
+    await fetch('/api/support-ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message: lastMsg, conversation: supHistory })
+    });
+    document.getElementById('support-escalate').innerHTML = '<p style="color:#0D9B6B;font-size:13px;text-align:center;padding:4px;">✅ Ticket submitted! We'll reply to ' + email + ' soon.</p>';
+    supAppend('✅ Your support ticket has been submitted. We\'ll get back to you at ' + email + ' within 24 hours.', 'system');
+  } catch(e) {
+    alert('Error submitting ticket: ' + e.message);
+  }
+}
+</script>
+
 </body>
 </html><button onclick="sendChatQuestion('${ticker}','${name}')" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Send ↵</button>E html>
 <html lang="en">
@@ -8857,5 +8999,147 @@ async function chatAsk(ticker, question) {
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 </script>
+
+<!-- ── SUPPORT WIDGET ─────────────────────────────────────────────────── -->
+<style>
+#support-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(26,107,245,.4);z-index:9998;transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+#support-btn:hover{transform:scale(1.1);}
+#support-widget{position:fixed;bottom:88px;right:24px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:9999;display:none;flex-direction:column;overflow:hidden;font-family:'DM Sans',sans-serif;}
+#support-header{background:linear-gradient(135deg,#1A6BF5,#0F4FC4);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+#support-header h3{color:#fff;font-size:15px;font-weight:700;margin:0;}
+#support-header p{color:rgba(255,255,255,.8);font-size:12px;margin:2px 0 0;}
+#support-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.8;line-height:1;}
+#support-messages{height:280px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.sup-msg{max-width:85%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;}
+.sup-msg-ai{background:#F2F4F7;color:#0D1117;align-self:flex-start;border-radius:4px 12px 12px 12px;}
+.sup-msg-user{background:#1A6BF5;color:#fff;align-self:flex-end;border-radius:12px 4px 12px 12px;}
+.sup-msg-system{background:#FEF3C7;color:#B45309;align-self:center;font-size:11px;padding:6px 12px;border-radius:20px;text-align:center;}
+#support-quick{padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;border-top:1px solid #E2E6ED;}
+.sup-chip{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;border:1.5px solid #E2E6ED;background:#fff;color:#4A5568;cursor:pointer;transition:all .15s;}
+.sup-chip:hover{background:#EBF1FE;color:#1A6BF5;border-color:#1A6BF5;}
+#support-input-row{padding:10px 12px;border-top:1px solid #E2E6ED;display:flex;gap:8px;}
+#support-input{flex:1;border:1.5px solid #E2E6ED;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;}
+#support-input:focus{border-color:#1A6BF5;}
+#support-send{padding:8px 16px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+#support-escalate{display:none;padding:12px 16px;background:#FEF3C7;border-top:1px solid #E2E6ED;}
+#support-escalate p{font-size:12px;color:#B45309;margin-bottom:8px;}
+#support-escalate input{width:100%;padding:7px 10px;border:1px solid #E2E6ED;border-radius:6px;font-size:12px;margin-bottom:6px;font-family:inherit;}
+#support-escalate button{width:100%;padding:8px;background:#B45309;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+</style>
+
+<button id="support-btn" onclick="toggleSupport()" title="Help & Support">?</button>
+
+<div id="support-widget">
+  <div id="support-header">
+    <div>
+      <h3>🤖 PulseAI Support</h3>
+      <p>Ask anything — we're here to help</p>
+    </div>
+    <button id="support-close" onclick="toggleSupport()">✕</button>
+  </div>
+  <div id="support-messages">
+    <div class="sup-msg sup-msg-ai">Hi! I'm PulseAI Support. Ask me anything about PulseStock — features, how-tos, or troubleshooting. I'm here to help! 👋</div>
+  </div>
+  <div id="support-quick">
+    <button class="sup-chip" onclick="supAsk('How do I analyze a stock?')">Analyze a stock</button>
+    <button class="sup-chip" onclick="supAsk('How does the portfolio work?')">Portfolio</button>
+    <button class="sup-chip" onclick="supAsk('How do I post a pick in community?')">Post a pick</button>
+    <button class="sup-chip" onclick="supAsk('I found a bug')">Report a bug</button>
+  </div>
+  <div id="support-input-row">
+    <input id="support-input" type="text" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')supSend()"/>
+    <button id="support-send" onclick="supSend()">Send</button>
+  </div>
+  <div id="support-escalate">
+    <p>🙋 Want to reach our support team directly?</p>
+    <input id="sup-esc-name" type="text" placeholder="Your name"/>
+    <input id="sup-esc-email" type="email" placeholder="Your email"/>
+    <button onclick="supSubmitTicket()">Send to Support Team →</button>
+  </div>
+</div>
+
+<script>
+var supHistory = [];
+var supOpen = false;
+
+function toggleSupport() {
+  supOpen = !supOpen;
+  var w = document.getElementById('support-widget');
+  w.style.display = supOpen ? 'flex' : 'none';
+  if (supOpen) document.getElementById('support-input').focus();
+}
+
+function supAppend(text, role) {
+  var msgs = document.getElementById('support-messages');
+  var div = document.createElement('div');
+  div.className = 'sup-msg sup-msg-' + role;
+  div.innerHTML = text.replace(/\n/g, '<br>');
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function supAsk(question) {
+  document.getElementById('support-input').value = question;
+  await supSend();
+}
+
+async function supSend() {
+  var inp = document.getElementById('support-input');
+  var msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+
+  supAppend(msg, 'user');
+  supHistory.push({ role: 'user', content: msg });
+
+  var thinking = supAppend('Thinking...', 'ai');
+  thinking.style.color = '#8A95A3';
+
+  try {
+    var resp = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: supHistory.slice(-6) })
+    });
+    var data = await resp.json();
+    var answer = data.text || 'Sorry, I could not get an answer right now.';
+    thinking.innerHTML = answer.replace(/\n/g, '<br>');
+    thinking.style.color = '';
+    supHistory.push({ role: 'assistant', content: answer });
+
+    if (data.escalate) {
+      // Show escalation form
+      document.getElementById('support-escalate').style.display = 'block';
+      supAppend('It looks like you need human support. Fill in the form below and our team will get back to you shortly.', 'system');
+      // Hide quick chips
+      document.getElementById('support-quick').style.display = 'none';
+    }
+  } catch(e) {
+    thinking.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function supSubmitTicket() {
+  var name = document.getElementById('sup-esc-name').value.trim();
+  var email = document.getElementById('sup-esc-email').value.trim();
+  if (!email) { alert('Please enter your email.'); return; }
+
+  var lastMsg = supHistory.filter(h => h.role === 'user').pop()?.content || '';
+
+  try {
+    await fetch('/api/support-ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message: lastMsg, conversation: supHistory })
+    });
+    document.getElementById('support-escalate').innerHTML = '<p style="color:#0D9B6B;font-size:13px;text-align:center;padding:4px;">✅ Ticket submitted! We'll reply to ' + email + ' soon.</p>';
+    supAppend('✅ Your support ticket has been submitted. We\'ll get back to you at ' + email + ' within 24 hours.', 'system');
+  } catch(e) {
+    alert('Error submitting ticket: ' + e.message);
+  }
+}
+</script>
+
 </body>
 </html>
