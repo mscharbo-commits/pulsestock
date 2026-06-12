@@ -1843,8 +1843,49 @@ async function runAIAnalysis(ticker, name, sector){
     if(!bits.length) return '';
     return '<div style="font-size:11px;color:var(--accent);background:var(--accent-light,#EBF1FE);padding:4px 10px;border-radius:4px;margin-top:4px;display:inline-block;">📊 Includes: ' + bits.join(' · ') + '</div>';
   })();
+  // Check morning picks cache first
+  let morningPickBanner = '';
+  try {
+    const pickResp = await fetch('/api/picks-cache?ticker=' + encodeURIComponent(ticker));
+    if (pickResp.ok) {
+      const pick = await pickResp.json();
+      if (pick.found) {
+        const ratingColors = {
+          BUY: { bg:'#E6F7F1', border:'#9EE0C8', color:'#0D9B6B' },
+          WATCH: { bg:'#FEF3C7', border:'#FBBF24', color:'#B45309' },
+          AVOID: { bg:'#FDECEA', border:'#F9BFBA', color:'#D13F30' }
+        };
+        const rc = ratingColors[pick.rating] || ratingColors['WATCH'];
+        const changeHtml = pick.dailyChange && pick.dailyChange !== 'new' && pick.dailyChange !== 'unchanged'
+          ? '<span style="font-size:11px;margin-left:8px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.06)">'
+            + (pick.dailyChange==='upgrade'?'↗ Upgraded from '+pick.prevRating
+              :pick.dailyChange==='downgrade'?'↘ Downgraded from '+pick.prevRating
+              :pick.dailyChange==='conf_up'?'↑ Confidence +'+pick.dailyChangePts+' pts'
+              :'↓ Confidence '+pick.dailyChangePts+' pts')
+            + '</span>'
+          : pick.dailyChange === 'new' ? '<span style="font-size:11px;margin-left:8px;padding:2px 8px;border-radius:8px;background:rgba(0,0,0,.06)">★ First coverage</span>' : '';
+        morningPickBanner = '<div style="background:'+rc.bg+';border:1.5px solid '+rc.border+';border-radius:10px;padding:14px 18px;margin-bottom:14px;">'
+          + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+          + '<span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Morning Pick</span>'
+          + '<span style="font-size:18px;font-weight:800;color:'+rc.color+'">'+pick.rating+'</span>'
+          + '<span style="font-size:13px;font-weight:600;font-family:DM Mono,monospace;color:'+rc.color+'">'+pick.confidence+'% confidence</span>'
+          + changeHtml
+          + (pick.target ? '<span style="margin-left:auto;font-size:12px;color:var(--text2)">30d target: <b>$'+parseFloat(pick.target).toFixed(2)+'</b></span>' : '')
+          + '</div>'
+          + '<div style="font-size:13px;color:var(--text2);line-height:1.5">' + (pick.reason||'') + '</div>'
+          + '<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text3)">'
+          + '<span>📊 Technical: '+pick.technicalSignal+'</span>'
+          + '<span>📋 Fundamental: '+pick.fundamentalScore+'</span>'
+          + '<span>🌍 Macro: '+pick.macroAlignment+'</span>'
+          + '</div>'
+          + '</div>';
+      }
+    }
+  } catch(e) { console.log('No morning pick:', e.message); }
+
   output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div>'
     + intelBadge
+    + morningPickBanner
     + '<div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
 
   try {
