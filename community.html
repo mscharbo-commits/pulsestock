@@ -448,19 +448,19 @@ const ROOM_ICONS={'general':'💬','hot-picks':'🔥','due-diligence':'🔬','te
 
 // ── INIT ──
 async function init(){
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) await setUser(session.user);
-  updateUI();
-  // Load rooms first, then messages with a small delay to ensure Supabase is ready
-  await loadRooms();
-  // Use setTimeout to ensure Supabase client is fully initialized before queries
-  setTimeout(async function(){  // wait for Supabase SDK
-    await loadMessages(currentRoom);
-    loadSentiment(currentRoomSlug||'general');
-    loadLeaderboard();
-    loadHotPicks();
-    subscribeToRoom(currentRoomSlug);
-  }, 1000);
+  try {
+    const {data:{session}}=await sb.auth.getSession();
+    if(session) { try { await setUser(session.user); } catch(e){ console.warn('setUser error',e); } }
+    updateUI();
+  } catch(e){ console.warn('auth error',e); }
+
+  try { await loadRooms(); } catch(e){ console.warn('loadRooms error',e); }
+  try { await loadMessages(currentRoom); } catch(e){ console.warn('loadMessages error',e); }
+  try { loadSentiment(currentRoomSlug||'general'); } catch(e){}
+  try { loadLeaderboard(); } catch(e){ console.warn('loadLeaderboard error',e); }
+  try { loadHotPicks(); } catch(e){ console.warn('loadHotPicks error',e); }
+  try { subscribeToRoom(currentRoomSlug); } catch(e){}
+
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(session) await setUser(session.user);
     else{currentUser=null;currentProfile=null;currentRole='member';}
@@ -1189,9 +1189,7 @@ function checkUrlRoom(){
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-document.addEventListener('DOMContentLoaded', function(){
-  setTimeout(init, 800);
-});
+document.addEventListener('DOMContentLoaded', init);
 async function showTraderProfile(username) {
   var modal = document.getElementById('trader-modal');
   var content = document.getElementById('trader-modal-content');
