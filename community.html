@@ -451,11 +451,16 @@ async function init(){
   const {data:{session}}=await sb.auth.getSession();
   if(session) await setUser(session.user);
   updateUI();
-  loadRooms();
-  loadMessages(currentRoom);
-  loadSentiment(currentRoomSlug||'general');
-  loadLeaderboard();
-  loadHotPicks();
+  // Load rooms first, then messages with a small delay to ensure Supabase is ready
+  await loadRooms();
+  // Use setTimeout to ensure Supabase client is fully initialized before queries
+  setTimeout(async function(){
+    await loadMessages(currentRoom);
+    loadSentiment(currentRoomSlug||'general');
+    loadLeaderboard();
+    loadHotPicks();
+    subscribeToRoom(currentRoomSlug);
+  }, 500);
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(session) await setUser(session.user);
     else{currentUser=null;currentProfile=null;currentRole='member';}
