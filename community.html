@@ -452,9 +452,6 @@ async function init(){
   if(session) await setUser(session.user);
   updateUI();
   loadRooms();
-  // Get general room UUID first
-  const{data:genRoom}=await sb.from('rooms').select('id').eq('slug','general').single();
-  if(genRoom){currentRoom=genRoom.id;}
   loadMessages(currentRoom);
   loadSentiment(currentRoomSlug||'general');
   loadLeaderboard();
@@ -1021,15 +1018,18 @@ async function loadLeaderboard(){
 }
 
 async function loadHotPicks(){
-  const{data}=await sb.from('picks').select('*').not('result','in','("win","loss","closed")').order('upvotes',{ascending:false}).limit(5);
+  const{data}=await sb.from('picks').select('*')
+    .or('result.is.null,result.eq.pending')
+    .order('upvotes',{ascending:false}).limit(5);
   if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet</div>';return;}
   document.getElementById('hot-picks').innerHTML=data.map(p=>{
     const isBuy=p.direction==='BUY';
     const cur=LIVE_PRICES[p.ticker];
+    const entry=parseFloat(p.actual_entry_price)||parseFloat(p.entry_price)||0;
     let perfHtml='';
-    if(cur){const perf=(((cur-p.entry_price)/p.entry_price)*100)*(isBuy?1:-1);const c=perf>=0?'var(--green)':'var(--red)';perfHtml=`<span style="font-size:12px;font-weight:600;color:${c};">${perf>=0?'+':''}${perf.toFixed(1)}%</span>`;}
+    if(cur&&entry){const perf=(isBuy?(cur-entry)/entry:(entry-cur)/entry)*100;const c=perf>=0?'var(--green)':'var(--red)';perfHtml=`<span style="font-size:12px;font-weight:600;color:${c};">${perf>=0?'+':''}${perf.toFixed(1)}%</span>`;}
     else{const up=(((p.target_price-p.entry_price)/p.entry_price)*100).toFixed(1);perfHtml=`<span style="font-size:12px;color:var(--text3);">Target +${up}%</span>`;}
-    return `<div class="hot-pick">
+    return `<div class="hot-pick" onclick="showTraderProfile('${p.username}')" style="cursor:pointer;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
         <div><span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;">${p.ticker}</span><span style="font-size:11px;font-weight:500;padding:2px 7px;border-radius:10px;margin-left:6px;${isBuy?'background:var(--green-bg);color:var(--green)':'background:var(--red-bg);color:var(--red)'};">${isBuy?'BUY':'SELL'}</span></div>
         ${perfHtml}
@@ -1175,8 +1175,9 @@ function checkUrlRoom(){
   const params=new URLSearchParams(window.location.search);
   const room=params.get('room');
   if(room&&room!==currentRoom){
-    currentRoom=room;
-    loadMessages(room);
+    currentRoom=ROOM_UUIDS[room]||room;
+    currentRoomSlug=room;
+    loadMessages(currentRoom);
     loadSentiment(room);
   }
 }
