@@ -523,8 +523,9 @@ function roomItem(r,icon){
   </div>`;
 }
 
+const ROOM_UUIDS={'general':'b42b5221-ad9b-4677-9b58-908824872be0','picks':'d21ca413-d230-4753-9604-86819a568e2d','options':'ac8c6f06-630c-4c92-88e3-f60e9e297fe6','hot-picks':'6c9e7e4a-cd72-4cee-bb4c-19769153a6e6','due-diligence':'2952c29b-860a-4bf6-9bc2-42d8b45b8a6b','tech-stocks':'91962eff-7edc-404b-b5fe-8317e8e52b17','value-investing':'f18a5fc5-e4c6-4a68-b167-157769d480dd','macro-economy':'f37f4bd8-e1bf-4e27-9ce5-fd8f789735c1','small-caps':'79bea63e-fce7-4d88-bbc7-a1653a4f2f6e','ask-community':'9e1691e3-2e4f-4b30-8df2-1938ff50a622'};
 async function switchRoom(slug,name,desc,skipEvent=false,roomUuid=null){
-  currentRoom=roomUuid||slug;
+  currentRoom=roomUuid||ROOM_UUIDS[slug]||slug;
   currentRoomSlug=slug;
   document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
   document.getElementById('chat-room-desc').textContent=desc;
