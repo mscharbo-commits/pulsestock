@@ -10,7 +10,7 @@
 body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F172A;-webkit-font-smoothing:antialiased;}
 
 /* ── SITE NAV ── */
-.site-nav{background:#fff;border-bottom:1px solid #E2E8F0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:10;}
+.site-nav{background:#fff;border-bottom:1px solid #E2E8F0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;}
 .nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
 .nav-logo-icon{width:30px;height:30px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;}
 .nav-logo-name{font-size:16px;font-weight:700;color:#0F172A;letter-spacing:-.4px;}
@@ -19,42 +19,41 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F17
 .nav-back:hover{border-color:#1A6BF5;color:#1A6BF5;}
 
 /* ── HERO ── */
-.hero{text-align:center;padding:60px 24px 48px;}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;color:#1558D6;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin-bottom:20px;border:1px solid #BFDBFE;}
-.hero h1{font-size:42px;font-weight:800;letter-spacing:-1.5px;margin-bottom:14px;line-height:1.12;color:#0F172A;}
+.hero{text-align:center;padding:52px 24px 36px;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;color:#1558D6;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin-bottom:18px;border:1px solid #BFDBFE;}
+.hero h1{font-size:40px;font-weight:800;letter-spacing:-1.5px;margin-bottom:12px;line-height:1.12;color:#0F172A;}
 .hero h1 span{color:#1A6BF5;}
-.hero p{font-size:17px;color:#475569;max-width:520px;margin:0 auto 36px;line-height:1.65;}
-.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.hero p{font-size:16px;color:#475569;max-width:500px;margin:0 auto 28px;line-height:1.65;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;}
 .btn-primary{padding:13px 28px;background:#1A6BF5;color:#fff;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .15s;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
 .btn-primary:hover{background:#1558D6;}
-.btn-outline{padding:13px 22px;background:#fff;color:#0F172A;border:1.5px solid #E2E8F0;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-outline{padding:13px 22px;background:#fff;color:#0F172A;border:1.5px solid #E2E8F0;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;display:inline-flex;align-items:center;gap:8px;}
 .btn-outline:hover{border-color:#1A6BF5;color:#1A6BF5;}
+.hero-hint{font-size:12px;color:#94A3B8;}
 
-/* ── DEMO SECTION ── */
-.demo-section{max-width:960px;margin:0 auto 64px;padding:0 24px;}
-.demo-label{text-align:center;font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;}
+/* ── DEMO WRAPPER ── */
+.demo-wrap{max-width:980px;margin:0 auto 56px;padding:0 24px;}
+.demo-label{text-align:center;font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
 
 /* ── FAKE DESKTOP FRAME ── */
-.fake-desktop{border-radius:14px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 20px 60px rgba(15,23,42,.1);}
-.fake-desktop-chrome{background:#E8EAED;height:28px;display:flex;align-items:center;padding:0 12px;gap:6px;}
-.chrome-dot{width:10px;height:10px;border-radius:50%;}
-.fake-screen{background:#F0F2F5;position:relative;}
+.fake-desktop{border-radius:14px;overflow:hidden;border:1px solid #CBD5E1;box-shadow:0 24px 64px rgba(15,23,42,.12);}
+.fake-chrome{background:#E2E6ED;height:30px;display:flex;align-items:center;padding:0 14px;gap:7px;}
+.chrome-dot{width:11px;height:11px;border-radius:50%;}
+.fake-screen{background:#EEF0F3;position:relative;}
 
-/* ── TICKER BAR (inside fake desktop) ── */
-.ticker-bar{
-  background:#fff;height:44px;display:flex;align-items:center;
-  border-bottom:2.5px solid #1A6BF5;position:relative;z-index:2;
-}
-.t-brand{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid #E2E8F0;height:100%;cursor:pointer;transition:background .15s;flex-shrink:0;}
+/* ── TICKER BAR ── */
+.ticker-bar{background:#fff;height:44px;display:flex;align-items:center;border-bottom:2.5px solid #1A6BF5;transition:box-shadow .3s;}
+.ticker-bar.highlight{box-shadow:0 0 0 3px rgba(26,107,245,.35);}
+.t-brand{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid #E2E8F0;height:100%;cursor:pointer;transition:background .15s;flex-shrink:0;text-decoration:none;}
 .t-brand:hover{background:#F8FAFC;}
 .t-icon{width:26px;height:26px;background:#1A6BF5;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;}
 .t-name{font-size:13px;font-weight:700;color:#0F172A;letter-spacing:-.4px;white-space:nowrap;}
 .t-name span{color:#1A6BF5;}
 .t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #E2E8F0;height:100%;flex-shrink:0;}
-.t-input{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;color:#0F172A;font-size:12px;font-family:'Inter',sans-serif;padding:4px 10px;width:110px;outline:none;}
+.t-input{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;color:#0F172A;font-size:12px;font-family:'Inter',sans-serif;padding:4px 10px;width:112px;outline:none;transition:border-color .15s;}
 .t-input:focus{border-color:#1A6BF5;}
 .t-input::placeholder{color:#94A3B8;}
-.t-btn{background:#1A6BF5;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;padding:4px 10px;cursor:pointer;white-space:nowrap;}
+.t-btn{background:#1A6BF5;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:background .15s;}
 .t-btn:hover{background:#1558D6;}
 .tape-vp{flex:1;overflow:hidden;position:relative;height:100%;mask-image:linear-gradient(to right,transparent 0%,black 2%,black 98%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0%,black 2%,black 98%,transparent 100%);}
 .tape{display:flex;position:absolute;left:0;top:0;height:100%;align-items:center;white-space:nowrap;}
@@ -65,77 +64,74 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F17
 .tprice{font-size:12px;color:#475569;font-family:'JetBrains Mono',monospace;}
 .tchg{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
 .tchg.up{color:#16A34A;}.tchg.dn{color:#DC2626;}.tchg.flat{color:#94A3B8;}
-.t-ad{width:200px;height:100%;flex-shrink:0;border-left:1px solid #E2E8F0;position:relative;overflow:hidden;background:#FAFBFF;cursor:pointer;}
+.t-ad{width:196px;height:100%;flex-shrink:0;border-left:1px solid #E2E8F0;position:relative;overflow:hidden;background:#FAFBFF;cursor:pointer;}
 .adsl{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding:0 12px;opacity:0;transition:opacity .6s;}
-.adsl.active{opacity:1;}
-.adsl:hover{background:#EFF6FF;}
+.adsl.active{opacity:1;}.adsl:hover{background:#EFF6FF;}
 .alb{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
 .adb{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
 .adh{font-size:11px;font-weight:600;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ads{font-size:10px;color:#94A3B8;white-space:nowrap;}
+.adsub{font-size:10px;color:#94A3B8;white-space:nowrap;}
 .t-exit{width:40px;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-left:1px solid #E2E8F0;cursor:pointer;color:#94A3B8;font-size:14px;transition:all .15s;background:#fff;}
 .t-exit:hover{background:#FEF2F2;color:#DC2626;}
 
-/* ── FAKE WINDOWS BELOW TICKER ── */
-.fake-windows{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;min-height:220px;}
-.fake-win{background:#fff;border-radius:8px;border:1px solid #E2E8F0;overflow:hidden;}
-.fake-win-bar{background:#F1F5F9;height:28px;display:flex;align-items:center;padding:0 10px;gap:6px;}
-.fake-win-dot{width:8px;height:8px;border-radius:50%;}
-.fake-win-title{font-size:11px;color:#64748B;margin-left:6px;}
-.fake-win-body{padding:12px;display:flex;flex-direction:column;gap:6px;}
-.fake-line{height:8px;border-radius:4px;background:#F1F5F9;}
-.fake-line.blue{background:#EFF6FF;width:60%;}
-.fake-line.short{width:40%;}
-.fake-line.med{width:75%;}
+/* ── FAKE WINDOWS ── */
+.fake-wins{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;min-height:200px;}
+.fw{background:#fff;border-radius:8px;border:1px solid #E2E8F0;overflow:hidden;}
+.fw-bar{background:#F1F5F9;height:26px;display:flex;align-items:center;padding:0 10px;gap:5px;}
+.fw-dot{width:8px;height:8px;border-radius:50%;}
+.fw-title{font-size:10px;color:#64748B;margin-left:4px;}
+.fw-body{padding:12px;display:flex;flex-direction:column;gap:7px;}
+.fl{height:8px;border-radius:4px;background:#F1F5F9;}
 
-/* ── FAKE LOGIN MODAL ── */
-.modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:0 0 14px 14px;}
-.modal-card{background:#fff;border-radius:14px;padding:28px 24px;width:300px;border:1px solid #E2E8F0;box-shadow:0 20px 60px rgba(15,23,42,.15);}
-.modal-logo{display:flex;align-items:center;gap:8px;margin-bottom:20px;justify-content:center;}
-.modal-logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;}
-.modal-logo-name{font-size:15px;font-weight:700;color:#0F172A;}
-.modal-logo-name span{color:#1A6BF5;}
-.modal-h{font-size:14px;font-weight:600;color:#0F172A;text-align:center;margin-bottom:4px;}
-.modal-sub{font-size:12px;color:#64748B;text-align:center;margin-bottom:18px;}
-.modal-field{margin-bottom:12px;}
-.modal-label{font-size:11px;font-weight:600;color:#475569;display:block;margin-bottom:4px;}
-.modal-input{width:100%;padding:8px 10px;border:1px solid #E2E8F0;border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:#0F172A;background:#F8FAFC;outline:none;}
-.modal-input:focus{border-color:#1A6BF5;box-shadow:0 0 0 2px rgba(26,107,245,.1);}
-.modal-remember{display:flex;align-items:center;gap:7px;margin-bottom:16px;cursor:pointer;}
-.modal-remember input{accent-color:#1A6BF5;width:13px;height:13px;}
-.modal-remember span{font-size:12px;color:#475569;}
-.modal-btn{width:100%;padding:9px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:10px;}
-.modal-btn:hover{background:#1558D6;}
-.modal-skip{text-align:center;font-size:11px;color:#94A3B8;cursor:pointer;}
-.modal-skip:hover{color:#64748B;}
-.modal-success{display:none;text-align:center;padding:12px 0;}
-.modal-success-icon{font-size:36px;margin-bottom:10px;}
-.modal-success-msg{font-size:14px;font-weight:600;color:#0F172A;margin-bottom:4px;}
-.modal-success-sub{font-size:12px;color:#64748B;}
+/* ── LOGIN MODAL ── */
+.modal-bg{position:absolute;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center;z-index:20;}
+.modal{background:#fff;border-radius:14px;padding:26px 22px;width:288px;border:1px solid #E2E8F0;box-shadow:0 20px 60px rgba(15,23,42,.18);}
+.modal-head{display:flex;align-items:center;gap:8px;margin-bottom:18px;justify-content:center;}
+.modal-icon{width:30px;height:30px;background:#1A6BF5;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;}
+.modal-title-name{font-size:14px;font-weight:700;color:#0F172A;}
+.modal-title-name span{color:#1A6BF5;}
+.modal-h{font-size:13px;font-weight:600;color:#0F172A;text-align:center;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:#64748B;text-align:center;margin-bottom:16px;line-height:1.5;}
+.mf{margin-bottom:10px;}
+.ml{font-size:11px;font-weight:600;color:#475569;display:block;margin-bottom:4px;}
+.mi{width:100%;padding:7px 10px;border:1px solid #E2E8F0;border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:#0F172A;background:#F8FAFC;outline:none;transition:border-color .15s,box-shadow .15s;}
+.mi:focus{border-color:#1A6BF5;box-shadow:0 0 0 2px rgba(26,107,245,.1);}
+.mi.err{border-color:#DC2626;}
+.mrem{display:flex;align-items:center;gap:7px;margin-bottom:14px;cursor:pointer;}
+.mrem input{accent-color:#1A6BF5;width:13px;height:13px;}
+.mrem span{font-size:12px;color:#475569;}
+.mbtn{width:100%;padding:9px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:8px;}
+.mbtn:hover{background:#1558D6;}
+.mskip{text-align:center;font-size:11px;color:#94A3B8;cursor:pointer;transition:color .15s;}
+.mskip:hover{color:#64748B;}
+.msuccess{display:none;text-align:center;padding:8px 0;}
+.msuccess-icon{font-size:34px;margin-bottom:8px;}
+.msuccess-msg{font-size:14px;font-weight:600;color:#0F172A;margin-bottom:3px;}
+.msuccess-sub{font-size:12px;color:#64748B;}
 
 /* ── FEATURES ── */
-.features{max-width:900px;margin:0 auto 72px;padding:0 24px;}
-.features-title{text-align:center;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-.5px;margin-bottom:8px;}
-.features-sub{text-align:center;font-size:15px;color:#64748B;margin-bottom:40px;}
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.feat-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:22px 20px;}
-.feat-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;}
-.feat-card h3{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:6px;}
+.features{max-width:900px;margin:0 auto 64px;padding:0 24px;}
+.sec-title{text-align:center;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-.5px;margin-bottom:6px;}
+.sec-sub{text-align:center;font-size:15px;color:#64748B;margin-bottom:36px;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.feat-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:20px;}
+.feat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:12px;}
+.feat-card h3{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:5px;}
 .feat-card p{font-size:13px;color:#64748B;line-height:1.6;}
 
-/* ── DOWNLOAD CTA ── */
-.cta{background:#0F172A;border-radius:16px;padding:48px 32px;text-align:center;max-width:900px;margin:0 auto 80px;}
-.cta h2{font-size:28px;font-weight:700;color:#fff;letter-spacing:-.5px;margin-bottom:10px;}
-.cta p{font-size:15px;color:#94A3B8;margin-bottom:28px;}
+/* ── CTA ── */
+.cta-wrap{padding:0 24px;max-width:900px;margin:0 auto 72px;}
+.cta{background:#0F172A;border-radius:16px;padding:44px 32px;text-align:center;}
+.cta h2{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.5px;margin-bottom:8px;}
+.cta p{font-size:15px;color:#94A3B8;margin-bottom:26px;}
 .cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.cta-btn-mac{padding:12px 24px;background:#fff;color:#0F172A;border-radius:9px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;}
-.cta-btn-win{padding:12px 24px;background:rgba(255,255,255,.1);color:#fff;border-radius:9px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;}
-.coming-soon{display:inline-block;background:rgba(26,107,245,.3);color:#93B4F8;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.04em;margin-left:6px;}
+.cta-mac{padding:11px 22px;background:#fff;color:#0F172A;border-radius:9px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:7px;}
+.cta-win{padding:11px 22px;background:rgba(255,255,255,.1);color:#fff;border-radius:9px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:7px;}
+.soon{background:rgba(26,107,245,.4);color:#93B4F8;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.03em;}
 </style>
 </head>
 <body>
 
-<!-- SITE NAV -->
 <nav class="site-nav">
   <a href="/" class="nav-logo">
     <div class="nav-logo-icon">P</div>
@@ -144,36 +140,33 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F17
   <a href="/" class="nav-back">← Back to PulseStock</a>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <div class="hero-badge">🖥️ Desktop App — Free</div>
-  <h1>Your market, always<br><span>on top.</span></h1>
+  <h1>Your market,<br>always <span>on top.</span></h1>
   <p>A live stock ticker that docks to the top of your screen and pushes your windows down — so the market is always visible, no matter what you're working on.</p>
   <div class="hero-btns">
-    <button class="btn-primary" onclick="showDemo()">▶ Try the Demo</button>
+    <button class="btn-primary" onclick="startDemo()">▶ Try Interactive Demo</button>
     <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="btn-outline">View on GitHub</a>
   </div>
+  <p class="hero-hint">No download required — runs right here in your browser</p>
 </div>
 
-<!-- INTERACTIVE DEMO -->
-<div class="demo-section" id="demo-section">
-  <div class="demo-label">Interactive demo — live quotes, fake desktop</div>
-
-  <div class="fake-desktop">
-    <!-- Mac-style chrome -->
-    <div class="fake-desktop-chrome">
+<div class="demo-wrap">
+  <div class="demo-label">Live interactive demo — real quotes, simulated desktop</div>
+  <div class="fake-desktop" id="fake-desktop">
+    <div class="fake-chrome">
       <div class="chrome-dot" style="background:#FF5F57;"></div>
       <div class="chrome-dot" style="background:#FFBD2E;"></div>
       <div class="chrome-dot" style="background:#28C840;"></div>
     </div>
-
     <div class="fake-screen">
-      <!-- THE TICKER BAR -->
-      <div class="ticker-bar">
-        <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
+
+      <!-- TICKER BAR -->
+      <div class="ticker-bar" id="ticker-bar">
+        <a class="t-brand" href="https://pulsestock-nu.vercel.app" target="_blank">
           <div class="t-icon">P</div>
           <div class="t-name">Pulse<span>Stock</span></div>
-        </div>
+        </a>
         <div class="t-search">
           <input class="t-input" id="demo-input" type="text" placeholder="Search ticker..." maxlength="10"
             onkeydown="if(event.key==='Enter') demoSearch()" />
@@ -181,102 +174,102 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F17
         </div>
         <div class="tape-vp"><div class="tape" id="demo-tape"></div></div>
         <div class="t-ad" id="demo-ads"></div>
-        <div class="t-exit" title="Quit (demo only)" onclick="alert('In the real app this closes the ticker and your windows snap back up!')">✕</div>
+        <div class="t-exit" onclick="demoQuit()">✕</div>
       </div>
 
-      <!-- FAKE WINDOWS PUSHED DOWN BY TICKER -->
-      <div class="fake-windows">
-        <div class="fake-win">
-          <div class="fake-win-bar">
-            <div class="fake-win-dot" style="background:#FF5F57;"></div>
-            <div class="fake-win-dot" style="background:#FFBD2E;"></div>
-            <div class="fake-win-dot" style="background:#28C840;"></div>
-            <span class="fake-win-title">Your browser — any site</span>
+      <!-- FAKE WINDOWS -->
+      <div class="fake-wins" id="fake-wins">
+        <div class="fw">
+          <div class="fw-bar">
+            <div class="fw-dot" style="background:#FF5F57;"></div>
+            <div class="fw-dot" style="background:#FFBD2E;"></div>
+            <div class="fw-dot" style="background:#28C840;"></div>
+            <span class="fw-title">Your browser — any website</span>
           </div>
-          <div class="fake-win-body">
-            <div class="fake-line blue" style="width:55%;"></div>
-            <div class="fake-line" style="width:90%;"></div>
-            <div class="fake-line" style="width:70%;"></div>
-            <div class="fake-line short"></div>
-            <div class="fake-line" style="width:80%;"></div>
+          <div class="fw-body">
+            <div class="fl" style="width:55%;background:#EFF6FF;"></div>
+            <div class="fl" style="width:90%;"></div>
+            <div class="fl" style="width:70%;"></div>
+            <div class="fl" style="width:40%;"></div>
+            <div class="fl" style="width:82%;"></div>
+            <div class="fl" style="width:60%;"></div>
           </div>
         </div>
-        <div class="fake-win">
-          <div class="fake-win-bar">
-            <div class="fake-win-dot" style="background:#FF5F57;"></div>
-            <div class="fake-win-dot" style="background:#FFBD2E;"></div>
-            <div class="fake-win-dot" style="background:#28C840;"></div>
-            <span class="fake-win-title">Any other app</span>
+        <div class="fw">
+          <div class="fw-bar">
+            <div class="fw-dot" style="background:#FF5F57;"></div>
+            <div class="fw-dot" style="background:#FFBD2E;"></div>
+            <div class="fw-dot" style="background:#28C840;"></div>
+            <span class="fw-title">Any other app — always below</span>
           </div>
-          <div class="fake-win-body">
-            <div class="fake-line" style="width:80%;"></div>
-            <div class="fake-line short"></div>
-            <div class="fake-line med"></div>
-            <div class="fake-line" style="width:65%;"></div>
-            <div class="fake-line" style="width:45%;"></div>
+          <div class="fw-body">
+            <div class="fl" style="width:80%;"></div>
+            <div class="fl" style="width:45%;"></div>
+            <div class="fl" style="width:75%;"></div>
+            <div class="fl" style="width:65%;"></div>
+            <div class="fl" style="width:50%;"></div>
+            <div class="fl" style="width:88%;"></div>
           </div>
         </div>
       </div>
 
-      <!-- FAKE LOGIN MODAL -->
-      <div class="modal-backdrop" id="login-modal">
-        <div class="modal-card">
-          <div class="modal-logo">
-            <div class="modal-logo-icon">P</div>
-            <div class="modal-logo-name">Pulse<span>Stock</span></div>
+      <!-- LOGIN MODAL — hidden by default, shown on startDemo() -->
+      <div class="modal-bg" id="login-modal" style="display:none;">
+        <div class="modal">
+          <div class="modal-head">
+            <div class="modal-icon">P</div>
+            <div class="modal-title-name">Pulse<span>Stock</span></div>
           </div>
           <div id="modal-form">
             <div class="modal-h">Sign in to sync your tickers</div>
             <div class="modal-sub">Use your PulseStock account to load<br>your personalized ticker list.</div>
-            <div class="modal-field">
-              <label class="modal-label">Email</label>
-              <input class="modal-input" type="email" placeholder="you@example.com" id="demo-email" />
+            <div class="mf">
+              <label class="ml">Email</label>
+              <input class="mi" type="email" id="demo-email" placeholder="you@example.com" />
             </div>
-            <div class="modal-field">
-              <label class="modal-label">Password</label>
-              <input class="modal-input" type="password" placeholder="••••••••" id="demo-pass"
+            <div class="mf">
+              <label class="ml">Password</label>
+              <input class="mi" type="password" id="demo-pass" placeholder="••••••••"
                 onkeydown="if(event.key==='Enter') demoSignIn()" />
             </div>
-            <label class="modal-remember">
-              <input type="checkbox" checked />
-              <span>Remember me on this device</span>
-            </label>
-            <button class="modal-btn" onclick="demoSignIn()">Sign In</button>
-            <div class="modal-skip" onclick="demoSkip()">Skip — use default tickers</div>
+            <label class="mrem"><input type="checkbox" checked /><span>Remember me on this device</span></label>
+            <button class="mbtn" onclick="demoSignIn()">Sign In</button>
+            <div class="mskip" onclick="demoSkip()">Skip — use default tickers</div>
           </div>
-          <div class="modal-success" id="modal-success">
-            <div class="modal-success-icon">✅</div>
-            <div class="modal-success-msg">Signed in successfully!</div>
-            <div class="modal-success-sub">Your custom tickers are loading…</div>
+          <div class="msuccess" id="modal-success">
+            <div class="msuccess-icon">✅</div>
+            <div class="msuccess-msg">Signed in!</div>
+            <div class="msuccess-sub">Your custom tickers are loading…</div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
-  <p style="text-align:center;font-size:12px;color:#94A3B8;margin-top:12px;">
-    This is a browser simulation. The real app docks to your actual screen and works with every app you use.
+  <p style="text-align:center;font-size:12px;color:#94A3B8;margin-top:10px;">
+    Simulation only — in the real app the ticker bar docks to your actual OS and pushes all windows down.
   </p>
 </div>
 
 <!-- FEATURES -->
 <div class="features">
-  <div class="features-title">Everything you need, nothing you don't</div>
-  <div class="features-sub">44px. Always on top. Always live.</div>
+  <div class="sec-title">Everything you need, nothing you don't</div>
+  <div class="sec-sub">44px. Always on top. Always live.</div>
   <div class="feat-grid">
     <div class="feat-card">
       <div class="feat-icon" style="background:#EFF6FF;">📌</div>
       <h3>Always visible</h3>
-      <p>Docks to the top of your screen and pushes all windows down — existing and new. Quit anytime to restore.</p>
+      <p>Docks to the top of your screen and pushes all windows down — existing and newly opened. Quit anytime to restore.</p>
     </div>
     <div class="feat-card">
       <div class="feat-icon" style="background:#F0FDF4;">⚡</div>
       <h3>Live quotes</h3>
-      <p>Real-time prices via Finnhub refreshed every 15 seconds. Click any symbol to open the full analysis on PulseStock.</p>
+      <p>Real-time prices via Finnhub refreshed every 15 seconds. Click any symbol to open full AI analysis on PulseStock.</p>
     </div>
     <div class="feat-card">
       <div class="feat-icon" style="background:#FFF7ED;">🎯</div>
       <h3>Your tickers</h3>
-      <p>Sign in with your PulseStock account to automatically load your personalized ticker list across devices.</p>
+      <p>Sign in with your PulseStock account to automatically sync your personalized ticker list to the desktop bar.</p>
     </div>
     <div class="feat-card">
       <div class="feat-icon" style="background:#FDF4FF;">🔍</div>
@@ -285,39 +278,33 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F17
     </div>
     <div class="feat-card">
       <div class="feat-icon" style="background:#FFFBEB;">💡</div>
-      <h3>Smart ads</h3>
-      <p>Rotating broker affiliate ads from Webull, IBKR, and Tastytrade. Free forever — powered by referrals.</p>
+      <h3>Free forever</h3>
+      <p>Rotating broker affiliate ads from Webull, IBKR, and Tastytrade keep it free. No subscription needed.</p>
     </div>
     <div class="feat-card">
       <div class="feat-icon" style="background:#F0FDF4;">🛡️</div>
       <h3>Lightweight</h3>
-      <p>No background processes, no data collection. Just a ticker. Quit from the menu bar icon anytime.</p>
+      <p>No background processes, no data collection. Just a ticker. Close from the menu bar tray icon anytime.</p>
     </div>
   </div>
 </div>
 
-<!-- DOWNLOAD CTA -->
-<div style="padding:0 24px;">
-<div class="cta">
-  <h2>Ready to install?</h2>
-  <p>Free download for Mac and Windows. Open source on GitHub.</p>
-  <div class="cta-btns">
-    <button class="cta-btn-mac" onclick="alert('Mac build coming soon! Star us on GitHub to get notified.')">
-      🍎 Download for Mac <span class="coming-soon">SOON</span>
-    </button>
-    <button class="cta-btn-win" onclick="alert('Windows build coming soon! Star us on GitHub to get notified.')">
-      🪟 Download for Windows <span class="coming-soon">SOON</span>
-    </button>
+<!-- CTA -->
+<div class="cta-wrap">
+  <div class="cta">
+    <h2>Ready to install?</h2>
+    <p>Free download for Mac and Windows. Open source on GitHub.</p>
+    <div class="cta-btns">
+      <button class="cta-mac" onclick="alert('Mac build coming soon! Star us on GitHub to get notified.')">🍎 Download for Mac <span class="soon">SOON</span></button>
+      <button class="cta-win" onclick="alert('Windows build coming soon! Star us on GitHub to get notified.')">🪟 Download for Windows <span class="soon">SOON</span></button>
+    </div>
   </div>
 </div>
-</div>
-
-<div style="height:48px;"></div>
 
 <script>
 const KEY='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
 let tickers=['AAPL','NVDA','MSFT','TSLA','META','AMZN','JPM','GOOGL','BRK-B','XOM'];
-let quotes={},tapePx=0,adIdx=0,rafId=null;
+let quotes={},tapePx=0,adIdx=0,demoStarted=false;
 
 const ads=[
   {abbr:'WB',color:'#0075BF',hl:'Trade commission-free',sub:'$0 commissions · No minimums',url:'https://www.webull.com'},
@@ -330,7 +317,7 @@ function buildAds(){
   ads.forEach((a,i)=>{
     const d=document.createElement('div');
     d.className='adsl'+(i===0?' active':'');
-    d.innerHTML=`<div class="alb" style="background:${a.color}">${a.abbr}</div><div class="adb"><span class="adh">${a.hl}</span><span class="ads">${a.sub}</span></div>`;
+    d.innerHTML=`<div class="alb" style="background:${a.color}">${a.abbr}</div><div class="adb"><span class="adh">${a.hl}</span><span class="adsub">${a.sub}</span></div>`;
     d.onclick=()=>window.open(a.url,'_blank');
     z.appendChild(d);
   });
@@ -354,32 +341,21 @@ function buildTape(){
       const p=q.changePct;
       if(p>0){chg='▲ +'+p.toFixed(2)+'%';cls='up';}
       else if(p<0){chg='▼ '+p.toFixed(2)+'%';cls='dn';}
-      else{chg='0.00%';}
+      else chg='0.00%';
     }
-    return`<div class="tick" onclick="openStock('${t}')"><span class="tsym">${t}</span><span class="tprice">${price}</span><span class="tchg ${cls}">${chg}</span></div>`;
+    return`<div class="tick" onclick="window.open('https://pulsestock-nu.vercel.app/?ticker=${t}','_blank')"><span class="tsym">${t}</span><span class="tprice">${price}</span><span class="tchg ${cls}">${chg}</span></div>`;
   }).join('');
   tapePx=0;
 }
 
-function openStock(ticker){
-  window.open(`https://pulsestock-nu.vercel.app/?ticker=${ticker}`,'_blank');
-}
-
-function demoSearch(){
-  const v=document.getElementById('demo-input').value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g,'');
-  if(!v)return;
-  window.open(`https://pulsestock-nu.vercel.app/?ticker=${v}`,'_blank');
-  document.getElementById('demo-input').value='';
-}
-
 function animate(){
   const tape=document.getElementById('demo-tape');
-  if(!tape||!tape.children.length){rafId=requestAnimationFrame(animate);return;}
+  if(!tape||!tape.children.length){requestAnimationFrame(animate);return;}
   tapePx-=0.5;
   const w=tape.children[0].offsetWidth*tickers.length;
   if(w>0&&Math.abs(tapePx)>=w)tapePx+=w;
   tape.style.transform=`translateX(${tapePx}px)`;
-  rafId=requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 }
 
 async function fetchQ(){
@@ -394,31 +370,59 @@ async function fetchQ(){
   buildTape();
 }
 
+// ── DEMO INTERACTIONS ──────────────────────────────────────────────────────────
+function startDemo(){
+  // Scroll to demo frame
+  document.getElementById('fake-desktop').scrollIntoView({behavior:'smooth',block:'center'});
+  // Brief highlight pulse on ticker bar
+  const bar=document.getElementById('ticker-bar');
+  bar.classList.add('highlight');
+  setTimeout(()=>bar.classList.remove('highlight'),1200);
+  // Show login modal after short delay
+  setTimeout(()=>{
+    document.getElementById('login-modal').style.display='flex';
+  },600);
+  demoStarted=true;
+}
+
+function demoSearch(){
+  const v=document.getElementById('demo-input').value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g,'');
+  if(!v)return;
+  window.open(`https://pulsestock-nu.vercel.app/?ticker=${v}`,'_blank');
+  document.getElementById('demo-input').value='';
+}
+
 function demoSignIn(){
-  const email=document.getElementById('demo-email').value;
+  const email=document.getElementById('demo-email').value.trim();
   const pass=document.getElementById('demo-pass').value;
-  if(!email||!pass){
-    document.getElementById('demo-email').style.borderColor='#DC2626';
-    setTimeout(()=>document.getElementById('demo-email').style.borderColor='',1500);
-    return;
-  }
+  const ei=document.getElementById('demo-email');
+  const pi=document.getElementById('demo-pass');
+  ei.classList.remove('err'); pi.classList.remove('err');
+  if(!email){ei.classList.add('err');ei.focus();return;}
+  if(!pass){pi.classList.add('err');pi.focus();return;}
   document.getElementById('modal-form').style.display='none';
   document.getElementById('modal-success').style.display='block';
-  setTimeout(()=>{
-    document.getElementById('login-modal').style.display='none';
-  },1800);
+  setTimeout(()=>document.getElementById('login-modal').style.display='none',1800);
 }
 
 function demoSkip(){
   document.getElementById('login-modal').style.display='none';
 }
 
-function showDemo(){
-  document.getElementById('demo-section').scrollIntoView({behavior:'smooth',block:'center'});
+function demoQuit(){
+  if(confirm('In the real app, clicking ✕ quits the ticker and all your windows snap back to their normal positions.\n\nClose this demo?')){
+    document.getElementById('fake-desktop').style.opacity='0.4';
+    document.getElementById('fake-desktop').style.transition='opacity .4s';
+    setTimeout(()=>{
+      document.getElementById('fake-desktop').style.opacity='1';
+      document.getElementById('fake-desktop').style.transition='';
+    },1200);
+  }
 }
 
-buildAds();buildTape();fetchQ();
-rafId=requestAnimationFrame(animate);
+// ── INIT ────────────────────────────────────────────────────────────────────────
+buildAds(); buildTape(); fetchQ();
+requestAnimationFrame(animate);
 setInterval(rotateAd,8000);
 setInterval(fetchQ,15000);
 </script>
