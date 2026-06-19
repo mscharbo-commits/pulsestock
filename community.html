@@ -372,7 +372,7 @@ const ADMIN_EMAIL='mscharbo@gmail.com';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentUser=null,currentProfile=null,currentRole='member';
-let currentRoom='general',currentRoomData=null;
+let currentRoom='general',currentRoomSlug='general',currentRoomData=null;
 let isLogin=false,selectedStock=null;
 let msgSub=null;
 
@@ -387,8 +387,11 @@ async function init(){
   if(session) await setUser(session.user);
   updateUI();
   loadRooms();
+  // Get general room UUID first
+  const{data:genRoom}=await sb.from('rooms').select('id').eq('slug','general').single();
+  if(genRoom){currentRoom=genRoom.id;}
   loadMessages(currentRoom);
-  loadSentiment(currentRoom);
+  loadSentiment(currentRoomSlug||'general');
   loadLeaderboard();
   loadHotPicks();
   sb.auth.onAuthStateChange(async(event,session)=>{
@@ -451,28 +454,29 @@ async function loadRooms(){
 }
 
 function roomItem(r,icon){
-  return `<div class="room-item ${r.slug===currentRoom?'active':''}" onclick="switchRoom('${r.slug}','${escHtml(r.name)}','${escHtml(r.description||'')}')">
+  return `<div class="room-item ${r.slug===currentRoomSlug?'active':''}" onclick="switchRoom('${r.slug}','${escHtml(r.name)}','${escHtml(r.description||'')}',false,'${r.id}')">
     <div class="room-icon">${icon}</div>
     <div class="room-info"><div class="room-name">${r.name}</div></div>
   </div>`;
 }
 
-async function switchRoom(slug,name,desc,skipEvent=false){
-  currentRoom=slug;
+async function switchRoom(slug,name,desc,skipEvent=false,roomUuid=null){
+  currentRoom=roomUuid||slug;
+  currentRoomSlug=slug;
   document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
   document.getElementById('chat-room-desc').textContent=desc;
   document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
   if(!skipEvent&&event&&event.currentTarget) event.currentTarget.classList.add('active');
   if(msgSub){sb.removeChannel(msgSub);msgSub=null;}
   loadMessages(slug);
-  loadSentiment(slug);
+  loadSentiment(slug); // sentiment uses slug
   subscribeToRoom(slug);
   history.pushState(null,'','/community.html?room='+slug);
 }
 
 function subscribeToRoom(slug){
   msgSub=sb.channel('room-'+slug)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`room_id=eq.${slug}`},payload=>{
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`room_id=eq.${currentRoom}`},payload=>{
       if(!payload.new.deleted) appendMessage(payload.new);
     }).subscribe();
 }
