@@ -431,9 +431,11 @@ function updateLeaderboardLive() {
     openPicks.forEach(function(p) {
       const live = LIVE_PRICES[p.ticker];
       if (!live) return;
+      const entry = parseFloat(p.actual_entry_price) || parseFloat(p.entry_price) || 0;
+      if (!entry || entry <= 0) return;
       const ret = p.direction === 'BUY'
-        ? ((live - p.actual_entry_price) / p.actual_entry_price * 100)
-        : ((p.actual_entry_price - live) / p.actual_entry_price * 100);
+        ? ((live - entry) / entry * 100)
+        : ((entry - live) / entry * 100);
       unrealized += ret;
     });
     const color = unrealized >= 0 ? 'var(--green)' : 'var(--red)';
@@ -971,89 +973,51 @@ async function closePick(pickId, ticker, entryStr, direction) {
 async function loadLeaderboard(){
   const{data}=await sb.from('picks').select('username,result,upvotes,return_pct,actual_entry_price,exit_price,direction,ticker,posted_at,closed_at');
   if(!data||!data.length){document.getElementById('leaderboard').innerHTML='<div class="empty" style="padding:16px;">No picks yet. Be the first!</div>';return;}
-
-  // Build per-user stats
   const users={};
   data.forEach(p=>{
-    if(!users[p.username])users[p.username]={picks:0,wins:0,losses:0,upvotes:0,closedReturn:0,closedPicks:0,returns:[],openPicksList:[]};
+    if(!users[p.username])users[p.username]={picks:0,wins:0,losses:0,upvotes:0,totalReturn:0,closedPicks:0,returns:[],openPicksList:[]};
     const u=users[p.username];
     u.picks++;
     u.upvotes+=p.upvotes||0;
+    if(!p.result) u.openPicksList.push({ticker:p.ticker,actual_entry_price:parseFloat(p.actual_entry_price)||parseFloat(p.entry_price)||0,entry_price:parseFloat(p.entry_price)||0,direction:p.direction||'BUY'});
     if(p.result==='win'||p.result==='loss'||p.result==='closed'){
       u.closedPicks++;
       if(p.result==='win')u.wins++;
       if(p.result==='loss')u.losses++;
-      if(p.return_pct!=null){u.closedReturn+=p.return_pct;u.returns.push(p.return_pct);}
-    } else {
-      u.openPicksList.push({ticker:p.ticker,entry:p.actual_entry_price||p.entry_price||0,direction:p.direction||'BUY'});
+      if(p.return_pct!=null){u.totalReturn+=p.return_pct;u.returns.push(p.return_pct);}
     }
   });
-
-  // Fetch live prices for all open pick tickers
-  const openTickers=[...new Set(Object.values(users).flatMap(u=>u.openPicksList.map(p=>p.ticker)))];
-  if(openTickers.length) await fetchLivePrices(openTickers);
-
-  // Calculate unrealized P&L using live prices
-  Object.values(users).forEach(function(u){
-    u.unrealizedReturn=0;
-    u.openPicksList.forEach(function(p){
-      const live=LIVE_PRICES[p.ticker];
-      if(!live||!p.entry) return;
-      const ret=p.direction==='BUY'?((live-p.entry)/p.entry*100):((p.entry-live)/p.entry*100);
-      u.unrealizedReturn+=ret;
-    });
-    u.totalReturn=u.closedReturn+u.unrealizedReturn;
-  });
-
   const ranked=Object.entries(users).map(([name,s])=>{
     const wr=s.closedPicks?Math.round(s.wins/s.closedPicks*100):0;
+    const avgReturn=s.returns.length?(s.totalReturn/s.returns.length):0;
     const avgWin=s.returns.filter(r=>r>0).length?s.returns.filter(r=>r>0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r>0).length:0;
     const avgLoss=s.returns.filter(r=>r<0).length?s.returns.filter(r=>r<0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r<0).length:0;
-    return {name,...s,wr,avgWin,avgLoss};
+    return {name,...s,wr,avgReturn,avgWin,avgLoss,openPicks:s.openPicksList||[]};
   }).sort((a,b)=>b.totalReturn-a.totalReturn||b.closedPicks-a.closedPicks||b.upvotes-a.upvotes).slice(0,20);
 
   const medals=['🥇','🥈','🥉'];
+  // Fetch live prices for all open picks
+  const openTickers = [...new Set(ranked.flatMap(u => (u.openPicks||[]).map(p => p.ticker)))];
+  if (openTickers.length) fetchLivePrices(openTickers);
   document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
     const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
-    const totalColor=u.totalReturn>0?'var(--green)':u.totalReturn<0?'var(--red)':'var(--text3)';
-    const closedColor=u.closedReturn>0?'var(--green)':u.closedReturn<0?'var(--red)':'var(--text3)';
-    const unrealColor=u.unrealizedReturn>0?'var(--green)':u.unrealizedReturn<0?'var(--red)':'var(--text3)';
-    return `<div class="leader-row" style="flex-direction:column;align-items:flex-start;gap:6px;padding:12px;" onclick="showTraderProfile('${u.name}')" style="cursor:pointer;">
+    const retColor=u.totalReturn>=0?'var(--green)':'var(--red)';
+    return `<div class="leader-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;cursor:pointer;" onclick="showTraderProfile('${u.name}')" title="View ${u.name}'s picks">
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
-        <div style="font-size:13px;font-weight:700;width:20px;text-align:center;">${medals[i]||i+1}</div>
+        <div style="font-size:13px;font-weight:700;width:20px;">${medals[i]||i+1}</div>
         <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
-        <div style="flex:1;">
-          <div class="leader-name" style="color:var(--accent);cursor:pointer;">${u.name}</div>
-          <div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed · ${u.openPicksList.length} open</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${totalColor};">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}%</div>
-          <div style="font-size:10px;color:var(--text3);">total P&L</div>
-        </div>
+        <div style="flex:1;"><div class="leader-name" style="color:var(--accent);">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
+        <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;" title="Closed P&L">${u.closedPicks>0?(u.totalReturn>=0?'+':'')+u.totalReturn.toFixed(1)+'% closed':'📊 Tracking...'}</div>
       </div>
-      <div style="display:flex;gap:8px;padding-left:48px;font-size:11px;flex-wrap:wrap;">
-        <span style="background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
-          Closed: <strong style="color:${closedColor};">${u.closedPicks>0?(u.closedReturn>=0?'+':'')+u.closedReturn.toFixed(1)+'%':'—'}</strong>
-        </span>
-        <span style="background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
-          Unrealized: <strong style="color:${unrealColor};">${u.openPicksList.length>0?(u.unrealizedReturn>=0?'+':'')+u.unrealizedReturn.toFixed(1)+'%':'—'}</strong>
-        </span>
-        <span style="background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
-          Win rate: <strong style="color:var(--text);">${u.wr}%</strong>
-        </span>
-        <span style="background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
-          Avg W: <strong style="color:var(--green);">${u.avgWin>0?'+'+u.avgWin.toFixed(1)+'%':'—'}</strong>
-        </span>
-        <span style="background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border);">
-          Avg L: <strong style="color:var(--red);">${u.avgLoss<0?u.avgLoss.toFixed(1)+'%':'—'}</strong>
-        </span>
+      <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);flex-wrap:wrap;">
+        <span>Win rate: <strong style="color:var(--text);">${u.wr}%</strong></span>
+        <span>Avg gain: <strong style="color:var(--green);">${u.avgWin>0?'+'+u.avgWin.toFixed(1)+'%':'—'}</strong></span>
+        <span>Avg loss: <strong style="color:var(--red);">${u.avgLoss<0?u.avgLoss.toFixed(1)+'%':'—'}</strong></span>
+        <span data-leader-username="${u.name}" data-open-picks="${escHtml(JSON.stringify(u.openPicks||[]))}">📊 live</span>
         <span>👍 ${u.upvotes}</span>
       </div>
     </div>`;
   }).join('');
-
-  // Auto-refresh unrealized every 30s
-  setTimeout(loadLeaderboard, 30000);
 }
 
 async function loadHotPicks(){
