@@ -372,12 +372,75 @@ const ADMIN_EMAIL='mscharbo@gmail.com';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentUser=null,currentProfile=null,currentRole='member';
-let currentRoom='b42b5221-ad9b-4677-9b58-908824872be0',currentRoomSlug='general',currentRoomData=null;
+let currentRoom='general',currentRoomSlug='general',currentRoomData=null;
 let isLogin=false,selectedStock=null;
 let msgSub=null;
 
 const COLORS=['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE185D','#059669'];
-const LIVE_PRICES={AAPL:307.57,MSFT:452.20,NVDA:1089.80,TSLA:342.50,AMZN:212.40,GOOGL:198.30,META:621.40,JPM:268.50,SPY:598.40,QQQ:528.10,AMD:168.50,NFLX:628.90,DIS:111.45,INTC:31.22,V:278.90,MA:492.30,XOM:112.48,JNJ:147.22,KO:63.44,BAC:39.21};
+var LIVE_PRICES={};
+var LIVE_PRICES_LAST_UPDATE=0;
+
+async function fetchLivePrices(tickers) {
+  if (!tickers || !tickers.length) return;
+  // Deduplicate
+  const unique = [...new Set(tickers)];
+  const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  await Promise.all(unique.map(async function(sym) {
+    try {
+      const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + sym + '&token=' + FINNHUB_KEY);
+      const d = await r.json();
+      if (d && d.c > 0) {
+        LIVE_PRICES[sym] = d.c;
+        LIVE_PRICES[sym + '_pct'] = d.dp;
+        LIVE_PRICES[sym + '_prev'] = d.pc;
+      }
+    } catch(e) {}
+  }));
+  LIVE_PRICES_LAST_UPDATE = Date.now();
+  // Refresh pick cards with new prices
+  refreshPickPrices();
+}
+
+function refreshPickPrices() {
+  // Update all live price displays in pick cards
+  document.querySelectorAll('[data-pick-ticker]').forEach(function(el) {
+    const ticker = el.getAttribute('data-pick-ticker');
+    const entry = parseFloat(el.getAttribute('data-pick-entry'));
+    const direction = el.getAttribute('data-pick-direction');
+    const live = LIVE_PRICES[ticker];
+    if (!live || !entry) return;
+    const retPct = direction === 'BUY'
+      ? ((live - entry) / entry * 100)
+      : ((entry - live) / entry * 100);
+    const color = retPct >= 0 ? 'var(--green)' : 'var(--red)';
+    const sign = retPct >= 0 ? '+' : '';
+    el.innerHTML = '<span style="font-size:12px;color:var(--text3);">Live: </span>'
+      + '<span style="font-weight:700;font-family:DM Mono,monospace;color:var(--text);">$' + live.toFixed(2) + '</span>'
+      + ' <span style="font-size:12px;font-weight:700;color:' + color + ';">' + sign + retPct.toFixed(2) + '%</span>';
+  });
+  // Refresh leaderboard unrealized P&L
+  updateLeaderboardLive();
+}
+
+function updateLeaderboardLive() {
+  document.querySelectorAll('[data-leader-username]').forEach(function(el) {
+    const username = el.getAttribute('data-leader-username');
+    const openPicks = JSON.parse(el.getAttribute('data-open-picks') || '[]');
+    if (!openPicks.length) return;
+    var unrealized = 0;
+    openPicks.forEach(function(p) {
+      const live = LIVE_PRICES[p.ticker];
+      if (!live) return;
+      const ret = p.direction === 'BUY'
+        ? ((live - p.actual_entry_price) / p.actual_entry_price * 100)
+        : ((p.actual_entry_price - live) / p.actual_entry_price * 100);
+      unrealized += ret;
+    });
+    const color = unrealized >= 0 ? 'var(--green)' : 'var(--red)';
+    el.innerHTML = (unrealized >= 0 ? '+' : '') + unrealized.toFixed(1) + '% unrealized';
+    el.style.color = color;
+  });
+}
 
 const ROOM_ICONS={'general':'💬','hot-picks':'🔥','due-diligence':'🔬','tech-stocks':'💻','value-investing':'💎','macro-economy':'🌍','small-caps':'🚀','ask-community':'❓'};
 
@@ -387,8 +450,11 @@ async function init(){
   if(session) await setUser(session.user);
   updateUI();
   loadRooms();
+  // Get general room UUID first
+  const{data:genRoom}=await sb.from('rooms').select('id').eq('slug','general').single();
+  if(genRoom){currentRoom=genRoom.id;}
   loadMessages(currentRoom);
-  loadSentiment(currentRoomSlug);
+  loadSentiment(currentRoomSlug||'general');
   loadLeaderboard();
   loadHotPicks();
   sb.auth.onAuthStateChange(async(event,session)=>{
@@ -451,7 +517,7 @@ async function loadRooms(){
 }
 
 function roomItem(r,icon){
-  return `<div class="room-item ${r.id===currentRoom?'active':''}" onclick="switchRoom('${r.slug}','${escHtml(r.name)}','${escHtml(r.description||'')}',false,'${r.id}')">
+  return `<div class="room-item ${r.slug===currentRoomSlug?'active':''}" onclick="switchRoom('${r.slug}','${escHtml(r.name)}','${escHtml(r.description||'')}',false,'${r.id}')">
     <div class="room-icon">${icon}</div>
     <div class="room-info"><div class="room-name">${r.name}</div></div>
   </div>`;
@@ -460,14 +526,13 @@ function roomItem(r,icon){
 async function switchRoom(slug,name,desc,skipEvent=false,roomUuid=null){
   currentRoom=roomUuid||slug;
   currentRoomSlug=slug;
-  console.log('Switching to room:', slug, 'UUID:', currentRoom);
   document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
   document.getElementById('chat-room-desc').textContent=desc;
   document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
   if(!skipEvent&&event&&event.currentTarget) event.currentTarget.classList.add('active');
   if(msgSub){sb.removeChannel(msgSub);msgSub=null;}
   loadMessages(slug);
-  loadSentiment(slug);
+  loadSentiment(slug); // sentiment uses slug
   subscribeToRoom(slug);
   history.pushState(null,'','/community.html?room='+slug);
 }
@@ -514,7 +579,8 @@ function appendMessage(msg,scroll=true){
     const upside=(((pick.target_price-pick.entry_price)/pick.entry_price)*100).toFixed(1);
     const risk=(((pick.entry_price-pick.stop_loss)/pick.entry_price)*100).toFixed(1);
     const cur=LIVE_PRICES[pick.ticker];
-    const perfStr=cur?`Current: $${cur} (${((cur-pick.entry_price)/pick.entry_price*100).toFixed(1)}%)`:'';
+    const curPct=cur?((pick.direction==='BUY'?(cur-pick.actual_entry_price||pick.entry_price):(( pick.actual_entry_price||pick.entry_price)-cur))/(pick.actual_entry_price||pick.entry_price)*100):null;
+    const perfStr=cur?`$${cur.toFixed(2)} <span style="font-weight:700;color:${curPct>=0?'var(--green)':'var(--red)'};">${curPct>=0?'+':''}${curPct.toFixed(2)}%</span>`:'<span style="color:var(--text3);font-size:11px;">Loading...</span>';
     div.innerHTML=`<div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
       <div class="msg-content">
         <div class="msg-header">
@@ -526,7 +592,7 @@ function appendMessage(msg,scroll=true){
         <div class="pick-msg">
           <div class="pick-direction ${isBuy?'pick-buy':'pick-sell'}">${isBuy?'🟢 BUY':'🔴 SELL'}</div>
           <div class="pick-ticker">${pick.ticker}</div>
-          <div class="pick-levels">
+          <div class="pick-levels" data-pick-ticker="${pick.ticker}" data-pick-entry="${pick.actual_entry_price||pick.entry_price}" data-pick-direction="${pick.direction}">
             <div><div class="pick-level-label">Entry</div><div class="pick-level-val">$${pick.entry_price}</div></div>
             <div><div class="pick-level-label">Target +${upside}%</div><div class="pick-level-val" style="color:var(--green);">$${pick.target_price}</div></div>
             <div><div class="pick-level-label">Stop -${risk}%</div><div class="pick-level-val" style="color:var(--red);">$${pick.stop_loss}</div></div>
@@ -906,10 +972,11 @@ async function loadLeaderboard(){
   if(!data||!data.length){document.getElementById('leaderboard').innerHTML='<div class="empty" style="padding:16px;">No picks yet. Be the first!</div>';return;}
   const users={};
   data.forEach(p=>{
-    if(!users[p.username])users[p.username]={picks:0,wins:0,losses:0,upvotes:0,totalReturn:0,closedPicks:0,returns:[]};
+    if(!users[p.username])users[p.username]={picks:0,wins:0,losses:0,upvotes:0,totalReturn:0,closedPicks:0,returns:[],openPicksList:[]};
     const u=users[p.username];
     u.picks++;
     u.upvotes+=p.upvotes||0;
+    if(!p.result) u.openPicksList.push({ticker:p.ticker,actual_entry_price:p.actual_entry_price||p.entry_price,direction:p.direction});
     if(p.result==='win'||p.result==='loss'||p.result==='closed'){
       u.closedPicks++;
       if(p.result==='win')u.wins++;
@@ -922,10 +989,13 @@ async function loadLeaderboard(){
     const avgReturn=s.returns.length?(s.totalReturn/s.returns.length):0;
     const avgWin=s.returns.filter(r=>r>0).length?s.returns.filter(r=>r>0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r>0).length:0;
     const avgLoss=s.returns.filter(r=>r<0).length?s.returns.filter(r=>r<0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r<0).length:0;
-    return {name,...s,wr,avgReturn,avgWin,avgLoss};
+    return {name,...s,wr,avgReturn,avgWin,avgLoss,openPicks:s.openPicksList||[]};
   }).sort((a,b)=>b.totalReturn-a.totalReturn||b.wr-a.wr).slice(0,20);
 
   const medals=['🥇','🥈','🥉'];
+  // Fetch live prices for all open picks
+  const openTickers = [...new Set(ranked.flatMap(u => (u.openPicks||[]).map(p => p.ticker)))];
+  if (openTickers.length) fetchLivePrices(openTickers);
   document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
     const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
     const retColor=u.totalReturn>=0?'var(--green)':'var(--red)';
@@ -936,10 +1006,11 @@ async function loadLeaderboard(){
         <div style="flex:1;"><div class="leader-name" style="color:var(--accent);">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
         <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}%</div>
       </div>
-      <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);">
+      <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);flex-wrap:wrap;">
         <span>Win rate: <strong style="color:var(--text);">${u.wr}%</strong></span>
         <span>Avg gain: <strong style="color:var(--green);">${u.avgWin>0?'+'+u.avgWin.toFixed(1)+'%':'—'}</strong></span>
         <span>Avg loss: <strong style="color:var(--red);">${u.avgLoss<0?u.avgLoss.toFixed(1)+'%':'—'}</strong></span>
+        <span data-leader-username="${u.name}" data-open-picks="${escHtml(JSON.stringify(u.openPicks||[]))}">📊 live</span>
         <span>👍 ${u.upvotes}</span>
       </div>
     </div>`;
@@ -1166,6 +1237,13 @@ async function showTraderProfile(username) {
     + '<div style="max-height:420px;overflow-y:auto;">' + picksHtml + '</div>';
 }
 
+// Refresh live prices every 30 seconds during market hours
+setInterval(function() {
+  const tickers = [...new Set(
+    [...document.querySelectorAll('[data-pick-ticker]')].map(el => el.getAttribute('data-pick-ticker'))
+  )];
+  if (tickers.length) fetchLivePrices(tickers);
+}, 30000);
 </script>
 </body>
 </html>
