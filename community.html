@@ -194,6 +194,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
   </div>
 </header>
 
+<!-- TRADER PROFILE MODAL -->
+<div class="modal-overlay" id="trader-modal" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:600px;width:95%;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button onclick="document.getElementById('trader-modal').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="trader-modal-content"></div>
+  </div>
+</div>
+
 <!-- AUTH MODAL -->
 <div class="modal-overlay" id="auth-modal" style="display:none;">
   <div class="modal">
@@ -911,17 +921,17 @@ async function loadLeaderboard(){
     const avgWin=s.returns.filter(r=>r>0).length?s.returns.filter(r=>r>0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r>0).length:0;
     const avgLoss=s.returns.filter(r=>r<0).length?s.returns.filter(r=>r<0).reduce((a,b)=>a+b,0)/s.returns.filter(r=>r<0).length:0;
     return {name,...s,wr,avgReturn,avgWin,avgLoss};
-  }).sort((a,b)=>b.totalReturn-a.totalReturn||b.wr-a.wr).slice(0,8);
+  }).sort((a,b)=>b.totalReturn-a.totalReturn||b.wr-a.wr).slice(0,20);
 
   const medals=['🥇','🥈','🥉'];
   document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
     const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
     const retColor=u.totalReturn>=0?'var(--green)':'var(--red)';
-    return `<div class="leader-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;">
+    return `<div class="leader-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px;cursor:pointer;" onclick="showTraderProfile('${u.name}')" title="View ${u.name}'s picks">
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
         <div style="font-size:13px;font-weight:700;width:20px;">${medals[i]||i+1}</div>
         <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
-        <div style="flex:1;"><div class="leader-name">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
+        <div style="flex:1;"><div class="leader-name" style="color:var(--accent);">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
         <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}%</div>
       </div>
       <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);">
