@@ -3,310 +3,424 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PulseStock Desktop Ticker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<title>PulseStock Desktop Ticker — Live Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-font-smoothing:antialiased;}
-header{background:#fff;border-bottom:1px solid #E2E6ED;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
-.logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;}
-.logo-name{font-size:17px;font-weight:700;color:#0D1117;letter-spacing:-.4px;}
-.logo-name span{color:#1A6BF5;}
-.back{font-size:13px;color:#8A95A3;text-decoration:none;padding:7px 14px;border-radius:6px;}
-.back:hover{background:#EBF1FE;color:#1A6BF5;}
+body{font-family:'Inter',-apple-system,sans-serif;background:#F8FAFC;color:#0F172A;-webkit-font-smoothing:antialiased;}
 
-/* HERO */
-.hero{text-align:center;padding:56px 24px 40px;}
-.hero-badge{display:inline-block;background:#EBF1FE;color:#1A6BF5;font-size:12px;font-weight:600;padding:4px 14px;border-radius:20px;margin-bottom:16px;letter-spacing:.03em;}
-.hero h1{font-size:40px;font-weight:700;letter-spacing:-1.5px;margin-bottom:12px;line-height:1.15;}
+/* ── SITE NAV ── */
+.site-nav{background:#fff;border-bottom:1px solid #E2E8F0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:10;}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:30px;height:30px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;}
+.nav-logo-name{font-size:16px;font-weight:700;color:#0F172A;letter-spacing:-.4px;}
+.nav-logo-name span{color:#1A6BF5;}
+.nav-back{font-size:13px;color:#64748B;text-decoration:none;padding:7px 14px;border-radius:7px;border:1px solid #E2E8F0;transition:all .15s;}
+.nav-back:hover{border-color:#1A6BF5;color:#1A6BF5;}
+
+/* ── HERO ── */
+.hero{text-align:center;padding:60px 24px 48px;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;color:#1558D6;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin-bottom:20px;border:1px solid #BFDBFE;}
+.hero h1{font-size:42px;font-weight:800;letter-spacing:-1.5px;margin-bottom:14px;line-height:1.12;color:#0F172A;}
 .hero h1 span{color:#1A6BF5;}
-.hero p{font-size:17px;color:#4A5568;max-width:500px;margin:0 auto 32px;line-height:1.6;}
+.hero p{font-size:17px;color:#475569;max-width:520px;margin:0 auto 36px;line-height:1.65;}
 .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.btn-dark{padding:13px 28px;background:#0D1117;color:#fff;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
-.btn-dark:hover{background:#1A1F2A;}
-.btn-ghost{padding:13px 22px;background:#fff;color:#0D1117;border:1.5px solid #E2E6ED;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;}
-.btn-ghost:hover{border-color:#1A6BF5;color:#1A6BF5;}
+.btn-primary{padding:13px 28px;background:#1A6BF5;color:#fff;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .15s;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-primary:hover{background:#1558D6;}
+.btn-outline{padding:13px 22px;background:#fff;color:#0F172A;border:1.5px solid #E2E8F0;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;transition:all .15s;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-outline:hover{border-color:#1A6BF5;color:#1A6BF5;}
 
-/* LIVE TICKER STRIP — full width, looks exactly like the real app */
-.ticker-section{background:#0D1117;border-top:2px solid #1A6BF5;border-bottom:2px solid #1A6BF5;margin:0 0 0;}
-.ticker-label{background:#0D1117;padding:6px 20px;font-size:10px;color:#3D4D60;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #1C2030;}
-.ticker-bar{background:#0D1117;height:44px;display:flex;align-items:center;width:100%;}
-.t-brand{display:flex;align-items:center;gap:7px;padding:0 16px;border-right:1px solid #1C2030;height:100%;cursor:pointer;flex-shrink:0;transition:background .15s;}
-.t-brand:hover{background:#111827;}
-.t-icon{width:22px;height:22px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
-.t-name{font-size:12px;font-weight:700;color:#E6EDF3;}
+/* ── DEMO SECTION ── */
+.demo-section{max-width:960px;margin:0 auto 64px;padding:0 24px;}
+.demo-label{text-align:center;font-size:12px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;}
+
+/* ── FAKE DESKTOP FRAME ── */
+.fake-desktop{border-radius:14px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 20px 60px rgba(15,23,42,.1);}
+.fake-desktop-chrome{background:#E8EAED;height:28px;display:flex;align-items:center;padding:0 12px;gap:6px;}
+.chrome-dot{width:10px;height:10px;border-radius:50%;}
+.fake-screen{background:#F0F2F5;position:relative;}
+
+/* ── TICKER BAR (inside fake desktop) ── */
+.ticker-bar{
+  background:#fff;height:44px;display:flex;align-items:center;
+  border-bottom:2.5px solid #1A6BF5;position:relative;z-index:2;
+}
+.t-brand{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid #E2E8F0;height:100%;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.t-brand:hover{background:#F8FAFC;}
+.t-icon{width:26px;height:26px;background:#1A6BF5;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;}
+.t-name{font-size:13px;font-weight:700;color:#0F172A;letter-spacing:-.4px;white-space:nowrap;}
 .t-name span{color:#1A6BF5;}
-.t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
-.t-input{background:#141923;border:1px solid #252C3A;border-radius:5px;color:#E6EDF3;font-size:12px;font-family:'DM Sans',sans-serif;padding:3px 8px;width:120px;outline:none;}
+.t-search{display:flex;align-items:center;gap:6px;padding:0 10px;border-right:1px solid #E2E8F0;height:100%;flex-shrink:0;}
+.t-input{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:7px;color:#0F172A;font-size:12px;font-family:'Inter',sans-serif;padding:4px 10px;width:110px;outline:none;}
 .t-input:focus{border-color:#1A6BF5;}
-.t-btn{background:#1A6BF5;border:none;border-radius:4px;color:#fff;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;padding:4px 10px;cursor:pointer;}
+.t-input::placeholder{color:#94A3B8;}
+.t-btn{background:#1A6BF5;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;padding:4px 10px;cursor:pointer;white-space:nowrap;}
 .t-btn:hover{background:#1558D6;}
-.tape-vp{flex:1;overflow:hidden;height:100%;position:relative;mask-image:linear-gradient(to right,transparent 0,black 1%,black 99%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0,black 1%,black 99%,transparent 100%);}
-.tape{display:flex;position:absolute;height:100%;align-items:center;will-change:transform;}
-.tick{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:44px;cursor:pointer;border-right:1px solid #1C2030;flex-shrink:0;transition:background .1s;}
-.tick:hover{background:#111827;}
-.tick-sym{font-size:12px;font-weight:700;color:#E6EDF3;}
-.tick-prc{font-size:12px;color:#8A95A3;font-family:'DM Mono',monospace;}
-.tick-chg{font-size:11px;font-weight:600;font-family:'DM Mono',monospace;}
-.up{color:#0DB56B;}.dn{color:#D13F30;}.fl{color:#5A6478;}
-.tdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.tdot.up{background:#0DB56B;}.tdot.dn{background:#D13F30;}
-.t-status{display:flex;align-items:center;gap:5px;padding:0 12px;border-left:1px solid #1C2030;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
-.sdot{width:6px;height:6px;border-radius:50%;}
-.sdot.open{background:#0DB56B;animation:pulse 2s infinite;}
-.sdot.closed{background:#D13F30;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.stxt{font-size:10px;font-weight:700;letter-spacing:.06em;}
-.stime{font-size:10px;color:#3D4D60;font-family:'DM Mono',monospace;}
-.t-ad{width:200px;height:100%;flex-shrink:0;position:relative;overflow:hidden;border-left:1px solid #1C2030;}
-.ad-s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 12px;opacity:0;transition:opacity .6s;background:linear-gradient(135deg,#0a1628,#0d2145);}
-.ad-s.on{opacity:1;}
-.ad-logo{font-size:11px;font-weight:700;}
-.ad-body{display:flex;flex-direction:column;}
-.ad-hl{font-size:10.5px;font-weight:600;color:#E6EDF3;white-space:nowrap;}
-.ad-sub{font-size:9px;color:#5A6478;white-space:nowrap;}
-.ad-cta{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;border:1px solid;white-space:nowrap;flex-shrink:0;}
-.t-exit{width:44px;height:100%;flex-shrink:0;border-left:1px solid #2A3040;display:flex;align-items:center;justify-content:center;background:rgba(209,63,48,.15);color:#D13F30;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
-.t-exit:hover{background:rgba(209,63,48,.4);}
+.tape-vp{flex:1;overflow:hidden;position:relative;height:100%;mask-image:linear-gradient(to right,transparent 0%,black 2%,black 98%,transparent 100%);-webkit-mask-image:linear-gradient(to right,transparent 0%,black 2%,black 98%,transparent 100%);}
+.tape{display:flex;position:absolute;left:0;top:0;height:100%;align-items:center;white-space:nowrap;}
+.tick{display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:100%;cursor:pointer;border-right:1px solid #F1F5F9;transition:background .1s;flex-shrink:0;}
+.tick:hover{background:#EFF6FF;}
+.tick:hover .tsym{color:#1A6BF5;}
+.tsym{font-size:12px;font-weight:700;color:#0F172A;transition:color .1s;}
+.tprice{font-size:12px;color:#475569;font-family:'JetBrains Mono',monospace;}
+.tchg{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.tchg.up{color:#16A34A;}.tchg.dn{color:#DC2626;}.tchg.flat{color:#94A3B8;}
+.t-ad{width:200px;height:100%;flex-shrink:0;border-left:1px solid #E2E8F0;position:relative;overflow:hidden;background:#FAFBFF;cursor:pointer;}
+.adsl{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding:0 12px;opacity:0;transition:opacity .6s;}
+.adsl.active{opacity:1;}
+.adsl:hover{background:#EFF6FF;}
+.alb{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.adb{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
+.adh{font-size:11px;font-weight:600;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ads{font-size:10px;color:#94A3B8;white-space:nowrap;}
+.t-exit{width:40px;height:100%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-left:1px solid #E2E8F0;cursor:pointer;color:#94A3B8;font-size:14px;transition:all .15s;background:#fff;}
+.t-exit:hover{background:#FEF2F2;color:#DC2626;}
 
-/* WHAT IT LOOKS LIKE section */
-.look-section{background:#1A1F2A;padding:0;}
-.look-inner{max-width:900px;margin:0 auto;padding:32px 24px;}
-.look-inner h2{font-size:13px;font-weight:600;color:#8A95A3;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;}
-/* Simulated desktop screenshot */
-.desktop-ss{border-radius:10px;overflow:hidden;border:1px solid #333;box-shadow:0 8px 32px rgba(0,0,0,.5);}
-.ss-menubar{background:#1E1E2E;height:22px;display:flex;align-items:center;padding:0 12px;justify-content:space-between;}
-.ss-left{display:flex;align-items:center;gap:12px;font-size:10px;color:#C8C8C8;}
-.ss-right{font-size:10px;color:#C8C8C8;font-family:monospace;}
-/* Ticker inside screenshot */
-.ss-ticker{background:#0D1117;height:40px;display:flex;align-items:center;border-bottom:1.5px solid #1A6BF5;font-size:10.5px;}
-.ss-brand{display:flex;align-items:center;gap:5px;padding:0 12px;border-right:1px solid #1C2030;height:100%;flex-shrink:0;}
-.ss-icon{width:18px;height:18px;background:#1A6BF5;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;}
-.ss-name{font-size:11px;font-weight:700;color:#E6EDF3;}
-.ss-name span{color:#1A6BF5;}
-.ss-tape{flex:1;display:flex;align-items:center;overflow:hidden;height:100%;}
-.ss-tick{display:inline-flex;align-items:center;gap:4px;padding:0 12px;border-right:1px solid #1C2030;height:100%;font-size:10.5px;white-space:nowrap;}
-.ss-sym{font-weight:700;color:#E6EDF3;}
-.ss-prc{color:#8A95A3;font-family:monospace;}
-.ss-ad-sm{width:140px;flex-shrink:0;height:100%;border-left:1px solid #1C2030;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#0d2145);font-size:10px;}
-.ss-exit-sm{width:32px;height:100%;border-left:1px solid #2A3040;background:rgba(209,63,48,.15);display:flex;align-items:center;justify-content:center;color:#D13F30;font-size:12px;font-weight:700;}
-/* Windows below ticker in screenshot */
-.ss-desktop{background:#1C1C2E;height:200px;position:relative;padding:8px;}
-.ss-win{position:absolute;background:#252535;border-radius:6px;border:1px solid #333;overflow:hidden;}
-.ss-winbar{background:#2D3748;padding:5px 8px;display:flex;align-items:center;gap:4px;}
-.ss-wd{width:8px;height:8px;border-radius:50%;}
-.ss-wc{padding:8px 10px;font-size:9px;color:#5A6478;line-height:1.7;}
+/* ── FAKE WINDOWS BELOW TICKER ── */
+.fake-windows{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;min-height:220px;}
+.fake-win{background:#fff;border-radius:8px;border:1px solid #E2E8F0;overflow:hidden;}
+.fake-win-bar{background:#F1F5F9;height:28px;display:flex;align-items:center;padding:0 10px;gap:6px;}
+.fake-win-dot{width:8px;height:8px;border-radius:50%;}
+.fake-win-title{font-size:11px;color:#64748B;margin-left:6px;}
+.fake-win-body{padding:12px;display:flex;flex-direction:column;gap:6px;}
+.fake-line{height:8px;border-radius:4px;background:#F1F5F9;}
+.fake-line.blue{background:#EFF6FF;width:60%;}
+.fake-line.short{width:40%;}
+.fake-line.med{width:75%;}
 
-/* Arrow annotation */
-.annotation{position:absolute;display:flex;align-items:center;gap:6px;}
+/* ── FAKE LOGIN MODAL ── */
+.modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.35);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:0 0 14px 14px;}
+.modal-card{background:#fff;border-radius:14px;padding:28px 24px;width:300px;border:1px solid #E2E8F0;box-shadow:0 20px 60px rgba(15,23,42,.15);}
+.modal-logo{display:flex;align-items:center;gap:8px;margin-bottom:20px;justify-content:center;}
+.modal-logo-icon{width:32px;height:32px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;}
+.modal-logo-name{font-size:15px;font-weight:700;color:#0F172A;}
+.modal-logo-name span{color:#1A6BF5;}
+.modal-h{font-size:14px;font-weight:600;color:#0F172A;text-align:center;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:#64748B;text-align:center;margin-bottom:18px;}
+.modal-field{margin-bottom:12px;}
+.modal-label{font-size:11px;font-weight:600;color:#475569;display:block;margin-bottom:4px;}
+.modal-input{width:100%;padding:8px 10px;border:1px solid #E2E8F0;border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:#0F172A;background:#F8FAFC;outline:none;}
+.modal-input:focus{border-color:#1A6BF5;box-shadow:0 0 0 2px rgba(26,107,245,.1);}
+.modal-remember{display:flex;align-items:center;gap:7px;margin-bottom:16px;cursor:pointer;}
+.modal-remember input{accent-color:#1A6BF5;width:13px;height:13px;}
+.modal-remember span{font-size:12px;color:#475569;}
+.modal-btn{width:100%;padding:9px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-bottom:10px;}
+.modal-btn:hover{background:#1558D6;}
+.modal-skip{text-align:center;font-size:11px;color:#94A3B8;cursor:pointer;}
+.modal-skip:hover{color:#64748B;}
+.modal-success{display:none;text-align:center;padding:12px 0;}
+.modal-success-icon{font-size:36px;margin-bottom:10px;}
+.modal-success-msg{font-size:14px;font-weight:600;color:#0F172A;margin-bottom:4px;}
+.modal-success-sub{font-size:12px;color:#64748B;}
 
-/* BELOW DEMO */
-.content{max-width:900px;margin:0 auto;padding:48px 24px;}
-.section-title{font-size:24px;font-weight:700;letter-spacing:-.5px;margin-bottom:6px;}
-.section-sub{font-size:14px;color:#4A5568;margin-bottom:28px;}
-.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:48px;}
-@media(max-width:700px){.callouts{grid-template-columns:1fr 1fr;}}
-.callout{background:#fff;border:1px solid #E2E6ED;border-radius:10px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.callout-icon{font-size:26px;margin-bottom:8px;}
-.callout h4{font-size:13.5px;font-weight:600;margin-bottom:4px;}
-.callout p{font-size:12.5px;color:#4A5568;line-height:1.5;}
-.download-card{background:#0D1117;border-radius:14px;padding:36px;text-align:center;margin-bottom:28px;}
-.download-card h2{font-size:24px;font-weight:700;color:#fff;margin-bottom:6px;}
-.download-card p{font-size:14px;color:#8A95A3;margin-bottom:24px;}
-.dl-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.dl-btn{padding:13px 26px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s;}
-.dl-btn:hover{opacity:.88;}
-.dl-primary{background:#1A6BF5;color:#fff;}
-.dl-secondary{background:#1A1F2A;color:#E6EDF3;border:1px solid #30363D;}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
-@media(max-width:600px){.steps{grid-template-columns:1fr;}}
-.step{background:#fff;border:1px solid #E2E6ED;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-.step-num{width:28px;height:28px;background:#1A6BF5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;margin-bottom:12px;}
-.step h3{font-size:14px;font-weight:600;margin-bottom:5px;}
-.step p{font-size:13px;color:#4A5568;line-height:1.6;}
-.step code{background:#F2F4F7;padding:1px 5px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace;}
-.terminal{background:#0D1117;border-radius:12px;padding:18px 22px;margin:0 0 0;border:1px solid #30363D;}
-.terminal div{font-family:'DM Mono',monospace;font-size:13px;line-height:2.3;color:#8DE8A0;}
-.terminal .pr{color:#1A6BF5;}
-.terminal .cm{color:#484F58;}
-footer{text-align:center;padding:28px;font-size:12px;color:#8A95A3;border-top:1px solid #E2E6ED;margin-top:48px;}
-footer a{color:#8A95A3;text-decoration:none;margin:0 8px;}
-footer a:hover{color:#1A6BF5;}
+/* ── FEATURES ── */
+.features{max-width:900px;margin:0 auto 72px;padding:0 24px;}
+.features-title{text-align:center;font-size:26px;font-weight:700;color:#0F172A;letter-spacing:-.5px;margin-bottom:8px;}
+.features-sub{text-align:center;font-size:15px;color:#64748B;margin-bottom:40px;}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.feat-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:22px 20px;}
+.feat-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;}
+.feat-card h3{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:6px;}
+.feat-card p{font-size:13px;color:#64748B;line-height:1.6;}
+
+/* ── DOWNLOAD CTA ── */
+.cta{background:#0F172A;border-radius:16px;padding:48px 32px;text-align:center;max-width:900px;margin:0 auto 80px;}
+.cta h2{font-size:28px;font-weight:700;color:#fff;letter-spacing:-.5px;margin-bottom:10px;}
+.cta p{font-size:15px;color:#94A3B8;margin-bottom:28px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.cta-btn-mac{padding:12px 24px;background:#fff;color:#0F172A;border-radius:9px;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;}
+.cta-btn-win{padding:12px 24px;background:rgba(255,255,255,.1);color:#fff;border-radius:9px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.2);cursor:pointer;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;}
+.coming-soon{display:inline-block;background:rgba(26,107,245,.3);color:#93B4F8;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.04em;margin-left:6px;}
 </style>
 </head>
 <body>
 
-<header>
-  <a href="/" class="logo"><div class="logo-icon">P</div><div class="logo-name">Pulse<span>Stock</span></div></a>
-  <a href="/" class="back">← Back to App</a>
-</header>
+<!-- SITE NAV -->
+<nav class="site-nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">P</div>
+    <div class="nav-logo-name">Pulse<span>Stock</span></div>
+  </a>
+  <a href="/" class="nav-back">← Back to PulseStock</a>
+</nav>
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-badge">🖥 Free Desktop App · Mac & Windows</div>
-  <h1>Your stocks.<br><span>Always visible.</span></h1>
-  <p>A 44px bar that pins to the top of your screen and never moves. Live quotes, one-click AI analysis, and broker ads — visible in every app you use.</p>
+  <div class="hero-badge">🖥️ Desktop App — Free</div>
+  <h1>Your market, always<br><span>on top.</span></h1>
+  <p>A live stock ticker that docks to the top of your screen and pushes your windows down — so the market is always visible, no matter what you're working on.</p>
   <div class="hero-btns">
-    <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="btn-dark">⬇ Download Free</a>
-    <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="btn-ghost">View on GitHub ↗</a>
+    <button class="btn-primary" onclick="showDemo()">▶ Try the Demo</button>
+    <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="btn-outline">View on GitHub</a>
   </div>
 </div>
 
-<!-- LIVE TICKER — full page width, exactly what they'll see on their desktop -->
-<div class="ticker-section">
-  <div class="ticker-label">↓ This bar runs across your entire screen — try it: type a ticker and click Analyze ↗</div>
-  <div class="ticker-bar">
-    <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
-      <div class="t-icon">P</div>
-      <div class="t-name">Pulse<span>Stock</span></div>
+<!-- INTERACTIVE DEMO -->
+<div class="demo-section" id="demo-section">
+  <div class="demo-label">Interactive demo — live quotes, fake desktop</div>
+
+  <div class="fake-desktop">
+    <!-- Mac-style chrome -->
+    <div class="fake-desktop-chrome">
+      <div class="chrome-dot" style="background:#FF5F57;"></div>
+      <div class="chrome-dot" style="background:#FFBD2E;"></div>
+      <div class="chrome-dot" style="background:#28C840;"></div>
     </div>
-    <div class="t-search">
-      <input id="ti" class="t-input" placeholder="Ticker..." maxlength="10" onkeydown="if(event.key==='Enter')doSearch()"/>
-      <button class="t-btn" onclick="doSearch()">Analyze ↗</button>
+
+    <div class="fake-screen">
+      <!-- THE TICKER BAR -->
+      <div class="ticker-bar">
+        <div class="t-brand" onclick="window.open('https://pulsestock-nu.vercel.app','_blank')">
+          <div class="t-icon">P</div>
+          <div class="t-name">Pulse<span>Stock</span></div>
+        </div>
+        <div class="t-search">
+          <input class="t-input" id="demo-input" type="text" placeholder="Search ticker..." maxlength="10"
+            onkeydown="if(event.key==='Enter') demoSearch()" />
+          <button class="t-btn" onclick="demoSearch()">Analyze ↗</button>
+        </div>
+        <div class="tape-vp"><div class="tape" id="demo-tape"></div></div>
+        <div class="t-ad" id="demo-ads"></div>
+        <div class="t-exit" title="Quit (demo only)" onclick="alert('In the real app this closes the ticker and your windows snap back up!')">✕</div>
+      </div>
+
+      <!-- FAKE WINDOWS PUSHED DOWN BY TICKER -->
+      <div class="fake-windows">
+        <div class="fake-win">
+          <div class="fake-win-bar">
+            <div class="fake-win-dot" style="background:#FF5F57;"></div>
+            <div class="fake-win-dot" style="background:#FFBD2E;"></div>
+            <div class="fake-win-dot" style="background:#28C840;"></div>
+            <span class="fake-win-title">Your browser — any site</span>
+          </div>
+          <div class="fake-win-body">
+            <div class="fake-line blue" style="width:55%;"></div>
+            <div class="fake-line" style="width:90%;"></div>
+            <div class="fake-line" style="width:70%;"></div>
+            <div class="fake-line short"></div>
+            <div class="fake-line" style="width:80%;"></div>
+          </div>
+        </div>
+        <div class="fake-win">
+          <div class="fake-win-bar">
+            <div class="fake-win-dot" style="background:#FF5F57;"></div>
+            <div class="fake-win-dot" style="background:#FFBD2E;"></div>
+            <div class="fake-win-dot" style="background:#28C840;"></div>
+            <span class="fake-win-title">Any other app</span>
+          </div>
+          <div class="fake-win-body">
+            <div class="fake-line" style="width:80%;"></div>
+            <div class="fake-line short"></div>
+            <div class="fake-line med"></div>
+            <div class="fake-line" style="width:65%;"></div>
+            <div class="fake-line" style="width:45%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAKE LOGIN MODAL -->
+      <div class="modal-backdrop" id="login-modal">
+        <div class="modal-card">
+          <div class="modal-logo">
+            <div class="modal-logo-icon">P</div>
+            <div class="modal-logo-name">Pulse<span>Stock</span></div>
+          </div>
+          <div id="modal-form">
+            <div class="modal-h">Sign in to sync your tickers</div>
+            <div class="modal-sub">Use your PulseStock account to load<br>your personalized ticker list.</div>
+            <div class="modal-field">
+              <label class="modal-label">Email</label>
+              <input class="modal-input" type="email" placeholder="you@example.com" id="demo-email" />
+            </div>
+            <div class="modal-field">
+              <label class="modal-label">Password</label>
+              <input class="modal-input" type="password" placeholder="••••••••" id="demo-pass"
+                onkeydown="if(event.key==='Enter') demoSignIn()" />
+            </div>
+            <label class="modal-remember">
+              <input type="checkbox" checked />
+              <span>Remember me on this device</span>
+            </label>
+            <button class="modal-btn" onclick="demoSignIn()">Sign In</button>
+            <div class="modal-skip" onclick="demoSkip()">Skip — use default tickers</div>
+          </div>
+          <div class="modal-success" id="modal-success">
+            <div class="modal-success-icon">✅</div>
+            <div class="modal-success-msg">Signed in successfully!</div>
+            <div class="modal-success-sub">Your custom tickers are loading…</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="tape-vp"><div class="tape" id="tape"></div></div>
-    <div class="t-status">
-      <div class="sdot" id="sdot"></div>
-      <span class="stxt" id="stxt"></span>
-      <span class="stime" id="stime"></span>
+  </div>
+  <p style="text-align:center;font-size:12px;color:#94A3B8;margin-top:12px;">
+    This is a browser simulation. The real app docks to your actual screen and works with every app you use.
+  </p>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+  <div class="features-title">Everything you need, nothing you don't</div>
+  <div class="features-sub">44px. Always on top. Always live.</div>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#EFF6FF;">📌</div>
+      <h3>Always visible</h3>
+      <p>Docks to the top of your screen and pushes all windows down — existing and new. Quit anytime to restore.</p>
     </div>
-    <div class="t-ad" id="ad-zone"></div>
-    <div class="t-exit" onclick="alert('On the real desktop app this closes the ticker bar.')" title="Close">✕</div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#F0FDF4;">⚡</div>
+      <h3>Live quotes</h3>
+      <p>Real-time prices via Finnhub refreshed every 15 seconds. Click any symbol to open the full analysis on PulseStock.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#FFF7ED;">🎯</div>
+      <h3>Your tickers</h3>
+      <p>Sign in with your PulseStock account to automatically load your personalized ticker list across devices.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#FDF4FF;">🔍</div>
+      <h3>Instant analyze</h3>
+      <p>Search any ticker from the bar and jump straight to AI-powered analysis on PulseStock in one click.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#FFFBEB;">💡</div>
+      <h3>Smart ads</h3>
+      <p>Rotating broker affiliate ads from Webull, IBKR, and Tastytrade. Free forever — powered by referrals.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#F0FDF4;">🛡️</div>
+      <h3>Lightweight</h3>
+      <p>No background processes, no data collection. Just a ticker. Quit from the menu bar icon anytime.</p>
+    </div>
   </div>
 </div>
 
-<!-- REAL SCREENSHOT -->
-<div class="look-section">
-  <div class="look-inner">
-    <h2>What it looks like on your desktop</h2>
-    <div style="border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5);">
-      <img src="/assets/ticker-screenshot.png" style="width:100%;display:block;" alt="PulseStock Desktop Ticker running on Mac"/>
-    </div>
-    <p style="font-size:12px;color:#5A6478;text-align:center;margin-top:10px;">Real screenshot — PulseStock Ticker bar running above Chrome on Mac</p>
+<!-- DOWNLOAD CTA -->
+<div style="padding:0 24px;">
+<div class="cta">
+  <h2>Ready to install?</h2>
+  <p>Free download for Mac and Windows. Open source on GitHub.</p>
+  <div class="cta-btns">
+    <button class="cta-btn-mac" onclick="alert('Mac build coming soon! Star us on GitHub to get notified.')">
+      🍎 Download for Mac <span class="coming-soon">SOON</span>
+    </button>
+    <button class="cta-btn-win" onclick="alert('Windows build coming soon! Star us on GitHub to get notified.')">
+      🪟 Download for Windows <span class="coming-soon">SOON</span>
+    </button>
   </div>
 </div>
-
-<div class="content">
-
-  <div class="callouts">
-    <div class="callout"><div class="callout-icon">📊</div><h4>Live Quotes</h4><p>Real prices every 15 seconds across your full ticker list</p></div>
-    <div class="callout"><div class="callout-icon">🔍</div><h4>Instant Analysis</h4><p>Type any ticker → AI analysis opens immediately in your browser</p></div>
-    <div class="callout"><div class="callout-icon">📌</div><h4>Always On Top</h4><p>Stays above Chrome, Excel, Terminal — every app you use</p></div>
-    <div class="callout"><div class="callout-icon">💰</div><h4>100% Free</h4><p>No account required. Download, run, done.</p></div>
-  </div>
-
-  <div class="download-card">
-    <h2>Get the Desktop Ticker</h2>
-    <p>Free · macOS 10.15+ · Requires Node.js</p>
-    <div class="dl-btns">
-      <a href="https://github.com/mscharbo-commits/pulsestock-ticker/archive/refs/heads/main.zip" class="dl-btn dl-primary">⬇ Download ZIP</a>
-      <a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank" class="dl-btn dl-secondary">View on GitHub ↗</a>
-    </div>
-  </div>
-
-  <div class="steps">
-    <div class="step"><div class="step-num">1</div><h3>Install Node.js</h3><p>Download from <code>nodejs.org</code> if you don't have it. Verify: <code>node --version</code></p></div>
-    <div class="step"><div class="step-num">2</div><h3>Download & Unzip</h3><p>Download the ZIP above and extract it anywhere on your Mac.</p></div>
-    <div class="step"><div class="step-num">3</div><h3>Run in Terminal</h3><p>Navigate to the folder and run the three commands below.</p></div>
-  </div>
-
-  <div class="terminal">
-    <div><span class="pr">$</span> cd ~/Downloads/pulsestock-ticker</div>
-    <div><span class="pr">$</span> npm install</div>
-    <div><span class="pr">$</span> npm start 2>/dev/null</div>
-    <div class="cm"># Bar appears at the top of your screen</div>
-    <div class="cm"># Right-click to edit ticker list · ✕ to close</div>
-  </div>
-
 </div>
 
-<footer>
-  <a href="/">Home</a><a href="/signin">Pricing</a><a href="https://github.com/mscharbo-commits/pulsestock-ticker" target="_blank">GitHub</a>
-  <br/><br/>© 2026 PulseStock, Inc. · Not financial advice.
-</footer>
+<div style="height:48px;"></div>
 
 <script>
-var stocks=[
-  {s:'AAPL',p:207.34,c:1.2},{s:'NVDA',p:131.82,c:2.8},{s:'MSFT',p:442.16,c:-0.4},
-  {s:'TSLA',p:248.50,c:3.1},{s:'META',p:612.44,c:0.9},{s:'AMZN',p:198.22,c:-0.7},
-  {s:'JPM',p:248.10,c:0.5},{s:'GOOGL',p:178.92,c:1.4},{s:'XOM',p:112.34,c:-1.1},
-  {s:'V',p:294.56,c:0.6},{s:'LLY',p:842.10,c:2.1},{s:'NFLX',p:1124.50,c:0.8},
+const KEY='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+let tickers=['AAPL','NVDA','MSFT','TSLA','META','AMZN','JPM','GOOGL','BRK-B','XOM'];
+let quotes={},tapePx=0,adIdx=0,rafId=null;
+
+const ads=[
+  {abbr:'WB',color:'#0075BF',hl:'Trade commission-free',sub:'$0 commissions · No minimums',url:'https://www.webull.com'},
+  {abbr:'IB',color:'#C8102E',hl:'Advanced trading tools',sub:'Lowest margin rates',url:'https://www.interactivebrokers.com'},
+  {abbr:'TT',color:'#E05C00',hl:'Options & futures',sub:'$1 open · $0 close',url:'https://tastytrade.com'},
 ];
-var ads=[
-  {logo:'Webull',lc:'#00AEEF',hl:'Trade commission-free',sub:'$0 commissions',cta:'Open account',cc:'#00AEEF'},
-  {logo:'IBKR',lc:'#E31837',hl:'Advanced trading tools',sub:'Lowest margin rates',cta:'Learn more',cc:'#E31837'},
-  {logo:'Tastytrade',lc:'#FF6B00',hl:'Options & futures',sub:'$1 open · $0 close',cta:'Trade free',cc:'#FF6B00'},
-];
-var adIdx=0,px=0;
+
+function buildAds(){
+  const z=document.getElementById('demo-ads');z.innerHTML='';
+  ads.forEach((a,i)=>{
+    const d=document.createElement('div');
+    d.className='adsl'+(i===0?' active':'');
+    d.innerHTML=`<div class="alb" style="background:${a.color}">${a.abbr}</div><div class="adb"><span class="adh">${a.hl}</span><span class="ads">${a.sub}</span></div>`;
+    d.onclick=()=>window.open(a.url,'_blank');
+    z.appendChild(d);
+  });
+}
+
+function rotateAd(){
+  const sl=document.querySelectorAll('.adsl');
+  if(!sl.length)return;
+  sl[adIdx].classList.remove('active');
+  adIdx=(adIdx+1)%ads.length;
+  sl[adIdx].classList.add('active');
+}
 
 function buildTape(){
-  var tape=document.getElementById('tape');
-  var items=[...stocks,...stocks,...stocks];
-  tape.innerHTML=items.map(function(s){
-    var cls=s.c>0?'up':s.c<0?'dn':'fl';
-    var chg=(s.c>0?'+':'')+s.c.toFixed(2)+'%';
-    return '<div class="tick" onclick="openStock(\''+s.s+'\')">'
-      +'<div class="tdot '+cls+'"></div>'
-      +'<span class="tick-sym">'+s.s+'</span>'
-      +'<span class="tick-prc">$'+s.p.toFixed(2)+'</span>'
-      +'<span class="tick-chg '+cls+'">'+chg+'</span>'
-      +'</div>';
+  const tape=document.getElementById('demo-tape');
+  tape.innerHTML=[...tickers,...tickers,...tickers].map(t=>{
+    const q=quotes[t];
+    let price='—',chg='—',cls='flat';
+    if(q){
+      price='$'+q.price.toFixed(2);
+      const p=q.changePct;
+      if(p>0){chg='▲ +'+p.toFixed(2)+'%';cls='up';}
+      else if(p<0){chg='▼ '+p.toFixed(2)+'%';cls='dn';}
+      else{chg='0.00%';}
+    }
+    return`<div class="tick" onclick="openStock('${t}')"><span class="tsym">${t}</span><span class="tprice">${price}</span><span class="tchg ${cls}">${chg}</span></div>`;
   }).join('');
+  tapePx=0;
 }
-function animTape(){
-  var tape=document.getElementById('tape');
-  if(!tape)return;
-  px-=0.5;
-  var items=tape.children;
-  if(items.length>0){var w=items[0].offsetWidth*stocks.length;if(Math.abs(px)>=w)px+=w;}
-  tape.style.transform='translateX('+px+'px)';
-  requestAnimationFrame(animTape);
+
+function openStock(ticker){
+  window.open(`https://pulsestock-nu.vercel.app/?ticker=${ticker}`,'_blank');
 }
-function buildAds(){
-  var z=document.getElementById('ad-zone');
-  z.innerHTML=ads.map(function(a,i){
-    return '<div class="ad-s'+(i===0?' on':'')+'">'
-      +'<span class="ad-logo" style="color:'+a.lc+'">'+a.logo+'</span>'
-      +'<span style="color:#2A3040;margin:0 4px;">|</span>'
-      +'<div class="ad-body"><span class="ad-hl">'+a.hl+'</span><span class="ad-sub">'+a.sub+'</span></div>'
-      +'<span class="ad-cta" style="color:'+a.cc+';border-color:'+a.cc+'">'+a.cta+'</span>'
-      +'</div>';
-  }).join('');
+
+function demoSearch(){
+  const v=document.getElementById('demo-input').value.trim().toUpperCase().replace(/[^A-Z0-9.-]/g,'');
+  if(!v)return;
+  window.open(`https://pulsestock-nu.vercel.app/?ticker=${v}`,'_blank');
+  document.getElementById('demo-input').value='';
 }
-function updateStatus(){
-  var et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  var h=et.getHours(),m=et.getMinutes(),d=et.getDay();
-  var wk=d>=1&&d<=5;
-  var open=wk&&(h>9||(h===9&&m>=30))&&h<16;
-  var pre=wk&&h>=4&&(h<9||(h===9&&m<30));
-  var ah=wk&&h>=16&&h<20;
-  var ts=et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
-  document.getElementById('stime').textContent=ts+' ET';
-  var el=document.getElementById('ss-time');
-  if(el)el.textContent=ts;
-  var dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
-  if(open){dot.className='sdot open';txt.textContent='OPEN';txt.style.color='#0DB56B';}
-  else if(pre||ah){dot.className='sdot open';txt.textContent=pre?'PRE':'AH';txt.style.color='#F59E0B';}
-  else{dot.className='sdot closed';txt.textContent='CLOSED';txt.style.color='#5A6478';}
+
+function animate(){
+  const tape=document.getElementById('demo-tape');
+  if(!tape||!tape.children.length){rafId=requestAnimationFrame(animate);return;}
+  tapePx-=0.5;
+  const w=tape.children[0].offsetWidth*tickers.length;
+  if(w>0&&Math.abs(tapePx)>=w)tapePx+=w;
+  tape.style.transform=`translateX(${tapePx}px)`;
+  rafId=requestAnimationFrame(animate);
 }
-function doSearch(){
-  var t=document.getElementById('ti').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
-  if(!t)return;
-  openStock(t);
-  document.getElementById('ti').value='';
+
+async function fetchQ(){
+  const res=await Promise.all(tickers.map(async t=>{
+    try{
+      const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${t}&token=${KEY}`);
+      const d=await r.json();
+      return[t,d.c?{price:d.c,changePct:d.dp}:null];
+    }catch{return[t,null];}
+  }));
+  quotes=Object.fromEntries(res.filter(([,v])=>v));
+  buildTape();
 }
-function openStock(t){window.open('https://pulsestock-nu.vercel.app/?ticker='+t,'_blank');}
-buildTape();buildAds();updateStatus();
-requestAnimationFrame(animTape);
+
+function demoSignIn(){
+  const email=document.getElementById('demo-email').value;
+  const pass=document.getElementById('demo-pass').value;
+  if(!email||!pass){
+    document.getElementById('demo-email').style.borderColor='#DC2626';
+    setTimeout(()=>document.getElementById('demo-email').style.borderColor='',1500);
+    return;
+  }
+  document.getElementById('modal-form').style.display='none';
+  document.getElementById('modal-success').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('login-modal').style.display='none';
+  },1800);
+}
+
+function demoSkip(){
+  document.getElementById('login-modal').style.display='none';
+}
+
+function showDemo(){
+  document.getElementById('demo-section').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+buildAds();buildTape();fetchQ();
+rafId=requestAnimationFrame(animate);
 setInterval(rotateAd,8000);
-setInterval(updateStatus,30000);
-function rotateAd(){
-  var s=document.querySelectorAll('.ad-s');
-  s[adIdx].classList.remove('on');
-  adIdx=(adIdx+1)%ads.length;
-  s[adIdx].classList.add('on');
-}
+setInterval(fetchQ,15000);
 </script>
 </body>
 </html>
