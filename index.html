@@ -3274,12 +3274,20 @@ function toggleTickerBar(sym) {
   loadTickerBar();
 }
 
-function saveTickerEditor() {
+async function saveTickerEditor() {
   closeTickerEditor();
   // Clear and reload ticker bar
   var scroll = document.getElementById('ticker-scroll');
   if(scroll) scroll.innerHTML = '<span class="ticker-loading">Refreshing...</span>';
   loadTickerBar();
+  // Sync tickers to Supabase for logged-in users (desktop app sync)
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) {
+      const tickerList = TICKER_SYMBOLS.map(function(t){ return t.sym; }).join(',');
+      await sbClient.from('profiles').upsert({ id: session.user.id, tickers: tickerList }, { onConflict: 'id' });
+    }
+  } catch(e) { console.warn('Ticker sync to Supabase failed (non-critical):', e.message); }
 }
 
 async function loadTickerBar(){
@@ -4459,8 +4467,20 @@ async function chatAsk(ticker, question) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
 
-  // Get profile
-  const { data: profile } = await sb.from('profiles').select('username,avatar_color').eq('id', session.user.id).single();
+  // Get profile (including synced tickers for desktop app)
+  const { data: profile } = await sb.from('profiles').select('username,avatar_color,tickers').eq('id', session.user.id).single();
+  // If user has synced tickers, apply them to the ticker bar
+  if (profile?.tickers) {
+    try {
+      const saved = profile.tickers.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+      if (saved.length) {
+        TICKER_SYMBOLS = saved.map(function(sym) {
+          return TICKER_SYMBOLS.find(function(t){ return t.sym === sym; }) || { sym: sym, label: '', idx: false };
+        });
+        loadTickerBar();
+      }
+    } catch(e) { console.warn('Could not restore tickers from profile:', e.message); }
+  }
   const name = profile?.username || session.user.email.split('@')[0];
   const color = profile?.avatar_color || '#1A6BF5';
 
