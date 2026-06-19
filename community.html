@@ -372,7 +372,7 @@ const ADMIN_EMAIL='mscharbo@gmail.com';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentUser=null,currentProfile=null,currentRole='member';
-let currentRoom='general',currentRoomSlug='general',currentRoomData=null;
+let currentRoom='b42b5221-ad9b-4677-9b58-908824872be0',currentRoomSlug='general',currentRoomData=null;
 let isLogin=false,selectedStock=null;
 let msgSub=null;
 
@@ -1004,7 +1004,7 @@ async function loadLeaderboard(){
         <div style="font-size:13px;font-weight:700;width:20px;">${medals[i]||i+1}</div>
         <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
         <div style="flex:1;"><div class="leader-name" style="color:var(--accent);">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
-        <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}%</div>
+        <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;" title="Closed P&L">${u.totalReturn>=0?'+':''}${u.totalReturn.toFixed(1)}% closed</div>
       </div>
       <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);flex-wrap:wrap;">
         <span>Win rate: <strong style="color:var(--text);">${u.wr}%</strong></span>
