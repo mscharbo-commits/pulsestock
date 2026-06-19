@@ -4616,5 +4616,75 @@ async function spTicket() {
 }
 </script>
 
+<!-- ── FOOTER ──────────────────────────────────────────────────────────────── -->
+<footer style="background:#0D1117;color:#8A95A3;padding:48px 24px 32px;border-top:1px solid #1A2535;">
+  <div style="max-width:1200px;margin:0 auto;">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="width:32px;height:32px;background:#1A6BF5;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">P</div>
+          <span style="font-size:17px;font-weight:700;color:#E6EDF3;letter-spacing:-.4px;">Pulse<span style="color:#1A6BF5;">Stock</span></span>
+        </div>
+        <p style="font-size:13px;line-height:1.7;color:#4A5568;max-width:220px;">AI-powered stock analysis for informed investors. Institutional-grade tools, built for everyone.</p>
+        <p style="font-size:12px;color:#2A3040;margin-top:16px;">Data by Finnhub. Analysis by Claude AI. Not financial advice.</p>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3D4D60;margin-bottom:14px;">Product</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a onclick="showPage('analyze',document.querySelector('.nav-tab'))" style="font-size:13px;color:#8A95A3;text-decoration:none;cursor:pointer;">Stock Analyzer</a>
+          <a onclick="showPage('screener',document.querySelectorAll('.nav-tab')[1])" style="font-size:13px;color:#8A95A3;text-decoration:none;cursor:pointer;">Screener</a>
+          <a onclick="showPage('portfolio',document.querySelectorAll('.nav-tab')[4])" style="font-size:13px;color:#8A95A3;text-decoration:none;cursor:pointer;">Portfolio</a>
+          <a href="/community.html" style="font-size:13px;color:#8A95A3;text-decoration:none;">Community</a>
+          <a href="/desktop" style="font-size:13px;color:#8A95A3;text-decoration:none;">Desktop App</a>
+          <a href="/signin" style="font-size:13px;color:#8A95A3;text-decoration:none;">Sign In</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3D4D60;margin-bottom:14px;">Company</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="#" onclick="showFooter('about');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">About Us</a>
+          <a href="#" onclick="showFooter('contact');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">Contact</a>
+          <a href="#" onclick="showFooter('faq');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">FAQ</a>
+          <a href="/support-manual" style="font-size:13px;color:#8A95A3;text-decoration:none;">Support</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3D4D60;margin-bottom:14px;">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="/terms.html" style="font-size:13px;color:#8A95A3;text-decoration:none;">Terms of Service</a>
+          <a href="#" onclick="showFooter('privacy');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">Privacy Policy</a>
+          <a href="#" onclick="showFooter('disclaimer');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">Disclaimer</a>
+          <a href="#" onclick="showFooter('cookies');return false;" style="font-size:13px;color:#8A95A3;text-decoration:none;">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+    <div id="ft-panel" style="display:none;background:#111827;border:1px solid #1A2535;border-radius:12px;padding:24px;margin-bottom:32px;position:relative;">
+      <button onclick="document.getElementById('ft-panel').style.display='none'" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#4A5568;font-size:20px;cursor:pointer;line-height:1;">x</button>
+      <div id="ft-panel-body"></div>
+    </div>
+    <div style="border-top:1px solid #1A2535;padding-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <span style="font-size:12px;color:#2A3040;">2026 PulseStock. All rights reserved.</span>
+      <span style="font-size:12px;color:#2A3040;">Not financial advice. For informational purposes only.</span>
+    </div>
+  </div>
+</footer>
+<script>
+var ftContent = {
+  about: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">About PulseStock</h3><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:10px;">PulseStock is an AI-powered stock analysis platform built for individual investors who want institutional-grade tools without the institutional price tag. We combine real-time market data with advanced AI analysis to deliver comprehensive stock insights in seconds.</p><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:10px;">Our platform covers the full analysis stack from live quotes and technical indicators to SEC filings, insider transactions, earnings data, and AI-generated entry/exit strategies. We also feature a community where traders share picks and build auditable track records.</p><p style="font-size:13px;color:#8A95A3;line-height:1.8;">PulseStock is built by traders, for traders. Our mission is to democratize access to the same quality of research previously only available to institutional investors.</p>',
+  contact: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Contact PulseStock</h3><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:16px;">Have a question, found a bug, or want to partner with us?</p><div style="display:flex;flex-direction:column;gap:14px;"><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">🤖</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">AI Support (Instant)</div><div style="font-size:12px;color:#4A5568;">Click the ? button on any page for immediate answers</div></div></div><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">📧</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">Email Support</div><div style="font-size:12px;color:#4A5568;">support@pulsestock.com — Response within 24 hours</div></div></div><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">🤝</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">Partnerships</div><div style="font-size:12px;color:#4A5568;">partnerships@pulsestock.com</div></div></div></div>',
+  faq: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:16px;">Frequently Asked Questions</h3><div style="display:flex;flex-direction:column;gap:14px;"><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is PulseStock free?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Yes. PulseStock offers a free tier with full access to stock analysis, real-time quotes, charts, indicators, news, filings, and community.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is this financial advice?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">No. PulseStock is an informational tool only. Nothing on this platform constitutes financial advice. Always consult a qualified financial advisor.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How current is the data?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Quotes are real-time during trading hours (9:30am-4pm ET). Some data points may be delayed 15 minutes on the free tier.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How does the AI analysis work?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Deep Analysis pulls live price, financial metrics, analyst ratings, and recent news then synthesizes them using Claude AI. Results are cached for 3 hours.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is my portfolio data secure?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Portfolio data is stored in your browser locally and never leaves your device. Cloud sync is coming soon.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is there a mobile app?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">A mobile app is in development. PulseStock works great in your mobile browser. A desktop ticker app is available for Mac and Windows.</div></div></div>',
+  privacy: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Privacy Policy</h3><p style="font-size:12px;color:#4A5568;margin-bottom:12px;">Last updated: June 2026</p><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><div><strong style="color:#E6EDF3;">Information We Collect:</strong> Email address and username on signup. Portfolio data is stored locally in your browser only. Support tickets include information you voluntarily provide.</div><div><strong style="color:#E6EDF3;">How We Use It:</strong> Your email is used for authentication and support only. We do not sell or share your personal information.</div><div><strong style="color:#E6EDF3;">Third-Party Services:</strong> Finnhub (market data), Anthropic Claude (AI analysis), Supabase (auth and community), Vercel (hosting).</div><div><strong style="color:#E6EDF3;">Data Deletion:</strong> You may request deletion of your account at any time by contacting support@pulsestock.com</div></div>',
+  disclaimer: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Investment Disclaimer</h3><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><p><strong style="color:#E6EDF3;">Not Financial Advice:</strong> Information on PulseStock is for informational and educational purposes only. Nothing here constitutes financial, investment, legal, or tax advice. PulseStock is not a registered investment advisor or broker-dealer.</p><p><strong style="color:#E6EDF3;">No Guarantee:</strong> We strive for accuracy but make no warranties about completeness or reliability. Market data may be delayed and AI analysis is automated and may contain errors.</p><p><strong style="color:#E6EDF3;">Investment Risk:</strong> All investing involves risk including potential loss of principal. Past performance is not indicative of future results.</p><p><strong style="color:#E6EDF3;">AI Analysis:</strong> AI-generated content is produced by automated systems and does not represent the opinion of any licensed financial professional. Always conduct your own due diligence.</p></div>',
+  cookies: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Cookie Policy</h3><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><div><strong style="color:#E6EDF3;">localStorage (Essential):</strong> We save your portfolio, watchlist, and ticker preferences in your browser. This data never leaves your device.</div><div><strong style="color:#E6EDF3;">Session Storage:</strong> Supabase uses session storage to maintain your login session.</div><div><strong style="color:#E6EDF3;">No Tracking Cookies:</strong> PulseStock does not use advertising cookies, tracking pixels, or third-party analytics. We do not track you across the web.</div><div><strong style="color:#E6EDF3;">Third-Party Scripts:</strong> Google Fonts and TradingView may set their own cookies subject to their own policies.</div></div>'
+};
+function showFooter(id) {
+  var c = ftContent[id];
+  if (!c) return;
+  document.getElementById('ft-panel-body').innerHTML = c;
+  document.getElementById('ft-panel').style.display = 'block';
+  document.getElementById('ft-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+</script>
+
 </body>
 </html>
