@@ -454,13 +454,13 @@ async function init(){
   // Load rooms first, then messages with a small delay to ensure Supabase is ready
   await loadRooms();
   // Use setTimeout to ensure Supabase client is fully initialized before queries
-  setTimeout(async function(){
+  setTimeout(async function(){  // wait for Supabase SDK
     await loadMessages(currentRoom);
     loadSentiment(currentRoomSlug||'general');
     loadLeaderboard();
     loadHotPicks();
     subscribeToRoom(currentRoomSlug);
-  }, 500);
+  }, 1000);
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(session) await setUser(session.user);
     else{currentUser=null;currentProfile=null;currentRole='member';}
@@ -1189,7 +1189,9 @@ function checkUrlRoom(){
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-init();
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(init, 800);
+});
 async function showTraderProfile(username) {
   var modal = document.getElementById('trader-modal');
   var content = document.getElementById('trader-modal-content');
