@@ -531,6 +531,7 @@ const ROOM_UUIDS={'general':'b42b5221-ad9b-4677-9b58-908824872be0','picks':'d21c
 async function switchRoom(slug,name,desc,skipEvent=false,roomUuid=null){
   currentRoom=roomUuid||ROOM_UUIDS[slug]||slug;
   currentRoomSlug=slug;
+  console.log('[switchRoom]',slug,'->',currentRoom);
   document.getElementById('chat-room-title').textContent=(ROOM_ICONS[slug]||'📈')+' '+name;
   document.getElementById('chat-room-desc').textContent=desc;
   document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
@@ -551,6 +552,7 @@ function subscribeToRoom(slug){
 
 // ── MESSAGES ──
 async function loadMessages(room){
+  console.log('[loadMessages] room:', room);
   const area=document.getElementById('messages-area');
   area.innerHTML='<div class="empty" style="padding:20px;">Loading...</div>';
   const{data}=await sb.from('messages').select('*').eq('room_id',room).eq('deleted',false).order('created_at',{ascending:true}).limit(100);
@@ -1024,7 +1026,7 @@ async function loadLeaderboard(){
 
 async function loadHotPicks(){
   const{data}=await sb.from('picks').select('*')
-    .or('result.is.null,result.eq.pending')
+    .is('result',null)
     .order('upvotes',{ascending:false}).limit(5);
   if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet</div>';return;}
   document.getElementById('hot-picks').innerHTML=data.map(p=>{
