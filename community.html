@@ -539,8 +539,8 @@ async function switchRoom(slug,name,desc,skipEvent=false,roomUuid=null){
   document.querySelectorAll('.room-item').forEach(el=>el.classList.remove('active'));
   if(!skipEvent&&event&&event.currentTarget) event.currentTarget.classList.add('active');
   if(msgSub){sb.removeChannel(msgSub);msgSub=null;}
-  loadMessages(slug);
-  loadSentiment(slug); // sentiment uses slug
+  loadMessages(currentRoom);
+  loadSentiment(slug);
   subscribeToRoom(slug);
   history.pushState(null,'','/community.html?room='+slug);
 }
@@ -561,7 +561,6 @@ async function loadMessages(room){
   if(!data||!data.length){area.innerHTML='<div class="empty">No messages yet. Be the first! 👋</div>';return;}
   data.forEach(m=>appendMessage(m,false));
   area.scrollTop=area.scrollHeight;
-  subscribeToRoom(room);
 }
 
 function appendMessage(msg,scroll=true){
@@ -1003,7 +1002,7 @@ async function loadLeaderboard(){
   const medals=['🥇','🥈','🥉'];
   // Fetch live prices for all open picks
   const openTickers = [...new Set(ranked.flatMap(u => (u.openPicks||[]).map(p => p.ticker)))];
-  if (openTickers.length) fetchLivePrices(openTickers);
+  if (openTickers.length) setTimeout(() => fetchLivePrices(openTickers), 5000);
   document.getElementById('leaderboard').innerHTML=ranked.map((u,i)=>{
     const color=COLORS[u.name.charCodeAt(0)%COLORS.length];
     const retColor=u.totalReturn>=0?'var(--green)':'var(--red)';
