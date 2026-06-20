@@ -384,6 +384,23 @@ const COLORS=['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE18
 // Stored per-user after leaderboard loads
 var TRADER_TIERS = {};
 
+async function loadTiers() {
+  const {data} = await sb.from('picks').select('username,result,return_pct');
+  if (!data) return;
+  const users = {};
+  data.forEach(p => {
+    if (!users[p.username]) users[p.username] = {closed:0, wins:0};
+    if (p.result === 'win' || p.result === 'loss' || p.result === 'closed') {
+      users[p.username].closed++;
+      if (p.result === 'win') users[p.username].wins++;
+    }
+  });
+  Object.entries(users).forEach(([name, s]) => {
+    const wr = s.closed ? Math.round(s.wins / s.closed * 100) : 0;
+    TRADER_TIERS[name] = calcTier(s.closed, s.wins, wr);
+  });
+}
+
 function calcTier(closedPicks, wins, wr) {
   if (closedPicks < 3) return {badge:'📊', label:'Tracking', color:'#8A95A3', bg:'#F2F4F7', tip:'Less than 3 closed picks'};
   if (wr >= 75)        return {badge:'🏆', label:'Elite',    color:'#B45309', bg:'#FEF3C7', tip:'75%+ win rate — Elite trader'};
@@ -484,6 +501,7 @@ async function init(){
   } catch(e){ console.warn('auth error',e); }
 
   try { await loadRooms(); } catch(e){ console.warn('loadRooms error',e); }
+  try { await loadTiers(); } catch(e){ console.warn('loadTiers error',e); }
   try { await loadMessages(currentRoom); } catch(e){ console.warn('loadMessages error',e); }
   try { loadSentiment(currentRoomSlug||'general'); } catch(e){}
   try { loadLeaderboard(); } catch(e){ console.warn('loadLeaderboard error',e); }
