@@ -379,6 +379,24 @@ let isLogin=false,selectedStock=null;
 let msgSub=null;
 
 const COLORS=['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309','#0891B2','#BE185D','#059669'];
+
+// ── TRADER TIER SYSTEM ────────────────────────────────────────────────────────
+// Stored per-user after leaderboard loads
+var TRADER_TIERS = {};
+
+function calcTier(closedPicks, wins, wr) {
+  if (closedPicks < 3) return {badge:'📊', label:'Tracking', color:'#8A95A3', bg:'#F2F4F7', tip:'Less than 3 closed picks'};
+  if (wr >= 75)        return {badge:'🏆', label:'Elite',    color:'#B45309', bg:'#FEF3C7', tip:'75%+ win rate — Elite trader'};
+  if (wr >= 60)        return {badge:'💎', label:'Proven',   color:'#1A6BF5', bg:'#EBF1FE', tip:'60-74% win rate — Proven trader'};
+  if (wr >= 50)        return {badge:'✅', label:'Solid',    color:'#0D9B6B', bg:'#E6F7F1', tip:'50-59% win rate — Solid trader'};
+  return                      {badge:'⚠️', label:'Caution',  color:'#D13F30', bg:'#FDECEA', tip:'Below 50% win rate'};
+}
+
+function getTierBadge(username) {
+  const t = TRADER_TIERS[username];
+  if (!t) return '';
+  return '<span title="'+t.tip+': '+t.label+'" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:'+t.bg+';color:'+t.color+';margin-left:4px;cursor:help;">'+t.badge+' '+t.label+'</span>';
+}
 var LIVE_PRICES={};
 var LIVE_PRICES_LAST_UPDATE=0;
 
@@ -593,6 +611,7 @@ function appendMessage(msg,scroll=true){
         <div class="msg-header">
           <span class="msg-username">${msg.username}</span>
           ${getRoleBadge(msg.username)}
+          ${getTierBadge(msg.username)}
           <span class="msg-time">${time}</span>
           <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:500;">Pick</span>
         </div>
@@ -618,7 +637,7 @@ function appendMessage(msg,scroll=true){
   }else{
     div.innerHTML=`<div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
       <div class="msg-content">
-        <div class="msg-header"><span class="msg-username">${msg.username}</span>${getRoleBadge(msg.username)}<span class="msg-time">${time}</span></div>
+        <div class="msg-header"><span class="msg-username">${msg.username}</span>${getRoleBadge(msg.username)}${getTierBadge(msg.username)}<span class="msg-time">${time}</span></div>
         <div class="msg-body">${escHtml(msg.content)}</div>
         ${modActions}
       </div>`;
@@ -991,6 +1010,11 @@ async function loadLeaderboard(){
       if(p.return_pct!=null){u.totalReturn+=p.return_pct;u.returns.push(p.return_pct);}
     }
   });
+  // Build tier data for all traders
+  Object.entries(users).forEach(([name,s]) => {
+    const wr = s.closedPicks ? Math.round(s.wins/s.closedPicks*100) : 0;
+    TRADER_TIERS[name] = calcTier(s.closedPicks, s.wins, wr);
+  });
   const ranked=Object.entries(users).map(([name,s])=>{
     const wr=s.closedPicks?Math.round(s.wins/s.closedPicks*100):0;
     const avgReturn=s.returns.length?(s.totalReturn/s.returns.length):0;
@@ -1010,7 +1034,7 @@ async function loadLeaderboard(){
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
         <div style="font-size:13px;font-weight:700;width:20px;">${medals[i]||i+1}</div>
         <div class="leader-avatar" style="background:${color};">${u.name[0].toUpperCase()}</div>
-        <div style="flex:1;"><div class="leader-name" style="color:var(--accent);">${u.name}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
+        <div style="flex:1;"><div style="display:flex;align-items:center;gap:4px;"><div class="leader-name" style="color:var(--accent);">${u.name}</div>${getTierBadge(u.name)}</div><div style="font-size:11px;color:var(--text3);">${u.picks} picks · ${u.closedPicks} closed</div></div>
         <div style="font-size:14px;font-weight:700;color:${retColor};font-family:'DM Mono',monospace;" title="Closed P&L">${u.closedPicks>0?(u.totalReturn>=0?'+':'')+u.totalReturn.toFixed(1)+'% closed':'📊 Tracking...'}</div>
       </div>
       <div style="display:flex;gap:10px;padding-left:48px;font-size:11px;color:var(--text3);flex-wrap:wrap;">
@@ -1242,7 +1266,7 @@ async function showTraderProfile(username) {
 
   content.innerHTML = '<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">'
     + '<div style="width:48px;height:48px;border-radius:50%;background:' + color + ';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;">' + username[0].toUpperCase() + '</div>'
-    + '<div><div style="font-size:18px;font-weight:700;">' + username + '</div>'
+    + '<div><div style="font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;">' + username + getTierBadge(username) + '</div>'
     + '<div style="font-size:13px;color:var(--text3);">' + picks.length + ' picks &nbsp;&middot;&nbsp; ' + closed.length + ' closed &nbsp;&middot;&nbsp; ' + wr + '% win rate &nbsp;&middot;&nbsp; <span style="color:' + (totalReturn>=0?'var(--green)':'var(--red)') + ';">' + (totalReturn>=0?'+':'') + totalReturn.toFixed(1) + '% total return</span></div>'
     + '</div></div>'
     + '<div style="max-height:420px;overflow-y:auto;">' + picksHtml + '</div>';
