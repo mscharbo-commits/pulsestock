@@ -369,7 +369,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 const SUPABASE_URL='https://ttcprqkoibiztibhpsrp.supabase.co';
 const SUPABASE_KEY='sb_publishable_iQhPAY-M-OUbFVbLQyCp5g_540rSkd1';
 const ADMIN_EMAIL='mscharbo@gmail.com';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{storageKey:'sb-'+SUPABASE_URL.split('.')[0].split('//')[1]+'-auth-token'}
+});
 
 let currentUser=null,currentProfile=null,currentRole='member';
 let currentRoom='b42b5221-ad9b-4677-9b58-908824872be0',currentRoomSlug='general',currentRoomData=null;
@@ -1025,10 +1027,12 @@ async function loadLeaderboard(){
 }
 
 async function loadHotPicks(){
-  const{data}=await sb.from('picks').select('*')
+  console.log('[loadHotPicks] starting...');
+  const{data,error}=await sb.from('picks').select('*')
     .is('result',null)
     .order('upvotes',{ascending:false}).limit(5);
-  if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet</div>';return;}
+  console.log('[loadHotPicks] data:', data?.length, 'error:', error);
+  if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet. Error: '+(error?.message||'none')+'</div>';return;}
   document.getElementById('hot-picks').innerHTML=data.map(p=>{
     const isBuy=p.direction==='BUY';
     const cur=LIVE_PRICES[p.ticker];
