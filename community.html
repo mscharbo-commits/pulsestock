@@ -1033,6 +1033,7 @@ async function loadHotPicks(){
     .order('upvotes',{ascending:false}).limit(5);
   console.log('[loadHotPicks] data:', data?.length, 'error:', error);
   if(!data||!data.length){document.getElementById('hot-picks').innerHTML='<div class="empty" style="padding:16px;">No active picks yet. Error: '+(error?.message||'none')+'</div>';return;}
+  console.log('[loadHotPicks] rendering', data.length, 'picks, element:', document.getElementById('hot-picks'));
   document.getElementById('hot-picks').innerHTML=data.map(p=>{
     const isBuy=p.direction==='BUY';
     const cur=LIVE_PRICES[p.ticker];
