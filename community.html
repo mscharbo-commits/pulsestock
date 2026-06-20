@@ -392,6 +392,14 @@ function calcTier(closedPicks, wins, wr) {
   return                      {badge:'⚠️', label:'Caution',  color:'#D13F30', bg:'#FDECEA', tip:'Below 50% win rate'};
 }
 
+function refreshTierBadges() {
+  // Update tier badges in all already-rendered messages
+  document.querySelectorAll('[data-tier-username]').forEach(function(el) {
+    const username = el.getAttribute('data-tier-username');
+    el.innerHTML = getTierBadge(username);
+  });
+}
+
 function getTierBadge(username) {
   const t = TRADER_TIERS[username];
   if (!t) return '';
@@ -611,7 +619,7 @@ function appendMessage(msg,scroll=true){
         <div class="msg-header">
           <span class="msg-username">${msg.username}</span>
           ${getRoleBadge(msg.username)}
-          ${getTierBadge(msg.username)}
+          <span data-tier-username="${msg.username}">${getTierBadge(msg.username)}</span>
           <span class="msg-time">${time}</span>
           <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:500;">Pick</span>
         </div>
@@ -637,7 +645,7 @@ function appendMessage(msg,scroll=true){
   }else{
     div.innerHTML=`<div class="msg-avatar" style="background:${color};">${msg.username[0].toUpperCase()}</div>
       <div class="msg-content">
-        <div class="msg-header"><span class="msg-username">${msg.username}</span>${getRoleBadge(msg.username)}${getTierBadge(msg.username)}<span class="msg-time">${time}</span></div>
+        <div class="msg-header"><span class="msg-username">${msg.username}</span>${getRoleBadge(msg.username)}<span data-tier-username="${msg.username}">${getTierBadge(msg.username)}</span><span class="msg-time">${time}</span></div>
         <div class="msg-body">${escHtml(msg.content)}</div>
         ${modActions}
       </div>`;
@@ -1015,6 +1023,8 @@ async function loadLeaderboard(){
     const wr = s.closedPicks ? Math.round(s.wins/s.closedPicks*100) : 0;
     TRADER_TIERS[name] = calcTier(s.closedPicks, s.wins, wr);
   });
+  // Refresh badges in already-rendered messages
+  setTimeout(refreshTierBadges, 100);
   const ranked=Object.entries(users).map(([name,s])=>{
     const wr=s.closedPicks?Math.round(s.wins/s.closedPicks*100):0;
     const avgReturn=s.returns.length?(s.totalReturn/s.returns.length):0;
