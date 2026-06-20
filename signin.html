@@ -247,11 +247,11 @@ body{font-family:'DM Sans',sans-serif;background:#F7F8FA;color:#0D1117;-webkit-f
       <div id="si-error" style="display:none;background:#FDECEA;color:#D13F30;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
       <div style="margin-bottom:10px;">
         <label style="font-size:12px;font-weight:600;color:#4A5568;display:block;margin-bottom:4px;">Email</label>
-        <input id="si-email" type="email" placeholder="you@email.com" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signIn()"/>
+        <input id="si-email" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signIn()"/>
       </div>
       <div style="margin-bottom:16px;">
         <label style="font-size:12px;font-weight:600;color:#4A5568;display:block;margin-bottom:4px;">Password</label>
-        <input id="si-password" type="password" placeholder="Your password" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signIn()"/>
+        <input id="si-password" type="password" placeholder="Your password" autocomplete="current-password" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signIn()"/>
       </div>
       <button id="si-btn" onclick="signIn()" style="width:100%;padding:12px;background:#1A6BF5;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Sign In →</button>
       <div style="text-align:center;">
@@ -446,11 +446,22 @@ async function signIn() {
   const btn = document.getElementById('si-btn');
   errEl.style.display = 'none';
   btn.textContent = 'Signing in...'; btn.disabled = true;
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     errEl.textContent = error.message; errEl.style.display = 'block';
     btn.textContent = 'Sign In'; btn.disabled = false;
   } else {
+    // Check if profile exists, create if not (for email-confirmed users)
+    if (data.user) {
+      const { data: profile } = await sb.from('profiles').select('id').eq('id', data.user.id).single();
+      if (!profile) {
+        const pendingUsername = localStorage.getItem('pending_username') || email.split('@')[0];
+        const pendingColor = localStorage.getItem('pending_color') || '#1A6BF5';
+        await sb.from('profiles').insert({ id: data.user.id, username: pendingUsername, avatar_color: pendingColor });
+        localStorage.removeItem('pending_username');
+        localStorage.removeItem('pending_color');
+      }
+    }
     window.location.href = '/';
   }
 }
@@ -470,15 +481,28 @@ async function signUp() {
     btn.textContent = 'Create Account'; btn.disabled = false;
     return;
   }
-  // Create profile
+  // Handle both confirmed and unconfirmed signup
   if (data.user) {
+    // Email confirmation disabled - user created immediately
     await sb.from('profiles').insert({
       id: data.user.id,
       username,
       avatar_color: ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309'][Math.floor(Math.random()*5)]
     });
+    window.location.href = '/';
+  } else if (data.session === null) {
+    // Email confirmation required
+    errEl.style.display = 'block';
+    errEl.style.background = '#E6F7F1';
+    errEl.style.color = '#0D9B6B';
+    errEl.textContent = 'Account created! Check your email to confirm, then sign in.';
+    btn.textContent = 'Create Account'; btn.disabled = false;
+    // Store username for after confirmation
+    localStorage.setItem('pending_username', username);
+    localStorage.setItem('pending_color', ['#1A6BF5','#0D9B6B','#D13F30','#7C3AED','#B45309'][Math.floor(Math.random()*5)]);
+  } else {
+    window.location.href = '/';
   }
-  window.location.href = '/';
 }
 
 async function resetPassword() {
@@ -496,15 +520,15 @@ async function resetPassword() {
       <div id="su-error" style="display:none;background:#FDECEA;color:#D13F30;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
       <div style="margin-bottom:10px;">
         <label style="font-size:12px;font-weight:600;color:#4A5568;display:block;margin-bottom:4px;">Username</label>
-        <input id="su-username" type="text" placeholder="e.g. BullishMark" maxlength="20" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;"/>
+        <input id="su-username" type="text" placeholder="e.g. BullishMark" autocomplete="username" maxlength="20" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;"/>
       </div>
       <div style="margin-bottom:10px;">
         <label style="font-size:12px;font-weight:600;color:#4A5568;display:block;margin-bottom:4px;">Email</label>
-        <input id="su-email" type="email" placeholder="you@email.com" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;"/>
+        <input id="su-email" type="email" placeholder="you@email.com" autocomplete="email" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;"/>
       </div>
       <div style="margin-bottom:16px;">
         <label style="font-size:12px;font-weight:600;color:#4A5568;display:block;margin-bottom:4px;">Password</label>
-        <input id="su-password" type="password" placeholder="Min 6 characters" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signUp()"/>
+        <input id="su-password" type="password" placeholder="Min 6 characters" autocomplete="new-password" style="width:100%;padding:10px 14px;border:1.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-family:inherit;" onkeydown="if(event.key==='Enter')signUp()"/>
       </div>
       <button id="su-btn" onclick="signUp()" style="width:100%;padding:12px;background:#0D9B6B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Create Free Account →</button>
     </div>
