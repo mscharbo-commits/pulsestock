@@ -208,17 +208,14 @@ async function init() {
   const h = etTime.getHours();
   const isWeekday = etTime.getDay() >= 1 && etTime.getDay() <= 5;
   let type = 'pre';
-  if (!isWeekday) {
-    type = 'pre'; // weekend shows pre-market for next week
-  } else if (h >= 17 || h < 4) {
-    type = 'post'; // after 5pm ET show post-market
-  } else if (h >= 9) {
-    type = 'pre'; // during market hours show pre-market recap
+  if (isWeekday && (h >= 17 || h < 4)) {
+    type = 'post';
   }
-  // Highlight correct tab
-  document.querySelectorAll('.brief-tab').forEach(t => t.classList.remove('active'));
-  const activeTab = document.querySelector('.brief-tab[data-type="'+type+'"]');
-  if (activeTab) activeTab.classList.add('active');
+  // Update tab UI
+  const tabs = document.querySelectorAll('.briefing-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (type === 'post' && tabs[1]) tabs[1].classList.add('active');
+  else if (tabs[0]) tabs[0].classList.add('active');
   await loadBriefing(type);
 }
 
@@ -514,7 +511,7 @@ async function subscribe() {
   }
 }
 
-init();
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
