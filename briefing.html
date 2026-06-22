@@ -202,7 +202,24 @@ let briefingData = null;
 async function init() {
   updateTimeDisplay();
   setInterval(updateTimeDisplay, 60000);
-  await loadBriefing('pre');
+  // Auto-detect briefing type based on ET time
+  const now = new Date();
+  const etTime = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  const h = etTime.getHours();
+  const isWeekday = etTime.getDay() >= 1 && etTime.getDay() <= 5;
+  let type = 'pre';
+  if (!isWeekday) {
+    type = 'pre'; // weekend shows pre-market for next week
+  } else if (h >= 17 || h < 4) {
+    type = 'post'; // after 5pm ET show post-market
+  } else if (h >= 9) {
+    type = 'pre'; // during market hours show pre-market recap
+  }
+  // Highlight correct tab
+  document.querySelectorAll('.brief-tab').forEach(t => t.classList.remove('active'));
+  const activeTab = document.querySelector('.brief-tab[data-type="'+type+'"]');
+  if (activeTab) activeTab.classList.add('active');
+  await loadBriefing(type);
 }
 
 function updateTimeDisplay() {
