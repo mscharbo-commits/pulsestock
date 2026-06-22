@@ -32,5 +32,5 @@ export default async function handler(req) {
   const [indicesData,sectorsData,watchlistData,earnings,news,economic,macro] = await Promise.all([Promise.all(indices.map(getQuote)),Promise.all(sectors.map(getQuote)),Promise.all(watchlist.map(getQuote)),getEarnings(),getNews(),getEcon(),getMacro()]);
   const sorted = [...watchlistData].sort((a,b) => Math.abs(b.pct)-Math.abs(a.pct));
   const sortedSectors = [...sectorsData].sort((a,b) => b.pct-a.pct).map(s => ({...s,name:sectorNames[s.symbol]||s.symbol}));
-  return new Response(JSON.stringify({ type, timestamp: new Date().toISOString(), indices: indicesData, sectors: sortedSectors, gainers: sorted.filter(s=>s.pct>0).slice(0,5), losers: sorted.filter(s=>s.pct<0).slice(0,5), earnings, news, economic, commodities: macro.commodities, fx: macro.fx, global: macro.global }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+  return new Response(JSON.stringify({ type, timestamp: new Date().toISOString(), indices: indicesData, sectors: sortedSectors, gainers: sorted.filter(s=>s.pct>0).slice(0,5), losers: sorted.filter(s=>s.pct<0).slice(0,5), earnings, news, economic, commodities: macro.commodities, fx: macro.fx, global: macro.global }), { headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store, no-cache' } });
 }
