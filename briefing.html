@@ -259,7 +259,7 @@ async function loadBriefing(type) {
   el.innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading market data...</span></div>';
 
   try {
-    const r = await fetch('/api/briefing?type=' + type);
+    const r = await fetch('/api/briefing?type=' + type + '&t=' + Date.now());
     briefingData = await r.json();
     document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     renderBriefing(briefingData, type);
@@ -282,13 +282,15 @@ function renderBriefing(data, type) {
   // Indices
   const indicesHTML = (data.indices || []).map(i => {
     const up = i.pct >= 0;
-    const price = i.price || i.prevClose || 0;
+    const livePrice = (i.price && i.price > 0) ? i.price : 0;
+    const price = livePrice || i.prevClose || 0;
+    const showingPrev = livePrice === 0 && price > 0;
     const isAH = i.isAfterHours || price === 0;
     return '<div class="index-tile">'
       + '<div class="index-sym">' + i.symbol + '</div>'
       + '<div class="index-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
       + (isAH
-        ? '<div style="font-size:10.5px;color:var(--text3);">Prev Close</div>'
+        ? '<div style="font-size:10.5px;color:var(--text3);">Prev Close: $' + (i.prevClose||price).toFixed(2) + '</div>'
         : '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>')
       + '</div>';
   }).join('');
