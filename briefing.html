@@ -262,6 +262,7 @@ async function loadBriefing(type) {
     const r = await fetch('/api/briefing?type=' + type + '&t=' + Date.now());
     briefingData = await r.json();
     document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    console.log('[briefing] data received:', JSON.stringify(briefingData.indices?.slice(0,2)));
     renderBriefing(briefingData, type);
   } catch(e) {
     el.innerHTML = '<div class="empty">Failed to load market data. Please try again.</div>';
