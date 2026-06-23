@@ -539,92 +539,70 @@ async function showLiveMarket(btn){
 
 async function renderLiveMarket(){
   var el=document.getElementById('briefing-content');
-  var FK='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
-  var PRI=[['SPY','S&P 500'],['QQQ','Nasdaq'],['DIA','Dow Jones'],['IWM','Russell 2000'],
-    ['AAPL','Apple'],['NVDA','Nvidia'],['MSFT','Microsoft'],['META','Meta'],
-    ['GOOGL','Alphabet'],['AMZN','Amazon'],['TSLA','Tesla'],['JPM','JPMorgan'],['AMD','AMD'],
-    ['GLD','Gold'],['USO','Oil']];
-  var SEC=[['XLK','Technology'],['XLF','Financials'],['XLE','Energy'],['XLV','Healthcare'],
-    ['XLI','Industrials'],['XLY','Consumer Disc.'],['XLP','Consumer Staples'],
-    ['XLU','Utilities'],['XLRE','Real Estate'],['XLC','Communication']];
+  el.innerHTML='<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live market data...</span></div>';
   var now=new Date(),et=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
   var h=et.getHours(),m=et.getMinutes();
   var isOpen=et.getDay()>=1&&et.getDay()<=5&&(h>9||(h===9&&m>=30))&&h<16;
-  var sc=isOpen?'#0D9B6B':'#B45309',st=isOpen?'&#x1F7E2; Market Open':'&#x1F7E1; After Hours';
-  var Q={};window._sq={};
-
-  function mkTile(sym,label,isSec){
-    var q=Q[sym];
-    if(!q) return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;opacity:.4;"><b style="font-size:12px;">'+sym+'</b><br><span style="font-size:11px;color:var(--text3);">'+label+' loading...</span></div>';
-    var up=q.pct>=0,c=up?'var(--green)':'var(--red)',bg=up?'var(--green-bg)':'var(--red-bg)';
-    if(isSec){
-      window._sq[sym]={sym:sym,label:label,quote:q};
-      return '<div class="sqt" data-sym="'+sym+'" style="background:var(--surface);border:1px solid var(--border);border-left:4px solid '+c+';border-radius:10px;padding:12px;cursor:pointer;">'
-        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><b style="font-size:13px;">'+label+'</b><span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
-        +'<div style="font-size:12px;color:var(--text3);">'+sym+' &middot; $'+q.price.toFixed(2)+'</div>'
-        +'<div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600;">&#x1F9E0; AI Analysis</div></div>';
-    }
-    var rw=q.high>q.low?Math.min(100,Math.max(0,((q.price-q.low)/(q.high-q.low))*100)).toFixed(0):50;
-    return '<div data-goto="'+sym+'" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;">'
-      +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><div><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;">'+sym+'</div><div style="font-size:11px;color:var(--text3);">'+label+'</div></div><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
-      +'<div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;">$'+q.price.toFixed(2)+'</div>'
-      +'<div style="font-size:11px;color:'+c+';margin-top:2px;">'+(up?'&#x25B2;':'&#x25BC;')+' '+Math.abs(q.change).toFixed(2)+'</div>'
-      +'<div style="margin-top:8px;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:'+c+';border-radius:2px;width:'+rw+'%;"></div></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;"><span>L $'+q.low.toFixed(2)+'</span><span>H $'+q.high.toFixed(2)+'</span></div></div>';
+  var sc=isOpen?'#0D9B6B':'#B45309',st=isOpen?(String.fromCodePoint(0x1F7E2)+' Market Open'):(String.fromCodePoint(0x1F7E1)+' After Hours');
+  var t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var d;
+  try{
+    var resp=await fetch('/api/briefing?type=post&t='+Date.now());
+    d=await resp.json();
+  }catch(e){
+    el.innerHTML='<div class="empty">Failed to load. <button onclick="renderLiveMarket()" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">Retry</button></div>';
+    return;
   }
+  window._sq={};
+  function pct(v){var n=parseFloat(v||0);return(n>=0?'+':'')+n.toFixed(2)+'%';}
+  function clr(v){return parseFloat(v||0)>=0?'var(--green)':'var(--red)';}
+  function bgc(v){return parseFloat(v||0)>=0?'var(--green-bg)':'var(--red-bg)';}
+  var indH=(d.indices||[]).map(function(i){
+    var up=parseFloat(i.pct||0)>=0,c=clr(i.pct),pr=i.price||i.prevClose||0;
+    return '<div class="live-goto" data-sym="'+i.symbol+'" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;">'+i.symbol+'</div>'
+      +'<div style="font-size:18px;font-weight:700;font-family:DM Mono,monospace;color:'+c+';">$'+parseFloat(pr).toFixed(2)+'</div>'
+      +'<div style="font-size:12px;font-weight:600;color:'+c+';margin-top:4px;">'+(up?'&#x25B2;':'&#x25BC;')+' '+pct(i.pct)+'</div>'
+      +'</div>';
+  }).join('');
+  var gainH=(d.gainers||[]).slice(0,5).map(function(s){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+      +'<div class="live-goto" data-sym="'+s.symbol+'" style="font-size:14px;font-weight:700;color:var(--accent);cursor:pointer;">'+s.symbol+'</div>'
+      +'<div style="font-size:13px;font-weight:600;color:var(--green);">&#x25B2; '+pct(s.pct)+'</div></div>';
+  }).join('')||'<div style="color:var(--text3);padding:10px 0;font-size:13px;">No data</div>';
+  var lossH=(d.losers||[]).slice(0,5).map(function(s){
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+      +'<div class="live-goto" data-sym="'+s.symbol+'" style="font-size:14px;font-weight:700;color:var(--accent);cursor:pointer;">'+s.symbol+'</div>'
+      +'<div style="font-size:13px;font-weight:600;color:var(--red);">&#x25BC; '+pct(s.pct)+'</div></div>';
+  }).join('')||'<div style="color:var(--text3);padding:10px 0;font-size:13px;">No data</div>';
+  var secH=(d.sectors||[]).map(function(s){
+    var nm=s.name||s.symbol,c=clr(s.pct);
+    window._sq[s.symbol]={sym:s.symbol,label:nm,quote:{price:s.price||0,pct:parseFloat(s.pct||0),change:0,low:0,high:0}};
+    return '<div class="sqt" data-sym="'+s.symbol+'" style="background:var(--surface);border:1px solid var(--border);border-left:4px solid '+c+';border-radius:10px;padding:12px;cursor:pointer;">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><b style="font-size:13px;">'+nm+'</b>'
+      +'<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bgc(s.pct)+';color:'+c+';">'+pct(s.pct)+'</span></div>'
+      +'<div style="font-size:11px;color:var(--accent);margin-top:4px;font-weight:600;">&#x1F9E0; AI Analysis</div></div>';
+  }).join('')||'<div style="color:var(--text3);font-size:13px;">No sector data</div>';
 
-  function mkGrid(title,rows,isSec){
-    return '<div style="margin-bottom:24px;"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'+title+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;">'+rows.map(function(r){return mkTile(r[0],r[1],isSec);}).join('')+'</div></div>';
-  }
+  el.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">'
+    +'<div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:'+sc+'20;color:'+sc+';">'+st+'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;">'
+    +'<button onclick="broadMarketAI()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F9E0; Broad Market AI</button>'
+    +'<span style="font-size:12px;color:var(--text3);">'+t+'</span></div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:24px;">'+indH+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">&#x1F680; Top Gainers</div>'+gainH+'</div>'
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">&#x1F4C9; Top Losers</div>'+lossH+'</div></div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">&#x1F3ED; Sectors &mdash; Click for AI Analysis</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">'+secH+'</div>';
 
-  function allSec(){return SEC.every(function(s){return Q[s[0]];});}
-
-  function draw(){
-    var t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">'
-      +'<div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:'+sc+'20;color:'+sc+';">'+st+'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +(allSec()?'<button onclick="broadMarketAI()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F9E0; Broad Market AI</button>':'<span style="font-size:12px;color:var(--text3);">Loading...</span>')
-      +'<span style="font-size:12px;color:var(--text3);">'+t+'</span></div></div>'
-      +mkGrid('&#x1F4CA; Indices',PRI.slice(0,4),false)
-      +mkGrid('&#x1F4BB; Mega Cap',PRI.slice(4,13),false)
-      +mkGrid('&#x1F947; Commodities',PRI.slice(13),false)
-      +mkGrid('&#x1F3ED; Sectors &mdash; Click for AI',SEC,true);
-    document.querySelectorAll('.sqt').forEach(function(t){t.onclick=function(){openSectorAI(this.dataset.sym);};});
-    document.querySelectorAll('[data-goto]').forEach(function(t){t.onclick=function(){window.location='/?t='+this.dataset.goto;};});
-  }
-
-  draw();
-
-  async function fetchQ(sym) {
-    try {
-      var r=await fetch('https://finnhub.io/api/v1/quote?symbol='+sym+'&token='+FK);
-      if(r.status===429) return null;
-      var d=await r.json();
-      return (d&&d.c>0)?{price:d.c,pct:d.dp,change:d.d,open:d.o,high:d.h,low:d.l,prev:d.pc}:null;
-    }catch(e){return null;}
-  }
-
-  // Fetch in batches of 4 with 500ms between batches
-  async function fetchBatch(items, isArr) {
-    var batchSize=4;
-    for(var i=0;i<items.length;i+=batchSize) {
-      var batch=items.slice(i,i+batchSize);
-      var results=await Promise.all(batch.map(function(item){
-        return fetchQ(isArr?item[0]:item);
-      }));
-      batch.forEach(function(item,idx){
-        if(results[idx]) Q[isArr?item[0]:item]=results[idx];
-      });
-      draw();
-      if(i+batchSize<items.length) await new Promise(function(res){setTimeout(res,500);});
-    }
-  }
-
-  await fetchBatch(PRI, true);
-  await fetchBatch(SEC, true);
+  document.querySelectorAll('.sqt').forEach(function(tile){tile.onclick=function(){openSectorAI(this.dataset.sym);};});
+  document.querySelectorAll('.live-goto').forEach(function(tile){tile.onclick=function(){window.location='/?t='+this.dataset.sym;};});
 }
+
 
 async function broadMarketAI(){
   var modal=document.getElementById('sector-modal');
