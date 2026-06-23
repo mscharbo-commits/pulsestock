@@ -333,33 +333,41 @@ async function renderLiveMarket() {
   }
 
   function sectorSection(title, syms) {
-    const sectorNames = {
-      'XLK':'Technology','XLF':'Financials','XLE':'Energy','XLV':'Healthcare',
-      'XLI':'Industrials','XLY':'Consumer Disc.','XLP':'Consumer Staples',
-      'XLU':'Utilities','XLRE':'Real Estate','XLC':'Communication'
+    var sectorNames = {
+      XLK:"Technology",XLF:"Financials",XLE:"Energy",XLV:"Healthcare",
+      XLI:"Industrials",XLY:"Consumer Disc.",XLP:"Consumer Staples",
+      XLU:"Utilities",XLRE:"Real Estate",XLC:"Communication"
     };
-    // Store quotes globally for onclick access
-    window._sectorQuotes = window._sectorQuotes || {};
-    const items = syms.map(function(s) {
-      const q = quotes[s];
-      if (!q) return '';
-      window._sectorQuotes[s] = {sym:s, label:sectorNames[s]||s, quote:q};
-      const up = q.pct >= 0;
-      const color = up ? 'var(--green)' : 'var(--red)';
-      const bg = up ? 'var(--green-bg)' : 'var(--red-bg)';
-      const label = sectorNames[s] || s;
-      const pct = (up?'+':'') + q.pct.toFixed(2) + '%';
-      return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid '+color+';border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="window._sectorQuotes&&openSectorAnalysis(window._sectorQuotes[''+s+''].sym,window._sectorQuotes[''+s+''].label,window._sectorQuotes[''+s+''].quote)">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
-        + '<div style="font-size:13px;font-weight:700;">'+label+'</div>'
-        + '<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+color+';">'+pct+'</span>'
-        + '</div>'
-        + '<div style="font-size:12px;color:var(--text3);">'+s+' · $'+q.price.toFixed(2)+'</div>'
-        + '<div style="font-size:11px;color:var(--accent);margin-top:6px;">🧠 Click for AI analysis →</div>'
-        + '</div>';
-    }).filter(Boolean).join('');
-    if (!items) return '';
-    return '<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+title+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">'+items+'</div></div>';
+    if (!window._sq) window._sq = {};
+    var grid = document.createElement("div");
+    grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;";
+    syms.forEach(function(s) {
+      var q = quotes[s];
+      if (!q) return;
+      window._sq[s] = {sym:s, label:sectorNames[s]||s, quote:q};
+      var up = q.pct >= 0;
+      var color = up ? "var(--green)" : "var(--red)";
+      var bg = up ? "var(--green-bg)" : "var(--red-bg)";
+      var label = sectorNames[s] || s;
+      var card = document.createElement("div");
+      card.style.cssText = "background:var(--surface);border:1px solid var(--border);border-left:3px solid "+color+";border-radius:10px;padding:12px 14px;cursor:pointer;";
+      card.innerHTML = "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;\">"
+        + "<div style=\"font-size:13px;font-weight:700;\">"+label+"</div>"
+        + "<span style=\"font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:"+bg+";color:"+color+";\">"+( up?"+":"")+q.pct.toFixed(2)+"%</span>"
+        + "</div>"
+        + "<div style=\"font-size:12px;color:var(--text3);\">"+s+" · $"+q.price.toFixed(2)+"</div>"
+        + "<div style=\"font-size:11px;color:var(--accent);margin-top:6px;\">🧠 Click for AI analysis →</div>";
+      card.addEventListener("click", (function(sym){ return function(){ openSectorAnalysis(sym); }; })(s));
+      grid.appendChild(card);
+    });
+    var wrap = document.createElement("div");
+    wrap.style.marginBottom = "24px";
+    var titleDiv = document.createElement("div");
+    titleDiv.style.cssText = "font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;";
+    titleDiv.textContent = title;
+    wrap.appendChild(titleDiv);
+    wrap.appendChild(grid);
+    return wrap.outerHTML;
   }
 
 
@@ -674,7 +682,11 @@ function closeSectorModal() {
   document.getElementById('sector-modal').style.display = 'none';
 }
 
-async function openSectorAnalysis(sym, label, quote) {
+async function openSectorAnalysis(sym) {
+  var stored = window._sq && window._sq[sym];
+  if (!stored) return;
+  var label = stored.label;
+  var quote = stored.quote;
   const modal = document.getElementById('sector-modal');
   const titleEl = document.getElementById('sector-modal-title');
   const priceEl = document.getElementById('sector-modal-price');
