@@ -248,7 +248,12 @@ async function switchBriefing(type, btn) {
   document.querySelectorAll('.briefing-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('briefing-title').textContent = type === 'pre' ? '🌅 Pre-Market Briefing' : '🌆 Post-Market Wrap';
-  await loadBriefing(type);
+  try {
+    await loadBriefing(type);
+  } catch(e) {
+    console.error('[switchBriefing] error:', e);
+    document.getElementById('briefing-content').innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
 }
 
 async function loadBriefing(type) {
@@ -257,12 +262,18 @@ async function loadBriefing(type) {
 
   try {
     const r = await fetch('/api/briefing?type=' + type + '&t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     briefingData = await r.json();
     document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    console.log('[briefing] data received:', JSON.stringify(briefingData.indices?.slice(0,2)));
-    renderBriefing(briefingData, type);
+    try {
+      renderBriefing(briefingData, type);
+    } catch(e) {
+      console.error('[renderBriefing] error:', e);
+      el.innerHTML = '<div class="empty">Render error: ' + e.message + '</div>';
+    }
   } catch(e) {
-    el.innerHTML = '<div class="empty">Failed to load market data. Please try again.</div>';
+    console.error('[loadBriefing] error:', e);
+    el.innerHTML = '<div class="empty">Error loading data: ' + e.message + '. <button onclick="loadBriefing(currentType)" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">Retry</button></div>';
   }
 }
 
