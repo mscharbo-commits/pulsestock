@@ -332,6 +332,32 @@ async function renderLiveMarket() {
     </div>`;
   }
 
+  function sectorSection(title, syms) {
+    const sectorNames = {
+      'XLK':'Technology','XLF':'Financials','XLE':'Energy','XLV':'Healthcare',
+      'XLI':'Industrials','XLY':'Consumer Disc.','XLP':'Consumer Staples',
+      'XLU':'Utilities','XLRE':'Real Estate','XLC':'Communication'
+    };
+    const items = syms.map(s => {
+      const q = quotes[s];
+      if (!q) return '';
+      const up = q.pct >= 0;
+      const color = up ? 'var(--green)' : 'var(--red)';
+      const bg = up ? 'var(--green-bg)' : 'var(--red-bg)';
+      const label = sectorNames[s] || s;
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ' + color + ';border-radius:10px;padding:12px 14px;cursor:pointer;transition:box-shadow .15s;" onclick="openSectorAnalysis('' + s + '','' + label + '',' + JSON.stringify(q) + ')" onmouseover="this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+        '<div style="font-size:13px;font-weight:700;">' + label + '</div>' +
+        '<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + bg + ';color:' + color + ';">' + (up?'+':'') + q.pct.toFixed(2) + '%</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text3);">' + s + ' · $' + q.price.toFixed(2) + '</div>' +
+        '<div style="font-size:11px;color:var(--accent);margin-top:6px;">🧠 Click for AI analysis</div>' +
+        '</div>';
+    }).filter(Boolean).join('');
+    if (!items) return '';
+    return '<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">' + title + '</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">' + items + '</div></div>';
+  }
+
   function section(title, syms) {
     const items = syms.map(s => {
       const item = WATCHLIST.find(w=>w.sym===s);
@@ -354,7 +380,7 @@ async function renderLiveMarket() {
     ${section('📊 Major Indices', ['SPY','QQQ','DIA','IWM'])}
     ${section('💻 Mega Cap Tech', ['AAPL','NVDA','MSFT','META','GOOGL','AMZN','TSLA','AMD'])}
     ${section('🏦 Financials', ['JPM'])}
-    ${section('🏭 Sectors', ['XLK','XLF','XLE','XLV','XLI'])}
+    ${sectorSection('🏭 Sectors', ['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC'])}
     ${section('🥇 Commodities', ['GLD','USO'])}
   `;
 }
@@ -639,7 +665,124 @@ async function subscribe() {
   }
 }
 
+function closeSectorModal() {
+  document.getElementById('sector-modal').style.display = 'none';
+}
+
+async function openSectorAnalysis(sym, label, quote) {
+  const modal = document.getElementById('sector-modal');
+  const titleEl = document.getElementById('sector-modal-title');
+  const priceEl = document.getElementById('sector-modal-price');
+  const bodyEl = document.getElementById('sector-modal-body');
+
+  const up = quote.pct >= 0;
+  const color = up ? 'var(--green)' : 'var(--red)';
+
+  titleEl.innerHTML = label + ' Sector <span style="font-size:14px;font-weight:700;padding:2px 10px;border-radius:10px;background:' + (up?'var(--green-bg)':'var(--red-bg)') + ';color:' + color + ';margin-left:8px;">' + (up?'+':'') + quote.pct.toFixed(2) + '%</span>';
+  priceEl.textContent = sym + ' · $' + quote.price.toFixed(2) + ' · Change: ' + (up?'+':'') + quote.change.toFixed(2) + ' · Range: $' + quote.low.toFixed(2) + ' – $' + quote.high.toFixed(2);
+  bodyEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:var(--text3);"><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:spin 1s linear infinite;"></div> Analyzing ' + label + ' sector performance...</div>';
+  modal.style.display = 'flex';
+
+  // Add spin animation if not present
+  if (!document.getElementById('spin-style')) {
+    const style = document.createElement('style');
+    style.id = 'spin-style';
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  }
+
+  // Fetch top stocks in this sector for context
+  const FINNHUB = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  const sectorStocks = {
+    'XLK': ['AAPL','MSFT','NVDA','AMD','AVGO'],
+    'XLF': ['JPM','BAC','GS','MS','WFC'],
+    'XLE': ['XOM','CVX','COP','SLB','EOG'],
+    'XLV': ['JNJ','UNH','PFE','ABBV','MRK'],
+    'XLI': ['CAT','HON','UPS','GE','RTX'],
+    'XLY': ['AMZN','TSLA','HD','MCD','NKE'],
+    'XLP': ['PG','KO','PEP','WMT','COST'],
+    'XLU': ['NEE','DUK','SO','D','AEP'],
+    'XLRE': ['AMT','PLD','CCI','EQIX','PSA'],
+    'XLC': ['META','GOOGL','NFLX','DIS','CMCSA']
+  };
+
+  const stocks = sectorStocks[sym] || [];
+  const stockQuotes = {};
+  for (const s of stocks) {
+    try {
+      const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + s + '&token=' + FINNHUB);
+      if (r.status !== 429) {
+        const d = await r.json();
+        if (d && d.c > 0) stockQuotes[s] = {price: d.c, pct: d.dp, change: d.d};
+      }
+    } catch(e) {}
+    await new Promise(res => setTimeout(res, 250));
+  }
+
+  // Build context for AI
+  const stockSummary = Object.entries(stockQuotes).map(([s, q]) =>
+    s + ': $' + q.price.toFixed(2) + ' (' + (q.pct >= 0 ? '+' : '') + q.pct.toFixed(2) + '%)'
+  ).join(', ');
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const prompt = 'You are a market analyst providing a concise sector analysis. Today is ' + dateStr + '.' +
+    ' The ' + label + ' sector ETF (' + sym + ') is ' + (up ? 'up' : 'down') + ' ' + Math.abs(quote.pct).toFixed(2) + '% today at $' + quote.price.toFixed(2) + '.' +
+    ' Day range: $' + quote.low.toFixed(2) + ' to $' + quote.high.toFixed(2) + '.' +
+    (stockSummary ? ' Key holdings today: ' + stockSummary + '.' : '') +
+    ' Provide a 3-4 paragraph analysis covering: (1) what is driving the sector today, (2) which stocks are leading or lagging, (3) the broader market context, and (4) what to watch going forward. Be specific and data-driven. Format with clear paragraphs, no bullet points.';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+    const aiData = await resp.json();
+    const text = aiData?.content?.[0]?.text || 'Analysis unavailable.';
+
+    // Format paragraphs
+    const paragraphs = text.split('\n\n').filter(p => p.trim()).map(p =>
+      '<p style="margin-bottom:14px;">' + p.trim() + '</p>'
+    ).join('');
+
+    // Stock performance table
+    const stockRows = Object.entries(stockQuotes).map(([s, q]) => {
+      const sup = q.pct >= 0;
+      return '<tr><td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;font-weight:600;">' + s + '</td>' +
+        '<td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;">$' + q.price.toFixed(2) + '</td>' +
+        '<td style="padding:6px 10px;font-size:13px;font-weight:600;color:' + (sup?'var(--green)':'var(--red)') + ';">' + (sup?'+':'') + q.pct.toFixed(2) + '%</td></tr>';
+    }).join('');
+
+    bodyEl.innerHTML =
+      (stockRows ? '<div style="margin-bottom:20px;"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Key Holdings Today</div><table style="width:100%;border-collapse:collapse;background:var(--bg);border-radius:8px;overflow:hidden;">' + stockRows + '</table></div>' : '') +
+      '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🧠 AI Analysis</div>' +
+      paragraphs;
+  } catch(e) {
+    bodyEl.innerHTML = '<p style="color:var(--red);">Could not generate analysis: ' + e.message + '</p>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- SECTOR AI MODAL -->
+<div id="sector-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeSectorModal()">
+  <div style="background:var(--surface);border-radius:16px;padding:28px;max-width:600px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div id="sector-modal-title" style="font-size:20px;font-weight:700;letter-spacing:-.4px;"></div>
+        <div id="sector-modal-price" style="font-size:14px;color:var(--text3);margin-top:2px;"></div>
+      </div>
+      <button onclick="closeSectorModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
+    </div>
+    <div id="sector-modal-body" style="font-size:14px;line-height:1.8;color:var(--text2);"></div>
+  </div>
+</div>
 </body>
 </html>
