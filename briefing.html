@@ -50,8 +50,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 /* TABS */
 .briefing-tabs{display:flex;gap:8px;margin-bottom:20px;}
 .briefing-tab{padding:9px 20px;border-radius:8px;font-size:14px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);}
-.briefing-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}}
+.briefing-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .briefing-tab:hover:not(.active){background:var(--surface2);}
 
 /* GRID */
@@ -184,7 +183,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
   <div class="briefing-tabs">
     <button class="briefing-tab active" onclick="switchBriefing('pre',this)">🌅 Pre-Market</button>
     <button class="briefing-tab" onclick="switchBriefing('post',this)">🌆 Post-Market</button>
-    <button class="briefing-tab" onclick="showLiveMarket(this)" id="live-tab">📡 Live Market <span id="live-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#0D9B6B;margin-left:4px;vertical-align:middle;animation:pulse 2s infinite;"></span></button>
+    <button class="briefing-tab" id="live-tab" onclick="showLiveMarket(this)">📡 Live Market</button>
   </div>
 
   <!-- CONTENT -->
@@ -245,275 +244,431 @@ function updateTimeDisplay() {
   }
 }
 
-async function showLiveMarket(btn) {
-  // Update tab UI
+async function switchBriefing(type, btn) {
+  if (window._liveInterval){clearInterval(window._liveInterval);window._liveInterval=null;}
+  currentType = type;
   document.querySelectorAll('.briefing-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('briefing-title').textContent = '📡 Live Market Overview';
-
-  const el = document.getElementById('briefing-content');
-  el.innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live market data...</span></div>';
-
-  // Clear any existing refresh interval
-  if (window._liveInterval) clearInterval(window._liveInterval);
-
-  await renderLiveMarket();
-
-  // Auto-refresh every 30 seconds
-  window._liveInterval = setInterval(renderLiveMarket, 30000);
+  document.getElementById('briefing-title').textContent = type === 'pre' ? '🌅 Pre-Market Briefing' : '🌆 Post-Market Wrap';
+  try {
+    await loadBriefing(type);
+  } catch(e) {
+    console.error('[switchBriefing] error:', e);
+    document.getElementById('briefing-content').innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
 }
 
-async function renderLiveMarket() {
+async function loadBriefing(type) {
   const el = document.getElementById('briefing-content');
-  const FINNHUB = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  el.innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Loading market data...</span></div>';
 
-  const now = new Date();
-  const etTime = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const h = etTime.getHours(), m = etTime.getMinutes();
-  const isOpen = etTime.getDay()>=1 && etTime.getDay()<=5 && (h>9||(h===9&&m>=30)) && h<16;
-  const statusColor = isOpen ? '#0D9B6B' : '#B45309';
-  const statusText = isOpen ? '&#x1F7E2; Market Open' : '&#x1F7E1; After Hours';
-
-  // Priority: indices + mega caps first (13), then sectors (10)
-  const PRIORITY = ['SPY','QQQ','DIA','IWM','AAPL','NVDA','MSFT','META','GOOGL','AMZN','TSLA','JPM','AMD','GLD','USO'];
-  const SECTORS  = ['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC'];
-  const LABELS   = {
-    SPY:'S&P 500',QQQ:'Nasdaq',DIA:'Dow Jones',IWM:'Russell 2000',
-    AAPL:'Apple',NVDA:'Nvidia',MSFT:'Microsoft',META:'Meta',
-    GOOGL:'Alphabet',AMZN:'Amazon',TSLA:'Tesla',JPM:'JPMorgan',AMD:'AMD',
-    GLD:'Gold',USO:'Oil',
-    XLK:'Technology',XLF:'Financials',XLE:'Energy',XLV:'Healthcare',
-    XLI:'Industrials',XLY:'Consumer Disc.',XLP:'Consumer Staples',
-    XLU:'Utilities',XLRE:'Real Estate',XLC:'Communication'
-  };
-
-  const quotes = {};
-  window._sq = {};
-
-  function qTile(sym) {
-    const q = quotes[sym];
-    const label = LABELS[sym] || sym;
-    const isSec = SECTORS.includes(sym);
-    if (!q) return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;opacity:.35;min-height:90px;display:flex;flex-direction:column;gap:4px;"><div style="font-size:12px;font-weight:700;font-family:DM Mono,monospace;">'+sym+'</div><div style="font-size:11px;color:var(--text3);">'+label+'</div><div style="font-size:11px;color:var(--text3);margin-top:auto;">Loading...</div></div>';
-    const up = q.pct>=0, c=up?'var(--green)':'var(--red)', bg=up?'var(--green-bg)':'var(--red-bg)';
-    if (isSec) {
-      window._sq[sym]={sym:sym,label:label,quote:q};
-      return '<div class="sq-tile" data-sym="'+sym+'" style="background:var(--surface);border:1px solid var(--border);border-left:4px solid '+c+';border-radius:10px;padding:12px 14px;cursor:pointer;">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><b style="font-size:13px;">'+label+'</b><span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
-        +'<div style="font-size:12px;color:var(--text3);">'+sym+' &middot; $'+q.price.toFixed(2)+'</div>'
-        +'<div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600;">&#x1F9E0; AI Analysis &rarr;</div>'
-        +'</div>';
+  try {
+    const r = await fetch('/api/briefing?type=' + type + '&t=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    briefingData = await r.json();
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    try {
+      renderBriefing(briefingData, type);
+    } catch(e) {
+      console.error('[renderBriefing] error:', e);
+      el.innerHTML = '<div class="empty">Render error: ' + e.message + '</div>';
     }
-    const rng=q.high>q.low?Math.min(100,Math.max(0,((q.price-q.low)/(q.high-q.low))*100)).toFixed(0):50;
-    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="window.location=\'/?t='+sym+'\'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;"><div><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;">'+sym+'</div><div style="font-size:11px;color:var(--text3);">'+label+'</div></div><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
-      +'<div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;">$'+q.price.toFixed(2)+'</div>'
-      +'<div style="font-size:11px;color:'+c+';margin-top:2px;">'+(up?'&#x25B2;':'&#x25BC;')+' '+Math.abs(q.change).toFixed(2)+' today</div>'
-      +'<div style="margin-top:8px;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;border-radius:2px;background:'+c+';width:'+rng+'%;"></div></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;"><span>L $'+q.low.toFixed(2)+'</span><span>H $'+q.high.toFixed(2)+'</span></div>'
-      +'</div>';
-  }
-
-  function grid(title, syms) {
-    return '<div style="margin-bottom:24px;"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'+title+'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;">'
-      +syms.map(qTile).join('')+'</div></div>';
-  }
-
-  function redraw() {
-    const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    const allLoaded = SECTORS.every(function(s){return quotes[s];});
-    el.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">'
-      +'<div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:'+statusColor+'20;color:'+statusColor+';">'+statusText+'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-      +(allLoaded?'<button onclick="broadMarketAI()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F9E0; Broad Market AI Analysis</button>':'<span style="font-size:12px;color:var(--text3);">Loading data...</span>')
-      +'<span style="font-size:12px;color:var(--text3);">Updated: '+t+'</span>'
-      +'</div></div>'
-      +grid('&#x1F4CA; Major Indices', ['SPY','QQQ','DIA','IWM'])
-      +grid('&#x1F4BB; Mega Cap Tech', ['AAPL','NVDA','MSFT','META','GOOGL','AMZN','TSLA','AMD'])
-      +grid('&#x1F947; Commodities', ['GLD','USO'])
-      +grid('&#x1F3ED; Sectors &#x2014; Click for AI Analysis', SECTORS);
-    // Re-attach sector click handlers
-    document.querySelectorAll('.sq-tile').forEach(function(el){
-      el.addEventListener('click', function(){ openSectorAnalysis(this.getAttribute('data-sym')); });
-    });
-  }
-
-  redraw();
-
-  // Fetch priority symbols first (faster initial render)
-  for (var i=0; i<PRIORITY.length; i++) {
-    try {
-      var r = await fetch('https://finnhub.io/api/v1/quote?symbol='+PRIORITY[i]+'&token='+FINNHUB);
-      if (r.status===429) { await new Promise(function(res){setTimeout(res,1500);}); }
-      else { var d=await r.json(); if(d&&d.c>0) quotes[PRIORITY[i]]={price:d.c,pct:d.dp,change:d.d,open:d.o,high:d.h,low:d.l,prev:d.pc}; }
-    } catch(e){}
-    await new Promise(function(res){setTimeout(res,220);});
-    redraw();
-  }
-
-  // Then sectors
-  for (var j=0; j<SECTORS.length; j++) {
-    try {
-      var r2 = await fetch('https://finnhub.io/api/v1/quote?symbol='+SECTORS[j]+'&token='+FINNHUB);
-      if (r2.status===429) { await new Promise(function(res){setTimeout(res,1500);}); }
-      else { var d2=await r2.json(); if(d2&&d2.c>0) quotes[SECTORS[j]]={price:d2.c,pct:d2.dp,change:d2.d,open:d2.o,high:d2.h,low:d2.l,prev:d2.pc}; }
-    } catch(e){}
-    await new Promise(function(res){setTimeout(res,220);});
-    redraw();
-  }
-}
-
-async function broadMarketAI() {
-  const modal = document.getElementById('sector-modal');
-  document.getElementById('sector-modal-title').textContent = 'Broad Market Overview';
-  document.getElementById('sector-modal-price').textContent = 'AI-powered analysis of today\'s full market';
-  const bodyEl = document.getElementById('sector-modal-body');
-  bodyEl.innerHTML = '<div style="color:var(--text3);">&#x23F3; Generating broad market analysis...</div>';
-  modal.style.display = 'flex';
-
-  const sq = window._sq || {};
-  const lines = Object.values(sq).map(function(x){
-    const q=x.quote; return x.label+' ('+x.sym+'): '+(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%';
-  }).join(', ');
-
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const prompt = 'You are a market analyst. Today is '+dateStr+'. Sector performance: '+lines+'. Write a 3-4 paragraph broad market overview covering: which sectors are leading/lagging, the overall market tone, what macro factors are driving today\'s action, and what traders should watch. Be specific and concise. No bullet points.';
-
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]})
-    });
-    const ai = await resp.json();
-    const text = ai?.content?.[0]?.text || 'Analysis unavailable.';
-    bodyEl.innerHTML = text.split('\n\n').filter(Boolean).map(function(p){
-      return '<p style="margin-bottom:14px;">'+p.trim()+'</p>';
-    }).join('');
   } catch(e) {
-    bodyEl.innerHTML = '<p style="color:var(--red);">Error: '+e.message+'</p>';
+    console.error('[loadBriefing] error:', e);
+    el.innerHTML = '<div class="empty">Error loading data: ' + e.message + '. <button onclick="loadBriefing(currentType)" style="color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">Retry</button></div>';
   }
 }
 
+function fmt(val, digits) {
+  if(!val && val !== 0) return '—';
+  const n = parseFloat(val);
+  const d = digits !== undefined ? digits : 2;
+  return (n >= 0 ? '+' : '') + n.toFixed(d) + '%';
+}
 
-async function openSectorAnalysis(symOrEl) {
-  var sym = typeof symOrEl === 'string' ? symOrEl : symOrEl;
-  var stored = window._sq && window._sq[sym];
-  if (!stored) return;
-  var label = stored.label;
-  var quote = stored.quote;
-  const modal = document.getElementById('sector-modal');
-  const titleEl = document.getElementById('sector-modal-title');
-  const priceEl = document.getElementById('sector-modal-price');
-  const bodyEl = document.getElementById('sector-modal-body');
+function renderBriefing(data, type) {
+  const isPre = type === 'pre';
+  const el = document.getElementById('briefing-content');
 
-  const up = quote.pct >= 0;
-  const color = up ? 'var(--green)' : 'var(--red)';
+  // Indices
+  const indicesHTML = (data.indices || []).map(i => {
+    const up = i.pct >= 0;
+    const livePrice = (i.price && i.price > 0) ? i.price : 0;
+    const price = livePrice || i.prevClose || 0;
+    const showingPrev = livePrice === 0 && price > 0;
+    const isAH = i.isAfterHours || price === 0;
+    return '<div class="index-tile">'
+      + '<div class="index-sym">' + i.symbol + '</div>'
+      + '<div class="index-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
+      + (isAH
+        ? '<div style="font-size:10.5px;color:var(--text3);">Prev Close: $' + (i.prevClose||price).toFixed(2) + '</div>'
+        : '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>')
+      + '</div>';
+  }).join('');
 
-  titleEl.innerHTML = label + ' Sector <span style="font-size:14px;font-weight:700;padding:2px 10px;border-radius:10px;background:' + (up?'var(--green-bg)':'var(--red-bg)') + ';color:' + color + ';margin-left:8px;">' + (up?'+':'') + quote.pct.toFixed(2) + '%</span>';
-  priceEl.textContent = sym + ' · $' + quote.price.toFixed(2) + ' · Change: ' + (up?'+':'') + quote.change.toFixed(2) + ' · Range: $' + quote.low.toFixed(2) + ' – $' + quote.high.toFixed(2);
-  bodyEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:var(--text3);"><div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:spin 1s linear infinite;"></div> Analyzing ' + label + ' sector performance...</div>';
-  modal.style.display = 'flex';
+  // Gainers
+  const gainersHTML = (data.gainers || []).map(s =>
+    '<div class="mover-row">'
+    + '<div><div class="mover-ticker" onclick="goAnalyze(\'' + s.symbol + '\')">' + s.symbol + '</div>'
+    + '<div class="mover-price">$' + (s.price||0).toFixed(2) + '</div></div>'
+    + '<div class="mover-chg up">▲ ' + fmt(s.pct) + '</div>'
+    + '</div>'
+  ).join('') || '<div class="empty">No data</div>';
 
-  // Add spin animation if not present
-  if (!document.getElementById('spin-style')) {
-    const style = document.createElement('style');
-    style.id = 'spin-style';
-    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
-    document.head.appendChild(style);
-  }
+  // Losers
+  const losersHTML = (data.losers || []).map(s =>
+    '<div class="mover-row">'
+    + '<div><div class="mover-ticker" onclick="goAnalyze(\'' + s.symbol + '\')">' + s.symbol + '</div>'
+    + '<div class="mover-price">$' + (s.price||0).toFixed(2) + '</div></div>'
+    + '<div class="mover-chg down">▼ ' + fmt(s.pct) + '</div>'
+    + '</div>'
+  ).join('') || '<div class="empty">No data</div>';
 
-  // Fetch top stocks in this sector for context
-  const FINNHUB = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
-  const sectorStocks = {
-    'XLK': ['AAPL','MSFT','NVDA','AMD','AVGO'],
-    'XLF': ['JPM','BAC','GS','MS','WFC'],
-    'XLE': ['XOM','CVX','COP','SLB','EOG'],
-    'XLV': ['JNJ','UNH','PFE','ABBV','MRK'],
-    'XLI': ['CAT','HON','UPS','GE','RTX'],
-    'XLY': ['AMZN','TSLA','HD','MCD','NKE'],
-    'XLP': ['PG','KO','PEP','WMT','COST'],
-    'XLU': ['NEE','DUK','SO','D','AEP'],
-    'XLRE': ['AMT','PLD','CCI','EQIX','PSA'],
-    'XLC': ['META','GOOGL','NFLX','DIS','CMCSA']
-  };
+  // Sectors
+  const maxAbsPct = Math.max(...(data.sectors||[]).map(s => Math.abs(s.pct||0)), 1);
+  const sectorsHTML = (data.sectors || []).map(s => {
+    const up = s.pct >= 0;
+    const barWidth = Math.abs(s.pct / maxAbsPct * 100).toFixed(0);
+    return '<div class="sector-row">'
+      + '<div class="sector-name">' + (s.name||s.symbol) + '</div>'
+      + '<div class="sector-bar-wrap"><div class="sector-bar" style="width:' + barWidth + '%;background:' + (up?'var(--green)':'var(--red)') + ';"></div></div>'
+      + '<div class="sector-pct ' + (up?'up':'down') + '">' + fmt(s.pct) + '</div>'
+      + '</div>';
+  }).join('') || '<div class="empty">No sector data</div>';
 
-  const stocks = sectorStocks[sym] || [];
-  const stockQuotes = {};
-  for (const s of stocks) {
-    try {
-      const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + s + '&token=' + FINNHUB);
-      if (r.status !== 429) {
-        const d = await r.json();
-        if (d && d.c > 0) stockQuotes[s] = {price: d.c, pct: d.dp, change: d.d};
-      }
-    } catch(e) {}
-    await new Promise(res => setTimeout(res, 250));
-  }
+  // Earnings
+  const earningsHTML = (data.earnings || []).length
+    ? data.earnings.slice(0,8).map(e =>
+        '<div class="earnings-row">'
+        + '<div><div class="earnings-ticker">' + e.symbol + '</div>'
+        + '<div class="earnings-meta">' + (e.epsEstimate ? 'Est EPS $' + e.epsEstimate : '') + (e.revenueEstimate ? ' · Rev $' + (e.revenueEstimate/1e9).toFixed(2) + 'B' : '') + '</div></div>'
+        + '<span class="timing-badge ' + (e.hour==='bmo'?'bmo':'amc') + '">' + (e.hour==='bmo'?'Pre-Mkt':'After') + '</span>'
+        + '</div>'
+      ).join('')
+    : '<div class="empty">No earnings today</div>';
 
-  // Build context for AI
-  const stockSummary = Object.entries(stockQuotes).map(([s, q]) =>
-    s + ': $' + q.price.toFixed(2) + ' (' + (q.pct >= 0 ? '+' : '') + q.pct.toFixed(2) + '%)'
-  ).join(', ');
+  // Economic calendar
+  const econHTML = (data.economic || []).length
+    ? data.economic.slice(0,6).map(e =>
+        '<div class="econ-row">'
+        + '<div class="econ-event">' + e.event + '</div>'
+        + '<div class="econ-meta">' + (e.time||'') + (e.country?' · '+e.country:'') + (e.actual?' · Actual: '+e.actual:'') + (e.estimate?' · Est: '+e.estimate:'') + '</div>'
+        + '</div>'
+      ).join('')
+    : '<div class="empty">No major economic events today</div>';
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  // News
+  const newsHTML = (data.news || []).slice(0,6).map(n =>
+    '<a class="news-row" href="' + n.url + '" target="_blank" rel="noopener">'
+    + '<div><div class="news-hl">' + n.headline + '</div>'
+    + '<div class="news-src">' + n.source + '</div></div>'
+    + '</a>'
+  ).join('') || '<div class="empty">No news available</div>';
 
-  const prompt = 'You are a market analyst providing a concise sector analysis. Today is ' + dateStr + '.' +
-    ' The ' + label + ' sector ETF (' + sym + ') is ' + (up ? 'up' : 'down') + ' ' + Math.abs(quote.pct).toFixed(2) + '% today at $' + quote.price.toFixed(2) + '.' +
-    ' Day range: $' + quote.low.toFixed(2) + ' to $' + quote.high.toFixed(2) + '.' +
-    (stockSummary ? ' Key holdings today: ' + stockSummary + '.' : '') +
-    ' Provide a 3-4 paragraph analysis covering: (1) what is driving the sector today, (2) which stocks are leading or lagging, (3) the broader market context, and (4) what to watch going forward. Be specific and data-driven. Format with clear paragraphs, no bullet points.';
+  el.innerHTML =
+    // Index tiles
+    '<div class="index-grid">' + indicesHTML + '</div>'
+
+    // Main grid
+    + '<div class="briefing-grid">'
+    + '<div class="card"><div class="card-title">🚀 Top Gainers</div>' + gainersHTML + '</div>'
+    + '<div class="card"><div class="card-title">📉 Top Losers</div>' + losersHTML + '</div>'
+    + '<div class="card"><div class="card-title">🏭 Sector Performance</div>' + sectorsHTML + '</div>'
+    + '</div>'
+
+    // Earnings + Econ
+    + '<div class="briefing-grid-2">'
+    + '<div class="card"><div class="card-title">📋 Earnings ' + (isPre?'Today':'Today') + '</div>' + earningsHTML + '</div>'
+    + '<div class="card"><div class="card-title">🏛️ Economic Calendar</div>' + econHTML + '</div>'
+    + '</div>'
+
+    // News
+    + '<div class="card" style="margin-bottom:16px;"><div class="card-title">📰 Market News</div>' + newsHTML + '</div>'
+
+    // Commodities
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">🛢️ Commodities</div>'
+    + '<div class="macro-grid">'
+    + (data.commodities||[]).map(c => {
+        const up = c.pct >= 0;
+        const price = c.price || c.prevClose || 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (price>0&&!c.isAfterHours?(up?'▲':'▼')+' '+fmt(c.pct):'—') + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
+    // FX & Crypto
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">💱 Currencies & Crypto</div>'
+    + '<div class="macro-grid">'
+    + (data.fx||[]).map(c => {
+        const up = c.pct >= 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
+    // Global Markets
+    + '<div class="card" style="margin-bottom:16px;">'
+    + '<div class="card-title">🌍 Global Markets</div>'
+    + '<div class="global-grid">'
+    + (data.global||[]).map(c => {
+        const up = c.pct >= 0;
+        return '<div class="macro-tile">'
+          + '<div class="macro-label">' + c.icon + ' ' + c.label + '</div>'
+          + '<div class="macro-price ' + (up?'up':'down') + '">$' + (c.price||0).toFixed(2) + '</div>'
+          + '<div class="macro-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(c.pct) + '</div>'
+          + '</div>';
+      }).join('')
+    + '</div></div>'
+
+    // AI Analysis button
+    + '<div class="ai-brief" id="ai-brief-section">'
+    + '<div class="ai-brief-title">🧠 AI Market Analysis</div>'
+    + '<div id="ai-brief-body" style="font-size:14px;color:var(--text3);">Click below to get an AI-powered ' + (isPre?'pre-market outlook':'post-market wrap-up') + ' for today.</div>'
+    + '<button onclick="loadAIBriefing()" id="ai-brief-btn" style="margin-top:12px;background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:500;">Generate AI Analysis →</button>'
+    + '</div>';
+}
+
+async function loadAIBriefing() {
+  const btn = document.getElementById('ai-brief-btn');
+  const body = document.getElementById('ai-brief-body');
+  if(btn) { btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const d = briefingData;
+    const indSummary = (d.indices||[]).map(i => i.symbol + ' ' + fmt(i.pct)).join(', ');
+    const gainers = (d.gainers||[]).map(s => s.symbol + ' ' + fmt(s.pct)).join(', ');
+    const losers = (d.losers||[]).map(s => s.symbol + ' ' + fmt(s.pct)).join(', ');
+    const earnings = (d.earnings||[]).slice(0,5).map(e => e.symbol).join(', ');
+    const econ = (d.economic||[]).slice(0,4).map(e => e.event).join(', ');
+    const isPre = currentType === 'pre';
+
+    const oilData = (d.commodities||[]).find(c => c.label === 'Crude Oil');
+    const goldData = (d.commodities||[]).find(c => c.label === 'Gold');
+    const btcData = (d.fx||[]).find(c => c.label === 'Bitcoin');
+    const usdData = (d.fx||[]).find(c => c.label === 'USD Index');
+    const macroStr = 'Oil ' + fmt(oilData?.pct) + ', Gold ' + fmt(goldData?.pct) + ', BTC ' + fmt(btcData?.pct) + ', USD ' + fmt(usdData?.pct) + '. ';
+    const topSectors = (d.sectors||[]).slice(0,3).map(s => (s.name||s.symbol) + ' ' + fmt(s.pct)).join(', ');
+    const prompt = isPre
+      ? 'Write a concise pre-market briefing for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup — key index levels, futures direction, and macro backdrop.\nParagraph 2: Commodity and currency impacts — how oil, gold, dollar, and crypto are setting up the day.\nParagraph 3: Notable movers, catalysts, and earnings to watch.\nParagraph 4: Key risks and trading opportunities for today.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with numbers. 250 words max.'
+      : 'Write a concise post-market wrap-up for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the major indices performed and the key macro drivers today.\nParagraph 2: Commodity and currency moves that impacted the market.\nParagraph 3: Notable stock moves, sector rotation, and earnings results.\nParagraph 4: What to watch overnight and tomorrow.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 250 words max.';
+
+    const resp = await fetch('/api/analyze', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        messages: [{role: 'user', content: prompt}]
-      })
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
     });
-    const aiData = await resp.json();
-    const text = aiData?.content?.[0]?.text || 'Analysis unavailable.';
 
-    // Format paragraphs
-    const paragraphs = text.split('\n\n').filter(p => p.trim()).map(p =>
-      '<p style="margin-bottom:14px;">' + p.trim() + '</p>'
-    ).join('');
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
 
-    // Stock performance table
-    const stockRows = Object.entries(stockQuotes).map(([s, q]) => {
-      const sup = q.pct >= 0;
-      return '<tr><td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;font-weight:600;">' + s + '</td>' +
-        '<td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;">$' + q.price.toFixed(2) + '</td>' +
-        '<td style="padding:6px 10px;font-size:13px;font-weight:600;color:' + (sup?'var(--green)':'var(--red)') + ';">' + (sup?'+':'') + q.pct.toFixed(2) + '%</td></tr>';
-    }).join('');
+    while(true) {
+      const { done, value } = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines) {
+        if(!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if(!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if(parsed.type === 'content_block_delta' && parsed.delta?.text) fullText += parsed.delta.text;
+          else if(parsed.delta?.type === 'text_delta' && parsed.delta?.text) fullText += parsed.delta.text;
+          if(body && fullText) body.innerHTML = '<div class="ai-brief-body">' + fullText.replace(/\n\n/g,'</p><p style="margin:10px 0 0;">').replace(/\n/g,' ') + '</div>';
+        } catch(e) {}
+      }
+    }
 
-    bodyEl.innerHTML =
-      (stockRows ? '<div style="margin-bottom:20px;"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Key Holdings Today</div><table style="width:100%;border-collapse:collapse;background:var(--bg);border-radius:8px;overflow:hidden;">' + stockRows + '</table></div>' : '') +
-      '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🧠 AI Analysis</div>' +
-      paragraphs;
+    if(btn) btn.style.display = 'none';
   } catch(e) {
-    bodyEl.innerHTML = '<p style="color:var(--red);">Could not generate analysis: ' + e.message + '</p>';
+    if(body) body.innerHTML = 'Analysis failed. Please try again.';
+    if(btn) { btn.textContent = 'Try Again'; btn.disabled = false; }
+  }
+}
+
+function goAnalyze(ticker) {
+  window.open('/?ticker=' + ticker, '_blank');
+}
+
+async function subscribe() {
+  const email = document.getElementById('sub-email').value.trim();
+  const msgEl = document.getElementById('subscribe-msg');
+  if(!email || !email.includes('@')) {
+    msgEl.className = 'error-msg';
+    msgEl.textContent = 'Please enter a valid email address.';
+    msgEl.style.display = 'block';
+    return;
+  }
+  try {
+    const { error } = await sb.from('briefing_subscribers').insert({ email, status: 'active' });
+    if(error && error.code !== '23505') throw error; // 23505 = duplicate, that's ok
+    msgEl.className = 'success-msg';
+    msgEl.textContent = '✅ Subscribed! You will receive pre-market at 8:30 AM ET and post-market at 5:00 PM ET.';
+    msgEl.style.display = 'block';
+    document.getElementById('sub-email').value = '';
+  } catch(e) {
+    msgEl.className = 'error-msg';
+    msgEl.textContent = 'Error: ' + e.message;
+    msgEl.style.display = 'block';
   }
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function closeSectorModal(){document.getElementById('sector-modal').style.display='none';}
+
+async function showLiveMarket(btn){
+  if(window._liveInterval){clearInterval(window._liveInterval);window._liveInterval=null;}
+  document.querySelectorAll('.briefing-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('briefing-title').textContent='📡 Live Market Overview';
+  await renderLiveMarket();
+  window._liveInterval=setInterval(renderLiveMarket,30000);
+}
+
+async function renderLiveMarket(){
+  var el=document.getElementById('briefing-content');
+  var FK='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  var PRI=[['SPY','S&P 500'],['QQQ','Nasdaq'],['DIA','Dow Jones'],['IWM','Russell 2000'],
+    ['AAPL','Apple'],['NVDA','Nvidia'],['MSFT','Microsoft'],['META','Meta'],
+    ['GOOGL','Alphabet'],['AMZN','Amazon'],['TSLA','Tesla'],['JPM','JPMorgan'],['AMD','AMD'],
+    ['GLD','Gold'],['USO','Oil']];
+  var SEC=[['XLK','Technology'],['XLF','Financials'],['XLE','Energy'],['XLV','Healthcare'],
+    ['XLI','Industrials'],['XLY','Consumer Disc.'],['XLP','Consumer Staples'],
+    ['XLU','Utilities'],['XLRE','Real Estate'],['XLC','Communication']];
+  var now=new Date(),et=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  var h=et.getHours(),m=et.getMinutes();
+  var isOpen=et.getDay()>=1&&et.getDay()<=5&&(h>9||(h===9&&m>=30))&&h<16;
+  var sc=isOpen?'#0D9B6B':'#B45309',st=isOpen?'&#x1F7E2; Market Open':'&#x1F7E1; After Hours';
+  var Q={};window._sq={};
+
+  function mkTile(sym,label,isSec){
+    var q=Q[sym];
+    if(!q) return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;opacity:.4;"><b style="font-size:12px;">'+sym+'</b><br><span style="font-size:11px;color:var(--text3);">'+label+' loading...</span></div>';
+    var up=q.pct>=0,c=up?'var(--green)':'var(--red)',bg=up?'var(--green-bg)':'var(--red-bg)';
+    if(isSec){
+      window._sq[sym]={sym:sym,label:label,quote:q};
+      return '<div class="sqt" data-sym="'+sym+'" style="background:var(--surface);border:1px solid var(--border);border-left:4px solid '+c+';border-radius:10px;padding:12px;cursor:pointer;">'
+        +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><b style="font-size:13px;">'+label+'</b><span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
+        +'<div style="font-size:12px;color:var(--text3);">'+sym+' &middot; $'+q.price.toFixed(2)+'</div>'
+        +'<div style="font-size:11px;color:var(--accent);margin-top:6px;font-weight:600;">&#x1F9E0; AI Analysis</div></div>';
+    }
+    var rw=q.high>q.low?Math.min(100,Math.max(0,((q.price-q.low)/(q.high-q.low))*100)).toFixed(0):50;
+    return '<div data-goto="'+sym+'" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><div><div style="font-size:13px;font-weight:700;font-family:DM Mono,monospace;">'+sym+'</div><div style="font-size:11px;color:var(--text3);">'+label+'</div></div><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</span></div>'
+      +'<div style="font-size:17px;font-weight:700;font-family:DM Mono,monospace;">$'+q.price.toFixed(2)+'</div>'
+      +'<div style="font-size:11px;color:'+c+';margin-top:2px;">'+(up?'&#x25B2;':'&#x25BC;')+' '+Math.abs(q.change).toFixed(2)+'</div>'
+      +'<div style="margin-top:8px;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:'+c+';border-radius:2px;width:'+rw+'%;"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;"><span>L $'+q.low.toFixed(2)+'</span><span>H $'+q.high.toFixed(2)+'</span></div></div>';
+  }
+
+  function mkGrid(title,rows,isSec){
+    return '<div style="margin-bottom:24px;"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'+title+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;">'+rows.map(function(r){return mkTile(r[0],r[1],isSec);}).join('')+'</div></div>';
+  }
+
+  function allSec(){return SEC.every(function(s){return Q[s[0]];});}
+
+  function draw(){
+    var t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">'
+      +'<div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:'+sc+'20;color:'+sc+';">'+st+'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +(allSec()?'<button onclick="broadMarketAI()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">&#x1F9E0; Broad Market AI</button>':'<span style="font-size:12px;color:var(--text3);">Loading...</span>')
+      +'<span style="font-size:12px;color:var(--text3);">'+t+'</span></div></div>'
+      +mkGrid('&#x1F4CA; Indices',PRI.slice(0,4),false)
+      +mkGrid('&#x1F4BB; Mega Cap',PRI.slice(4,13),false)
+      +mkGrid('&#x1F947; Commodities',PRI.slice(13),false)
+      +mkGrid('&#x1F3ED; Sectors &mdash; Click for AI',SEC,true);
+    document.querySelectorAll('.sqt').forEach(function(t){t.onclick=function(){openSectorAI(this.dataset.sym);};});
+    document.querySelectorAll('[data-goto]').forEach(function(t){t.onclick=function(){window.location='/?t='+this.dataset.goto;};});
+  }
+
+  draw();
+  for(var i=0;i<PRI.length;i++){
+    try{var r=await fetch('https://finnhub.io/api/v1/quote?symbol='+PRI[i][0]+'&token='+FK);
+      if(r.status!==429){var d=await r.json();if(d&&d.c>0)Q[PRI[i][0]]={price:d.c,pct:d.dp,change:d.d,open:d.o,high:d.h,low:d.l,prev:d.pc};}
+      else await new Promise(function(res){setTimeout(res,1500);});
+    }catch(e){}
+    await new Promise(function(res){setTimeout(res,220);});draw();
+  }
+  for(var j=0;j<SEC.length;j++){
+    try{var r2=await fetch('https://finnhub.io/api/v1/quote?symbol='+SEC[j][0]+'&token='+FK);
+      if(r2.status!==429){var d2=await r2.json();if(d2&&d2.c>0)Q[SEC[j][0]]={price:d2.c,pct:d2.dp,change:d2.d,open:d2.o,high:d2.h,low:d2.l,prev:d2.pc};}
+      else await new Promise(function(res){setTimeout(res,1500);});
+    }catch(e){}
+    await new Promise(function(res){setTimeout(res,220);});draw();
+  }
+}
+
+async function broadMarketAI(){
+  var modal=document.getElementById('sector-modal');
+  document.getElementById('sector-modal-title').textContent='Broad Market Overview';
+  document.getElementById('sector-modal-price').textContent='AI analysis of today\'s full market performance';
+  var body=document.getElementById('sector-modal-body');
+  body.innerHTML='<div style="color:var(--text3);">Generating analysis...</div>';
+  modal.style.display='flex';
+  var sq=window._sq||{};
+  var lines=Object.values(sq).map(function(x){var q=x.quote;return x.label+' ('+x.sym+'): '+(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%';}).join(', ');
+  var ds=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var prompt='You are a market analyst. Today is '+ds+'. Sector performance: '+lines+'. Write 3 paragraphs: which sectors lead/lag, overall market tone, macro drivers, what to watch. Be specific. No bullets.';
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    var ai=await resp.json();
+    var txt=ai&&ai.content&&ai.content[0]?ai.content[0].text:'Unavailable.';
+    body.innerHTML=txt.split('\n\n').filter(Boolean).map(function(p){return '<p style="margin-bottom:14px;">'+p.trim()+'</p>';}).join('');
+  }catch(e){body.innerHTML='<p style="color:var(--red);">Error: '+e.message+'</p>';}
+}
+
+async function openSectorAI(sym){
+  var sq=window._sq&&window._sq[sym];
+  if(!sq){alert('Sector data still loading.');return;}
+  var label=sq.label,quote=sq.quote;
+  var modal=document.getElementById('sector-modal');
+  document.getElementById('sector-modal-title').innerHTML=label+' Sector <span style="font-size:13px;padding:2px 10px;border-radius:10px;background:'+(quote.pct>=0?'var(--green-bg)':'var(--red-bg)')+';color:'+(quote.pct>=0?'var(--green)':'var(--red)')+';">'+(quote.pct>=0?'+':'')+quote.pct.toFixed(2)+'%</span>';
+  document.getElementById('sector-modal-price').textContent=sym+' · $'+quote.price.toFixed(2)+' · Range: $'+quote.low.toFixed(2)+' – $'+quote.high.toFixed(2);
+  var body=document.getElementById('sector-modal-body');
+  body.innerHTML='<div style="color:var(--text3);">Analyzing '+label+'...</div>';
+  modal.style.display='flex';
+  var FK='d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  var SM={XLK:['AAPL','MSFT','NVDA','AMD','AVGO'],XLF:['JPM','BAC','GS','MS','WFC'],XLE:['XOM','CVX','COP','SLB','EOG'],XLV:['JNJ','UNH','PFE','ABBV','MRK'],XLI:['CAT','HON','UPS','GE','RTX'],XLY:['AMZN','TSLA','HD','MCD','NKE'],XLP:['PG','KO','PEP','WMT','COST'],XLU:['NEE','DUK','SO','D','AEP'],XLRE:['AMT','PLD','CCI','EQIX','PSA'],XLC:['META','GOOGL','NFLX','DIS','CMCSA']};
+  var stocks=SM[sym]||[],SQ={};
+  for(var i=0;i<stocks.length;i++){
+    try{var r=await fetch('https://finnhub.io/api/v1/quote?symbol='+stocks[i]+'&token='+FK);if(r.status!==429){var d=await r.json();if(d&&d.c>0)SQ[stocks[i]]={price:d.c,pct:d.dp};}}catch(e){}
+    await new Promise(function(res){setTimeout(res,250);});
+  }
+  var summary=Object.entries(SQ).map(function(e){return e[0]+': $'+e[1].price.toFixed(2)+' ('+(e[1].pct>=0?'+':'')+e[1].pct.toFixed(2)+'%)';}).join(', ');
+  var ds=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var up=quote.pct>=0;
+  var prompt='Today is '+ds+'. '+label+' sector ('+sym+') is '+(up?'up':'down')+' '+Math.abs(quote.pct).toFixed(2)+'% at $'+quote.price.toFixed(2)+'. Holdings: '+summary+'. Write 3 paragraphs: what drives the sector today, which stocks lead/lag, what to watch. Specific, data-driven. No bullets.';
+  var rows=Object.entries(SQ).map(function(e){var u=e[1].pct>=0;return '<tr><td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;font-weight:600;">'+e[0]+'</td><td style="padding:6px 10px;font-size:13px;">$'+e[1].price.toFixed(2)+'</td><td style="padding:6px 10px;font-size:13px;color:'+(u?'var(--green)':'var(--red)')+';">'+(u?'+':'')+e[1].pct.toFixed(2)+'%</td></tr>';}).join('');
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]})});
+    var ai=await resp.json();
+    var txt=ai&&ai.content&&ai.content[0]?ai.content[0].text:'Unavailable.';
+    body.innerHTML=(rows?'<div style="margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Key Holdings</div><table style="width:100%;border-collapse:collapse;background:var(--bg);border-radius:8px;overflow:hidden;">'+rows+'</table></div>':'')
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">AI Analysis</div>'
+      +txt.split('\n\n').filter(Boolean).map(function(p){return '<p style="margin-bottom:12px;">'+p+'</p>';}).join('');
+  }catch(e){body.innerHTML='<p style="color:var(--red);">Error: '+e.message+'</p>';}
+}
 </script>
 
-<!-- SECTOR AI MODAL -->
 <div id="sector-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closeSectorModal()">
   <div style="background:var(--surface);border-radius:16px;padding:28px;max-width:600px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <div>
-        <div id="sector-modal-title" style="font-size:20px;font-weight:700;letter-spacing:-.4px;"></div>
-        <div id="sector-modal-price" style="font-size:14px;color:var(--text3);margin-top:2px;"></div>
-      </div>
-      <button onclick="closeSectorModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
+      <div><div id="sector-modal-title" style="font-size:20px;font-weight:700;"></div><div id="sector-modal-price" style="font-size:13px;color:var(--text3);margin-top:4px;"></div></div>
+      <button onclick="closeSectorModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text3);">&#x2715;</button>
     </div>
     <div id="sector-modal-body" style="font-size:14px;line-height:1.8;color:var(--text2);"></div>
   </div>
