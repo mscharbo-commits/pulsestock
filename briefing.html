@@ -682,7 +682,8 @@ function closeSectorModal() {
   document.getElementById('sector-modal').style.display = 'none';
 }
 
-async function openSectorAnalysis(sym) {
+async function openSectorAnalysis(symOrEl) {
+  var sym = typeof symOrEl === 'string' ? symOrEl : symOrEl;
   var stored = window._sq && window._sq[sym];
   if (!stored) return;
   var label = stored.label;
