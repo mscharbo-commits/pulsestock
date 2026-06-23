@@ -50,7 +50,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 /* TABS */
 .briefing-tabs{display:flex;gap:8px;margin-bottom:20px;}
 .briefing-tab{padding:9px 20px;border-radius:8px;font-size:14px;font-weight:500;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);}
-.briefing-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.briefing-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}}
 .briefing-tab:hover:not(.active){background:var(--surface2);}
 
 /* GRID */
@@ -183,6 +184,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
   <div class="briefing-tabs">
     <button class="briefing-tab active" onclick="switchBriefing('pre',this)">🌅 Pre-Market</button>
     <button class="briefing-tab" onclick="switchBriefing('post',this)">🌆 Post-Market</button>
+    <button class="briefing-tab" onclick="showLiveMarket(this)" id="live-tab">📡 Live Market <span id="live-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#0D9B6B;margin-left:4px;vertical-align:middle;animation:pulse 2s infinite;"></span></button>
   </div>
 
   <!-- CONTENT -->
@@ -243,7 +245,122 @@ function updateTimeDisplay() {
   }
 }
 
+async function showLiveMarket(btn) {
+  // Update tab UI
+  document.querySelectorAll('.briefing-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('briefing-title').textContent = '📡 Live Market Overview';
+
+  const el = document.getElementById('briefing-content');
+  el.innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live market data...</span></div>';
+
+  // Clear any existing refresh interval
+  if (window._liveInterval) clearInterval(window._liveInterval);
+
+  await renderLiveMarket();
+
+  // Auto-refresh every 30 seconds
+  window._liveInterval = setInterval(renderLiveMarket, 30000);
+}
+
+async function renderLiveMarket() {
+  const el = document.getElementById('briefing-content');
+  const FINNHUB = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+  const WATCHLIST = [
+    {sym:'SPY',label:'S&P 500',cat:'index'},
+    {sym:'QQQ',label:'Nasdaq',cat:'index'},
+    {sym:'DIA',label:'Dow Jones',cat:'index'},
+    {sym:'IWM',label:'Russell 2000',cat:'index'},
+    {sym:'AAPL',label:'Apple',cat:'mega'},
+    {sym:'NVDA',label:'Nvidia',cat:'mega'},
+    {sym:'MSFT',label:'Microsoft',cat:'mega'},
+    {sym:'META',label:'Meta',cat:'mega'},
+    {sym:'GOOGL',label:'Alphabet',cat:'mega'},
+    {sym:'AMZN',label:'Amazon',cat:'mega'},
+    {sym:'TSLA',label:'Tesla',cat:'mega'},
+    {sym:'JPM',label:'JPMorgan',cat:'mega'},
+    {sym:'AMD',label:'AMD',cat:'mega'},
+    {sym:'XLK',label:'Tech',cat:'sector'},
+    {sym:'XLF',label:'Financials',cat:'sector'},
+    {sym:'XLE',label:'Energy',cat:'sector'},
+    {sym:'XLV',label:'Healthcare',cat:'sector'},
+    {sym:'XLI',label:'Industrials',cat:'sector'},
+    {sym:'GLD',label:'Gold',cat:'commodity'},
+    {sym:'USO',label:'Oil',cat:'commodity'},
+  ];
+
+  // Fetch all quotes sequentially
+  const quotes = {};
+  for (const s of WATCHLIST) {
+    try {
+      const r = await fetch('https://finnhub.io/api/v1/quote?symbol='+s.sym+'&token='+FINNHUB);
+      if (r.status === 429) { await new Promise(res=>setTimeout(res,1000)); continue; }
+      const d = await r.json();
+      if (d && d.c > 0) quotes[s.sym] = {price:d.c, pct:d.dp, change:d.d, open:d.o, high:d.h, low:d.l, prev:d.pc};
+    } catch(e) {}
+    await new Promise(res=>setTimeout(res,250));
+  }
+
+  const now = new Date();
+  const etTime = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const h = etTime.getHours(), m = etTime.getMinutes();
+  const isMarketOpen = etTime.getDay()>=1 && etTime.getDay()<=5 && (h>9||(h===9&&m>=30)) && h<16;
+  const statusColor = isMarketOpen ? '#0D9B6B' : '#B45309';
+  const statusText = isMarketOpen ? '🟢 Market Open' : '🟡 After Hours';
+
+  function tile(sym, label, q) {
+    if (!q) return '';
+    const up = q.pct >= 0;
+    const color = up ? 'var(--green)' : 'var(--red)';
+    const bg = up ? 'var(--green-bg)' : 'var(--red-bg)';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="window.location='/?t=${sym}'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;">${sym}</div>
+          <div style="font-size:11px;color:var(--text3);">${label}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${bg};color:${color};">${up?'+':''}${q.pct.toFixed(2)}%</span>
+      </div>
+      <div style="font-size:17px;font-weight:700;font-family:'DM Mono',monospace;">$${q.price.toFixed(2)}</div>
+      <div style="font-size:11px;color:${color};margin-top:2px;">${up?'▲':'▼'} ${Math.abs(q.change).toFixed(2)} today</div>
+      <div style="margin-top:8px;height:3px;background:var(--border);border-radius:2px;">
+        <div style="height:3px;border-radius:2px;background:${color};width:${Math.min(100,Math.max(0,((q.price-q.low)/(q.high-q.low||1))*100)).toFixed(0)}%;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:2px;">
+        <span>L $${q.low.toFixed(2)}</span><span>H $${q.high.toFixed(2)}</span>
+      </div>
+    </div>`;
+  }
+
+  function section(title, syms) {
+    const items = syms.map(s => {
+      const item = WATCHLIST.find(w=>w.sym===s);
+      return tile(s, item?.label||s, quotes[s]);
+    }).filter(Boolean).join('');
+    if (!items) return '';
+    return `<div style="margin-bottom:24px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">${title}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">${items}</div>
+    </div>`;
+  }
+
+  const updatedAt = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:${statusColor}20;color:${statusColor};">${statusText}</div>
+      <div style="font-size:12px;color:var(--text3);">Last updated: ${updatedAt} · Auto-refreshes every 30s</div>
+    </div>
+    ${section('📊 Major Indices', ['SPY','QQQ','DIA','IWM'])}
+    ${section('💻 Mega Cap Tech', ['AAPL','NVDA','MSFT','META','GOOGL','AMZN','TSLA','AMD'])}
+    ${section('🏦 Financials', ['JPM'])}
+    ${section('🏭 Sectors', ['XLK','XLF','XLE','XLV','XLI'])}
+    ${section('🥇 Commodities', ['GLD','USO'])}
+  `;
+}
+
 async function switchBriefing(type, btn) {
+  if (window._liveInterval) { clearInterval(window._liveInterval); window._liveInterval = null; }
   currentType = type;
   document.querySelectorAll('.briefing-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
