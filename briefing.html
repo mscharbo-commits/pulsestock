@@ -338,25 +338,34 @@ async function renderLiveMarket() {
       'XLI':'Industrials','XLY':'Consumer Disc.','XLP':'Consumer Staples',
       'XLU':'Utilities','XLRE':'Real Estate','XLC':'Communication'
     };
-    const items = syms.map(s => {
+    const items = syms.map(function(s) {
       const q = quotes[s];
       if (!q) return '';
       const up = q.pct >= 0;
       const color = up ? 'var(--green)' : 'var(--red)';
       const bg = up ? 'var(--green-bg)' : 'var(--red-bg)';
       const label = sectorNames[s] || s;
-      return '<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ' + color + ';border-radius:10px;padding:12px 14px;cursor:pointer;transition:box-shadow .15s;" onclick="openSectorAnalysis('' + s + '','' + label + '',' + JSON.stringify(q) + ')" onmouseover="this.style.boxShadow=\'0 4px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-        '<div style="font-size:13px;font-weight:700;">' + label + '</div>' +
-        '<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + bg + ';color:' + color + ';">' + (up?'+':'') + q.pct.toFixed(2) + '%</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--text3);">' + s + ' · $' + q.price.toFixed(2) + '</div>' +
-        '<div style="font-size:11px;color:var(--accent);margin-top:6px;">🧠 Click for AI analysis</div>' +
-        '</div>';
+      const pct = (up?'+':'') + q.pct.toFixed(2) + '%';
+      const price = '$' + q.price.toFixed(2);
+      const el = document.createElement('div');
+      el.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-left:3px solid '+color+';border-radius:10px;padding:12px 14px;cursor:pointer;';
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        + '<div style="font-size:13px;font-weight:700;">'+label+'</div>'
+        + '<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+bg+';color:'+color+';">'+pct+'</span>'
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--text3);">'+s+' · '+price+'</div>'
+        + '<div style="font-size:11px;color:var(--accent);margin-top:6px;">🧠 Click for AI analysis</div>';
+      el.addEventListener('mouseover', function(){ this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'; });
+      el.addEventListener('mouseout', function(){ this.style.boxShadow='none'; });
+      el.addEventListener('click', function(){ openSectorAnalysis(s, label, q); });
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(el);
+      return wrapper.innerHTML;
     }).filter(Boolean).join('');
     if (!items) return '';
-    return '<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">' + title + '</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">' + items + '</div></div>';
+    return '<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">'+title+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">'+items+'</div></div>';
   }
+
 
   function section(title, syms) {
     const items = syms.map(s => {
