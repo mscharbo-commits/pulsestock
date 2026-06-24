@@ -326,13 +326,16 @@ function renderBriefing(data, type) {
 
   // Sectors
   const maxAbsPct = Math.max(...(data.sectors||[]).map(s => Math.abs(s.pct||0)), 1);
+  if (!window._sq) window._sq = {};
   const sectorsHTML = (data.sectors || []).map(s => {
+    window._sq[s.symbol] = {sym:s.symbol, label:s.name||s.symbol, quote:{price:s.price||0, pct:parseFloat(s.pct||0), change:0, low:0, high:0}};
     const up = s.pct >= 0;
     const barWidth = Math.abs(s.pct / maxAbsPct * 100).toFixed(0);
     return '<div class="sector-row">'
       + '<div class="sector-name">' + (s.name||s.symbol) + '</div>'
       + '<div class="sector-bar-wrap"><div class="sector-bar" style="width:' + barWidth + '%;background:' + (up?'var(--green)':'var(--red)') + ';"></div></div>'
       + '<div class="sector-pct ' + (up?'up':'down') + '">' + fmt(s.pct) + '</div>'
+      + '<div class="brief-sec-ai" data-sym="' + s.symbol + '" style="font-size:11px;color:var(--accent);cursor:pointer;margin-left:8px;font-weight:600;">&#x1F9E0; AI</div>'
       + '</div>';
   }).join('') || '<div class="empty">No sector data</div>';
 
