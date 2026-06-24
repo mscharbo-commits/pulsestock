@@ -657,7 +657,10 @@ async function openSectorAI(sym){
   var summary=Object.keys(SQ).length>0?Object.entries(SQ).map(function(e){return e[0]+': $'+e[1].price.toFixed(2)+' ('+(e[1].pct>=0?'+':'')+e[1].pct.toFixed(2)+'%)';}).join(', '):'Holdings data unavailable';
   var ds=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   var etfDesc=sym+' ETF'+(etfPrice>0?' at $'+etfPrice.toFixed(2):'')+(etfPct?' is '+(up?'up':'down')+' '+Math.abs(etfPct).toFixed(2)+'% today':'');
-  var prompt='You are a financial market analyst. Today is '+ds+'. LIVE MARKET DATA: The '+label+' sector ('+etfDesc+'). Top holdings performance today: '+summary+'. Write exactly 3 paragraphs: (1) What is driving '+label+' sector performance today based on the stocks shown, (2) Which stocks are leading and lagging and likely why, (3) What traders should watch. Use specific numbers. No disclaimers, no bullets.';
+  var holdingsNote = Object.keys(SQ).length > 0
+    ? 'Top holdings performance today: '+summary
+    : 'Note: individual holdings data is loading. Base your analysis on the sector ETF move and typical '+label+' sector dynamics.';
+  var prompt = 'You are a professional financial market analyst writing for traders. Today is '+ds+'. LIVE DATA: The '+label+' sector ETF ('+etfDesc+'). '+holdingsNote+'. Write exactly 3 paragraphs analyzing this sector: what is driving performance today, which areas/stocks are likely leading or lagging, and what traders should watch. Be specific and direct. No disclaimers.';
   var rows=Object.entries(SQ).map(function(e){var u=e[1].pct>=0;return '<tr><td style="padding:6px 10px;font-family:DM Mono,monospace;font-size:13px;font-weight:600;">'+e[0]+'</td><td style="padding:6px 10px;font-size:13px;">$'+e[1].price.toFixed(2)+'</td><td style="padding:6px 10px;font-size:13px;font-weight:600;color:'+(u?'var(--green)':'var(--red)')+'">'+(u?'+':'')+e[1].pct.toFixed(2)+'%</td></tr>';}).join('');
   try{
     var resp=await fetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
