@@ -434,6 +434,12 @@ function renderBriefing(data, type) {
     + '<div id="ai-brief-body" style="font-size:14px;color:var(--text3);">Click below to get an AI-powered ' + (isPre?'pre-market outlook':'post-market wrap-up') + ' for today.</div>'
     + '<button onclick="loadAIBriefing()" id="ai-brief-btn" style="margin-top:12px;background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:500;">Generate AI Analysis →</button>'
     + '</div>';
+  // Attach sector AI click handlers
+  setTimeout(function(){
+    document.querySelectorAll('.brief-sec-ai').forEach(function(el){
+      el.onclick = function(e){e.stopPropagation(); openSectorAI(this.getAttribute('data-sym'));};
+    });
+  }, 100);
 }
 
 async function loadAIBriefing() {
