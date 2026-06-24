@@ -623,7 +623,7 @@ async function broadMarketAI(){
   var sq=window._sq||{};
   var lines=Object.values(sq).map(function(x){var q=x.quote;return x.label+' ('+x.sym+'): '+(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%';}).join(', ');
   var ds=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  var prompt='You are a market analyst. Today is '+ds+'. Sector performance: '+lines+'. Write 3 paragraphs: which sectors lead/lag, overall market tone, macro drivers, what to watch. Be specific. No bullets.';
+  var prompt='You are a financial market analyst writing for stock traders. Today is '+ds+'. Here is live sector ETF performance data from today: '+lines+'. Write a 3 paragraph broad market analysis based on this data: (1) Which sectors are leading and lagging today and what this tells us about market sentiment, (2) What macro or fundamental factors are likely driving these sector moves, (3) Key takeaways and what traders should watch. Use the specific percentages provided. No bullets. No disclaimers.';
   try{
     var resp=await fetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:prompt})});
     var ai=await resp.json();
