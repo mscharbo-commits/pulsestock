@@ -1742,10 +1742,9 @@ async function runAIAnalysis(ticker, name, sector){
     fetchQuote(ticker),
     fetchWithTimeout('/api/edgar?ticker=' + encodeURIComponent(ticker), 5000),
     // Fetch intelligence fresh if not already loaded
-    (window._currentIntelligence ? Promise.resolve(null) :
-      fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&feature=all', 12000)
+fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&feature=all', 12000)
         .then(function(d){ if(d && !d.error) window._currentIntelligence = d; })
-        .catch(function(){})),
+        .catch(function(){}),
   ]);
 
   var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A');
