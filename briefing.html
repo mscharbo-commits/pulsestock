@@ -335,7 +335,7 @@ function renderBriefing(data, type) {
       + '<div class="sector-name">' + (s.name||s.symbol) + '</div>'
       + '<div class="sector-bar-wrap"><div class="sector-bar" style="width:' + barWidth + '%;background:' + (up?'var(--green)':'var(--red)') + ';"></div></div>'
       + '<div class="sector-pct ' + (up?'up':'down') + '">' + fmt(s.pct) + '</div>'
-      + '<div class="brief-sec-ai" data-sym="' + s.symbol + '" style="font-size:11px;color:var(--accent);cursor:pointer;margin-left:8px;font-weight:600;">&#x1F9E0; AI</div>'
+      + '<button class="brief-sec-ai" data-sym="' + s.symbol + '" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;background:var(--accent);color:#fff;border:none;cursor:pointer;margin-left:8px;white-space:nowrap;">&#x1F9E0; AI</button>'
       + '</div>';
   }).join('') || '<div class="empty">No sector data</div>';
 
