@@ -1655,12 +1655,15 @@ async function doAnalyze(){
       {label:'📁 SEC Filings', target:'filings-'+t},
       {label:'📅 Earnings', target:'earnings-'+t},
       {label:'📰 News', target:'news-'+t},
-      {label:'🧠 AI Analysis', target:'ai-analysis-'+t},
       {label:'💬 Community', target:'community-'+t},
+      {label:'🧠 AI Analysis', target:'ai-analysis-'+t},
     ];
     function makeBtn(b) {
       var el = document.createElement('button');
       el.className = 'qn-btn';
+      if (b.label === '🧠 AI Analysis') {
+        el.style.cssText = 'background:#1A6BF5;color:#fff;border-color:#1A6BF5;font-weight:700;';
+      }
       el.textContent = b.label;
       el.onclick = function(){ scrollToSection(b.target); };
       return el;
