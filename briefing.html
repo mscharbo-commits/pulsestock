@@ -450,10 +450,8 @@ function renderBriefing(data, type) {
     + '</div></div>'
 
     // AI Analysis button
-    + '<div class="ai-brief" id="ai-brief-section">'
-    + '<div class="ai-brief-title">🧠 AI Market Analysis</div>'
-    + '<div id="ai-brief-body" style="font-size:14px;color:var(--text3);">Click below to get an AI-powered ' + (isPre?'pre-market outlook':'post-market wrap-up') + ' for today.</div>'
-    + '<button onclick="loadAIBriefing()" id="ai-brief-btn" style="margin-top:12px;background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:13.5px;font-weight:500;">Generate AI Analysis →</button>'
+    + '<div id="ai-brief-section" style="margin-top:0;">'
+    + '<div id="ai-brief-body" style="font-size:14px;line-height:1.8;color:var(--text);"></div>'
     + '</div>';
   // Attach sector AI click handlers
   setTimeout(function(){
