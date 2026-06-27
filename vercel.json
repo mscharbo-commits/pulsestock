@@ -26,6 +26,10 @@
     {
       "src": "/support-manual",
       "dest": "/support-manual.html"
+    },
+    {
+      "src": "/gate",
+      "dest": "/gate.html"
     }
   ]
 }
