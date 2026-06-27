@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PulseStock — Demo Access</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#0D1117;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.gate{background:#111827;border:1px solid #1A2535;border-radius:20px;padding:48px 40px;width:100%;max-width:420px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px;}
+.logo-icon{width:44px;height:44px;background:#1A6BF5;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700;}
+.logo-name{font-size:22px;font-weight:700;color:#E6EDF3;letter-spacing:-.5px;}
+.logo-name span{color:#1A6BF5;}
+h2{font-size:18px;font-weight:600;color:#E6EDF3;margin-bottom:8px;}
+p{font-size:14px;color:#4A5568;margin-bottom:28px;line-height:1.6;}
+input{width:100%;padding:14px 18px;background:#1A2535;border:1.5px solid #2A3A55;border-radius:10px;color:#E6EDF3;font-size:15px;font-family:inherit;outline:none;text-align:center;letter-spacing:.05em;margin-bottom:14px;}
+input:focus{border-color:#1A6BF5;}
+input::placeholder{color:#3D4D60;letter-spacing:0;}
+button{width:100%;padding:14px;background:#1A6BF5;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+button:hover{opacity:.88;}
+button:disabled{opacity:.5;cursor:not-allowed;}
+.error{color:#D13F30;font-size:13px;margin-top:12px;display:none;}
+.badge{display:inline-block;background:#1A2535;color:#4A5568;font-size:11px;padding:4px 12px;border-radius:20px;margin-bottom:24px;}
+</style>
+</head>
+<body>
+<div class="gate">
+  <div class="logo">
+    <div class="logo-icon">P</div>
+    <div class="logo-name">Pulse<span>Stock</span></div>
+  </div>
+  <div class="badge">🔒 Private Demo</div>
+  <h2>Enter Demo Password</h2>
+  <p>This is a private demo of PulseStock.<br>Please enter the access password to continue.</p>
+  <input type="password" id="pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')submit()"/>
+  <button id="btn" onclick="submit()">Access Demo →</button>
+  <div class="error" id="err">Incorrect password. Please try again.</div>
+</div>
+
+<script>
+// Check if already have access
+function getCookie(name) {
+  var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+if (getCookie('ps_demo_access') === 'granted') {
+  window.location.href = '/';
+}
+
+async function submit() {
+  var pw = document.getElementById('pw').value;
+  var btn = document.getElementById('btn');
+  var err = document.getElementById('err');
+  if (!pw) return;
+  btn.textContent = 'Checking...';
+  btn.disabled = true;
+  err.style.display = 'none';
+  try {
+    var resp = await fetch('/api/gate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({password: pw})
+    });
+    var data = await resp.json();
+    if (data.success) {
+      btn.textContent = '✓ Access Granted!';
+      setTimeout(function(){ window.location.href = '/'; }, 500);
+    } else {
+      err.style.display = 'block';
+      btn.textContent = 'Access Demo →';
+      btn.disabled = false;
+      document.getElementById('pw').value = '';
+      document.getElementById('pw').focus();
+    }
+  } catch(e) {
+    err.textContent = 'Error: ' + e.message;
+    err.style.display = 'block';
+    btn.textContent = 'Access Demo →';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
