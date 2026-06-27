@@ -2252,7 +2252,7 @@ function goAnalyze(t){
 }
 
 // ── PORTFOLIO (uses live prices) ──
-async async function renderPortfolio(){
+async function renderPortfolio(){
   const tickers=[...new Set(portfolio.map(h=>h.ticker))];
   const quotes={};
   await Promise.all(tickers.map(async t=>{
@@ -4247,7 +4247,7 @@ async function refreshPortL2(ticker) {
 }
 
 // ── AI PORTFOLIO ANALYSIS ──
-async async function runPortfolioAI() {
+async function runPortfolioAI() {
   const btn = document.getElementById('port-ai-btn');
   const output = document.getElementById('port-ai-output');
   if(!portfolio.length){ alert('Add some holdings first.'); return; }
