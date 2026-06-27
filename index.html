@@ -4689,5 +4689,66 @@ function showFooter(id) {
 }
 </script>
 
+
+<script>
+// Sticky quick-nav: pin it fixed when it scrolls under the header
+(function(){
+  var headerEl = document.querySelector('header');
+  var pinnedNav = null;
+  var spacer = null;
+
+  function getNav() {
+    return document.querySelector('.quick-nav');
+  }
+
+  function pinCheck() {
+    var nav = getNav();
+    if (!nav) return;
+    var headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+
+    if (!nav.classList.contains('pinned')) {
+      var navRect = nav.getBoundingClientRect();
+      if (navRect.top <= headerBottom) {
+        // Pin it
+        var navH = nav.offsetHeight;
+        nav.classList.add('pinned');
+        nav.style.top = headerBottom + 'px';
+        pinnedNav = nav;
+        // Insert spacer to prevent jump
+        if (!spacer) {
+          spacer = document.createElement('div');
+          spacer.style.height = navH + 'px';
+          nav.parentNode.insertBefore(spacer, nav.nextSibling);
+        }
+      }
+    } else {
+      // Check if we should unpin
+      if (!spacer) return;
+      var spacerRect = spacer.getBoundingClientRect();
+      if (spacerRect.top > headerBottom + 2) {
+        nav.classList.remove('pinned');
+        nav.style.top = '';
+        pinnedNav = null;
+        if (spacer) { spacer.remove(); spacer = null; }
+      }
+    }
+  }
+
+  window.addEventListener('scroll', pinCheck, {passive: true});
+  window.addEventListener('resize', function(){
+    if (pinnedNav) {
+      var headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
+      pinnedNav.style.top = headerBottom + 'px';
+    }
+  });
+
+  // Re-init when a new stock loads
+  document.addEventListener('analyzeComplete', function(){
+    if (spacer) { spacer.remove(); spacer = null; }
+    if (pinnedNav) { pinnedNav.classList.remove('pinned'); pinnedNav.style.top=''; pinnedNav=null; }
+    setTimeout(pinCheck, 200);
+  });
+})();
+</script>
 </body>
 </html>
