@@ -23,10 +23,10 @@ export default async function handler(req) {
         companyName = companyName || subData.name;
         const recent = subData.filings?.recent;
         if (recent?.form) {
-          for (let i = 0; i < Math.min(recent.form.length, 10); i++) filings.push({ type: recent.form[i], date: recent.filingDate[i], accession: recent.accessionNumber[i] });
-          isFullyReporting = filings.some(f => ['10-K','10-Q','10-KSB','10-QSB'].includes(f.type));
+          for (let i = 0; i < Math.min(recent.form.length, 20); i++) filings.push({ type: recent.form[i], date: recent.filingDate[i], accession: recent.accessionNumber[i] });
+          isFullyReporting = filings.some(f => ['10-K','10-Q','10-KSB','10-QSB','20-F','6-K','20-F/A','40-F'].includes(f.type));
           lastFilingDate = filings[0]?.date;
-          filingTypes = [...new Set(filings.map(f => f.type))].slice(0, 6);
+          filingTypes = [...new Set(filings.map(f => f.type))].slice(0, 8);
         }
         try {
           const factsRes = await fetch('https://data.sec.gov/api/xbrl/companyfacts/CIK' + cik + '.json', { headers });
