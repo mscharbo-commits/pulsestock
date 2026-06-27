@@ -1279,7 +1279,7 @@ async function doAnalyze(){
       <div>
         <div class="stock-ticker">${ticker}</div>
         <div class="stock-name">${name}</div>
-        <div class="stock-sector">${sector}</div>
+        <div class="stock-sector">${sector}${profile?.exchange?' · <span style="color:var(--text3);font-size:11px;">'+profile.exchange+'</span>':''}</div>
         <div id="edgar-status-${ticker}" style="margin-top:8px;"></div>
         ${profile?.weburl?`<div style="margin-top:6px;"><a href="${profile.weburl}" target="_blank" style="font-size:12px;color:var(--accent);">${profile.weburl.replace('https://','').replace('http://','').split('/')[0]} ↗</a></div>`:''}
       </div>
@@ -1289,6 +1289,7 @@ async function doAnalyze(){
         <div style="margin-top:8px;font-size:12px;color:var(--text3);text-align:right;">
           H $${quote.high.toFixed(2)} · L $${quote.low.toFixed(2)} · O $${quote.open.toFixed(2)}
         </div>
+        <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Vol ${quote.volume>0?(quote.volume>=1e6?(quote.volume/1e6).toFixed(2)+'M':quote.volume>=1e3?(quote.volume/1e3).toFixed(0)+'K':quote.volume):'--'}</div>
         <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Prev close $${quote.prevClose.toFixed(2)}</div>
         <div style="margin-top:2px;font-size:11px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:4px;display:inline-block;float:right;">● Live</div>
       </div>
