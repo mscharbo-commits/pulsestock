@@ -46,11 +46,30 @@ async function getEdgarCik(ticker) {
   } catch(e) { return null; }
 }
 
+// IFRS concept mapping for foreign filers
+const IFRS_MAP = {
+  'RevenueFromContractWithCustomerExcludingAssessedTax': 'Revenue',
+  'Revenues': 'Revenue',
+  'NetIncomeLoss': 'ProfitLoss',
+  'Assets': 'Assets',
+  'Liabilities': 'Liabilities',
+  'StockholdersEquity': 'Equity',
+  'CashAndCashEquivalentsAtCarryingValue': 'CashAndCashEquivalents',
+  'LongTermDebt': 'NoncurrentLiabilities',
+  'CommonStockSharesOutstanding': 'IssuedCapital',
+  'EarningsPerShareBasic': 'BasicEarningsLossPerShare',
+};
+
 function getLatestValue(facts, concept, unit = 'USD', preferEnd = null) {
   try {
-    const data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    // Try US-GAAP first, then IFRS-full for foreign filers
+    let data = facts?.facts?.['us-gaap']?.[concept]?.units?.[unit];
+    if (!data || !data.length) {
+      const ifrsConc = IFRS_MAP[concept] || concept;
+      data = facts?.facts?.['ifrs-full']?.[ifrsConc]?.units?.[unit];
+    }
     if (!data || !data.length) return null;
-    const annuals = data.filter(d => d.form === '10-K' && d.val != null && d.start && d.end).sort((a,b) => b.end.localeCompare(a.end));
+    const annuals = data.filter(d => (d.form === '10-K' || d.form === '20-F') && d.val != null && d.start && d.end).sort((a,b) => b.end.localeCompare(a.end));
     // If a preferred end date is given, try to match it first
     if (preferEnd) {
       const match = annuals.find(d => d.end === preferEnd);
