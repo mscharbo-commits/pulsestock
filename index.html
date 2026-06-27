@@ -2227,7 +2227,7 @@ function runScreen(){
     <div class="results-table-header"><span>Company</span><span>Price</span><span>P/E</span><span>Rev Growth</span><span>FCF</span><span>Dividend</span><span>Score</span></div>
     ${res.map(s=>{
       const up=s.pct>=0;const sc=s.score>=80?'shi':s.score>=65?'sme':'slo';
-      return `<div class="result-row" onclick="goAnalyze('${s.ticker}')">
+      return `<div class="result-row" data-ticker="${s.ticker}" onclick="goAnalyze('${s.ticker}')">
         <div><div class="rr-ticker">${s.ticker}</div><div class="rr-name">${s.name}</div></div>
         <div class="rr-cell"><div>Live ↗</div><div style="font-size:11.5px;" class="${up?'up':'down'}">${up?'+':''}${s.pct.toFixed(1)}%</div></div>
         <div class="rr-cell">${s.pe}x</div>
