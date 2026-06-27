@@ -372,9 +372,23 @@ function renderBriefing(data, type) {
     + '</a>'
   ).join('') || '<div class="empty">No news available</div>';
 
+  // Market status for header bar
+  const now = new Date();
+  const etNow = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const hNow = etNow.getHours(), mNow = etNow.getMinutes();
+  const isOpenNow = etNow.getDay()>=1 && etNow.getDay()<=5 && (hNow>9||(hNow===9&&mNow>=30)) && hNow<16;
+  const mktColor = isOpenNow ? '#0D9B6B' : '#B45309';
+  const mktText = isOpenNow ? '&#x1F7E2; Market Open' : '&#x1F7E1; After Hours';
+  const briefLabel = isPre ? '&#x1F9E0; Generate Pre-Market AI Briefing' : '&#x1F9E0; Generate Post-Market AI Briefing';
+
   el.innerHTML =
+    // Header bar matching Live Market layout
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">'
+    + '<div style="font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;background:' + mktColor + '20;color:' + mktColor + ';">' + mktText + '</div>'
+    + '<button onclick="loadAIBriefing()" id="ai-brief-btn" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">' + briefLabel + '</button>'
+    + '</div>'
     // Index tiles
-    '<div class="index-grid">' + indicesHTML + '</div>'
+    + '<div class="index-grid">' + indicesHTML + '</div>'
 
     // Main grid
     + '<div class="briefing-grid">'
