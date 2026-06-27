@@ -838,7 +838,7 @@ async function fetchQuote(ticker){
   return fetchWithTimeout('https://finnhub.io/api/v1/quote?symbol='+ticker+'&token='+FINNHUB_KEY, 5000)
     .then(function(d){
       if(!d||d.c===0) return null;
-      var data={price:d.c,change:d.d,pct:d.dp,high:d.h,low:d.l,open:d.o,prevClose:d.pc};
+      var data={price:d.c,change:d.d,pct:d.dp,high:d.h,low:d.l,open:d.o,prevClose:d.pc,volume:d.v||0};
       quoteCache[ticker]={data,ts:Date.now()};
       return data;
     }).catch(function(){ return null; });
