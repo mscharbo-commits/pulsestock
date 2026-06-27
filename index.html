@@ -64,7 +64,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 
 .stock-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
 .stock-ticker{font-size:28px;font-weight:600;letter-spacing:-1px;}
-.stock-name{font-size:13px;color:var(--text2);margin-top:3px;}
+.stock-name{font-size:13px;color:var(--text);margin-top:3px;font-weight:500;}
 .stock-sector{display:inline-block;font-size:11px;font-weight:500;padding:3px 8px;background:var(--surface2);color:var(--text3);border-radius:4px;margin-top:6px;}
 .price-main{font-size:28px;font-weight:500;font-family:'DM Mono',monospace;letter-spacing:-1px;text-align:right;}
 .price-chg{font-size:13px;margin-top:4px;font-family:'DM Mono',monospace;font-weight:500;text-align:right;}
@@ -156,7 +156,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 
 /* COMPANY PROFILE */
 .profile-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
-.profile-description{font-size:13.5px;color:var(--text2);line-height:1.8;margin-bottom:14px;}
+.profile-description{font-size:13.5px;color:var(--text);line-height:1.8;margin-bottom:14px;}
 .profile-meta{display:flex;flex-direction:column;gap:8px;}
 .profile-meta-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);}
 .profile-meta-row:last-child{border-bottom:none;}
@@ -1279,18 +1279,18 @@ async function doAnalyze(){
       <div>
         <div class="stock-ticker">${ticker}</div>
         <div class="stock-name">${name}</div>
-        <div class="stock-sector">${sector}${profile?.exchange?' · <span style="color:var(--text3);font-size:11px;">'+profile.exchange+'</span>':''}</div>
+        <div class="stock-sector">${sector}${profile?.exchange?' · <span style="color:var(--text2);font-size:11px;font-weight:500;">'+profile.exchange+'</span>':''}</div>
         <div id="edgar-status-${ticker}" style="margin-top:8px;"></div>
         ${profile?.weburl?`<div style="margin-top:6px;"><a href="${profile.weburl}" target="_blank" style="font-size:12px;color:var(--accent);">${profile.weburl.replace('https://','').replace('http://','').split('/')[0]} ↗</a></div>`:''}
       </div>
       <div>
         <div class="price-main ${up?'up':'down'}">$${quote.price.toFixed(2)}</div>
         <div class="price-chg ${up?'up':'down'}">${up?'+':''}${quote.change.toFixed(2)} (${up?'+':''}${quote.pct.toFixed(2)}%)</div>
-        <div style="margin-top:8px;font-size:12px;color:var(--text3);text-align:right;">
+        <div style="margin-top:8px;font-size:12px;color:var(--text2);text-align:right;font-weight:500;">
           H $${quote.high.toFixed(2)} · L $${quote.low.toFixed(2)} · O $${quote.open.toFixed(2)}
         </div>
         <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Vol ${quote.volume>0?(quote.volume>=1e6?(quote.volume/1e6).toFixed(2)+'M':quote.volume>=1e3?(quote.volume/1e3).toFixed(0)+'K':quote.volume):'--'}</div>
-        <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Prev close $${quote.prevClose.toFixed(2)}</div>
+        <div style="margin-top:2px;font-size:12px;color:var(--text2);text-align:right;font-weight:500;">Prev close $${quote.prevClose.toFixed(2)}</div>
         <div style="margin-top:2px;font-size:11px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:4px;display:inline-block;float:right;">● Live</div>
       </div>
     </div>
