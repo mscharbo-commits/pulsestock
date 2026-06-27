@@ -408,10 +408,10 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 
 <header>
   <div class="header-inner">
-    <a href="/" class="logo" style="text-decoration:none;color:inherit;">
+    <div class="logo" onclick="window.location='/'" style="cursor:pointer;">
       <div class="logo-icon">P</div>
       <span class="logo-name">Pulse<span>Stock</span></span>
-    </a>
+    </div>
     <nav class="header-nav">
       <button class="nav-tab active" onclick="showPage('analyze',this)">Analyze</button>
       <button class="nav-tab" onclick="showPage('screener',this)">Screener</button>
@@ -591,7 +591,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     <div id="port-ai-output"></div>
 
     <!-- PORTFOLIO LEVEL II & T&S -->
-    <div class="card" style="display:none;" style="display:none;" style="margin-top:16px;">
+    <div class="card" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
         <div style="font-size:14px;font-weight:600;">⚖️ Level II & Time &amp; Sales</div>
         <div style="display:flex;align-items:center;gap:8px;">
