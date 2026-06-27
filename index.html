@@ -2358,12 +2358,12 @@ function addPortfolioTicker(){
   var t=(inp?inp.value.trim().toUpperCase():'');
   if(!t){t=(prompt('Enter ticker symbol:')||'').trim().toUpperCase();}
   if(!t) return;
-  var h=JSON.parse(localStorage.getItem('portfolio')||'[]');
+  var h=JSON.parse(localStorage.getItem('ps_portfolio')||'[]');
   if(h.find(function(x){return x.ticker===t;})){alert(t+' already in portfolio.');if(inp)inp.value='';return;}
   var shares=parseFloat((prompt('Shares (enter 0 to skip):')||'0').replace(/,/g,''))||0;
   var avg=parseFloat((prompt('Avg cost per share (enter 0 to skip):')||'0').replace(/[$,]/g,''))||0;
   h.push({ticker:t,shares:shares,avg:avg,date:new Date().toISOString().split('T')[0]});
-  localStorage.setItem('portfolio',JSON.stringify(h));
+  localStorage.setItem('ps_portfolio',JSON.stringify(h));
   if(inp)inp.value='';
   if(confirm('Also add '+t+' to the ticker bar?')){
     if(!TICKER_SYMBOLS.find(function(s){return s.sym===t;})){
@@ -2377,7 +2377,7 @@ function addPortfolioTicker(){
 function removePortfolioTicker(){
   var inp=document.getElementById('port-ticker-input');
   var t=(inp?inp.value.trim().toUpperCase():'');
-  var h=JSON.parse(localStorage.getItem('portfolio')||'[]');
+  var h=JSON.parse(localStorage.getItem('ps_portfolio')||'[]');
   if(!h.length){alert('Portfolio is empty.');return;}
   if(!t){
     var list=h.map(function(x,i){return (i+1)+'. '+x.ticker;}).join('\n');
@@ -2386,7 +2386,7 @@ function removePortfolioTicker(){
   if(!t) return;
   var idx=h.findIndex(function(x){return x.ticker===t;});
   if(idx===-1){alert(t+' not in portfolio.');return;}
-  if(confirm('Remove '+t+'?')){h.splice(idx,1);localStorage.setItem('portfolio',JSON.stringify(h));if(inp)inp.value='';renderPortfolio();}
+  if(confirm('Remove '+t+'?')){h.splice(idx,1);localStorage.setItem('ps_portfolio',JSON.stringify(h));if(inp)inp.value='';renderPortfolio();}
 }
 
 function addHolding(){
