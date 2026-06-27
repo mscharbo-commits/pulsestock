@@ -150,7 +150,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .short-change-up{color:var(--red);font-weight:600;}
 .short-change-down{color:var(--green);font-weight:600;}
 /* QUICK NAV */
-.quick-nav{display:block;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
+.quick-nav{position:sticky;top:60px;z-index:90;display:block;margin-bottom:16px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);border-top:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06);position:sticky;top:60px;z-index:90;}
 .qn-btn{font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:8px;border:1.5px solid #C5CDD8;background:#F0F3F8;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.06);}
 .qn-btn:hover,.qn-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent);}
 
@@ -408,16 +408,16 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 
 <header>
   <div class="header-inner">
-    <div class="logo">
+    <a href="/" class="logo" style="text-decoration:none;color:inherit;">
       <div class="logo-icon">P</div>
       <span class="logo-name">Pulse<span>Stock</span></span>
-    </div>
+    </a>
     <nav class="header-nav">
       <button class="nav-tab active" onclick="showPage('analyze',this)">Analyze</button>
       <button class="nav-tab" onclick="showPage('screener',this)">Screener</button>
       <button class="nav-tab" onclick="showPage('buyin',this);refreshRegSHOCache();loadBuyInList()">🎯 Buy-In</button>
       <button class="nav-tab" onclick="showPage('portfolio',this)">Portfolio</button>
-      <a href="/community.html" class="nav-tab-link">💬 Community</a>
+      <a href="/community.html" class="nav-tab-link" style="color:#1A6BF5;font-weight:700;background:#EBF1FE;border-radius:8px;padding:6px 14px;">💬 Community</a>
       <a href="/morning-picks" class="nav-tab-link">🌅 Morning Picks</a>
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
       <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
@@ -591,7 +591,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     <div id="port-ai-output"></div>
 
     <!-- PORTFOLIO LEVEL II & T&S -->
-    <div class="card" style="margin-top:16px;">
+    <div class="card" style="display:none;" style="margin-top:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
         <div style="font-size:14px;font-weight:600;">⚖️ Level II & Time &amp; Sales</div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -1643,7 +1643,7 @@ async function doAnalyze(){
     var btns = [
       {label:'📈 Chart', target:'chart-'+t},
       {label:'📊 Indicators', target:'indicators-'+t},
-      {label:'⚖️ Level II & T&S', target:'marketdata-'+t},
+      
       {label:'💰 Valuation', target:'valuation-'+t},
       {label:'📋 Fundamentals', target:'fundamentals-'+t},
       {label:'📉 Technical', target:'technical-'+t},
@@ -1884,7 +1884,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     }
   } catch(e) { console.log('No morning pick:', e.message); }
 
-  output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div>'
+  output.innerHTML = '<div class="ai-analysis-card"><div class="ai-analysis-header"><h3>🧠 AI Deep Analysis — ' + ticker + '</h3><span style="font-size:12px;color:var(--text3);">Powered by PulseAI</span></div>'
     + intelBadge
     + morningPickBanner
     + '<div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
@@ -4313,7 +4313,7 @@ async function runPortfolioAI() {
     + '- [Specific actionable recommendation with target allocation %]\n\n'
     + 'Be direct and specific. Reference actual tickers, prices, and percentages from the data provided.';
 
-  output.innerHTML = '<div class="ai-analysis-card" style="margin-top:16px;"><div class="ai-analysis-header"><h3>🧠 AI Portfolio Analysis</h3><span style="font-size:12px;color:var(--text3);">Powered by Claude</span></div><div class="ai-streaming" id="port-ai-stream"><span style="color:var(--text3);">Analyzing your portfolio...</span><span class="ai-cursor"></span></div></div>';
+  output.innerHTML = '<div class="ai-analysis-card" style="margin-top:16px;"><div class="ai-analysis-header"><h3>🧠 AI Portfolio Analysis</h3><span style="font-size:12px;color:var(--text3);">Powered by PulseAI</span></div><div class="ai-streaming" id="port-ai-stream"><span style="color:var(--text3);">Analyzing your portfolio...</span><span class="ai-cursor"></span></div></div>';
 
   try {
     const resp = await fetch('/api/analyze', {
@@ -4626,7 +4626,7 @@ async function spTicket() {
           <span style="font-size:17px;font-weight:700;color:#E6EDF3;letter-spacing:-.4px;">Pulse<span style="color:#1A6BF5;">Stock</span></span>
         </div>
         <p style="font-size:13px;line-height:1.7;color:#4A5568;max-width:220px;">AI-powered stock analysis for informed investors. Institutional-grade tools, built for everyone.</p>
-        <p style="font-size:12px;color:#2A3040;margin-top:16px;">Data by Finnhub. Analysis by Claude AI. Not financial advice.</p>
+        <p style="font-size:12px;color:#2A3040;margin-top:16px;">Data by Finnhub. Analysis by PulseAI. Not financial advice.</p>
       </div>
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#3D4D60;margin-bottom:14px;">Product</div>
@@ -4672,8 +4672,8 @@ async function spTicket() {
 var ftContent = {
   about: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">About PulseStock</h3><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:10px;">PulseStock is an AI-powered stock analysis platform built for individual investors who want institutional-grade tools without the institutional price tag. We combine real-time market data with advanced AI analysis to deliver comprehensive stock insights in seconds.</p><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:10px;">Our platform covers the full analysis stack from live quotes and technical indicators to SEC filings, insider transactions, earnings data, and AI-generated entry/exit strategies. We also feature a community where traders share picks and build auditable track records.</p><p style="font-size:13px;color:#8A95A3;line-height:1.8;">PulseStock is built by traders, for traders. Our mission is to democratize access to the same quality of research previously only available to institutional investors.</p>',
   contact: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Contact PulseStock</h3><p style="font-size:13px;color:#8A95A3;line-height:1.8;margin-bottom:16px;">Have a question, found a bug, or want to partner with us?</p><div style="display:flex;flex-direction:column;gap:14px;"><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">🤖</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">AI Support (Instant)</div><div style="font-size:12px;color:#4A5568;">Click the ? button on any page for immediate answers</div></div></div><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">📧</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">Email Support</div><div style="font-size:12px;color:#4A5568;">support@pulsestock.com — Response within 24 hours</div></div></div><div style="display:flex;gap:12px;align-items:center;"><span style="font-size:18px;">🤝</span><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;">Partnerships</div><div style="font-size:12px;color:#4A5568;">partnerships@pulsestock.com</div></div></div></div>',
-  faq: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:16px;">Frequently Asked Questions</h3><div style="display:flex;flex-direction:column;gap:14px;"><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is PulseStock free?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Yes. PulseStock offers a free tier with full access to stock analysis, real-time quotes, charts, indicators, news, filings, and community.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is this financial advice?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">No. PulseStock is an informational tool only. Nothing on this platform constitutes financial advice. Always consult a qualified financial advisor.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How current is the data?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Quotes are real-time during trading hours (9:30am-4pm ET). Some data points may be delayed 15 minutes on the free tier.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How does the AI analysis work?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Deep Analysis pulls live price, financial metrics, analyst ratings, and recent news then synthesizes them using Claude AI. Results are cached for 3 hours.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is my portfolio data secure?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Portfolio data is stored in your browser locally and never leaves your device. Cloud sync is coming soon.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is there a mobile app?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">A mobile app is in development. PulseStock works great in your mobile browser. A desktop ticker app is available for Mac and Windows.</div></div></div>',
-  privacy: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Privacy Policy</h3><p style="font-size:12px;color:#4A5568;margin-bottom:12px;">Last updated: June 2026</p><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><div><strong style="color:#E6EDF3;">Information We Collect:</strong> Email address and username on signup. Portfolio data is stored locally in your browser only. Support tickets include information you voluntarily provide.</div><div><strong style="color:#E6EDF3;">How We Use It:</strong> Your email is used for authentication and support only. We do not sell or share your personal information.</div><div><strong style="color:#E6EDF3;">Third-Party Services:</strong> Finnhub (market data), Anthropic Claude (AI analysis), Supabase (auth and community), Vercel (hosting).</div><div><strong style="color:#E6EDF3;">Data Deletion:</strong> You may request deletion of your account at any time by contacting support@pulsestock.com</div></div>',
+  faq: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:16px;">Frequently Asked Questions</h3><div style="display:flex;flex-direction:column;gap:14px;"><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is PulseStock free?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Yes. PulseStock offers a free tier with full access to stock analysis, real-time quotes, charts, indicators, news, filings, and community.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is this financial advice?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">No. PulseStock is an informational tool only. Nothing on this platform constitutes financial advice. Always consult a qualified financial advisor.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How current is the data?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Quotes are real-time during trading hours (9:30am-4pm ET). Some data points may be delayed 15 minutes on the free tier.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">How does the AI analysis work?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Deep Analysis pulls live price, financial metrics, analyst ratings, and recent news then synthesizes them using PulseAI. Results are cached for 3 hours.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is my portfolio data secure?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">Portfolio data is stored in your browser locally and never leaves your device. Cloud sync is coming soon.</div></div><div><div style="font-size:13px;font-weight:600;color:#E6EDF3;margin-bottom:4px;">Is there a mobile app?</div><div style="font-size:13px;color:#8A95A3;line-height:1.7;">A mobile app is in development. PulseStock works great in your mobile browser. A desktop ticker app is available for Mac and Windows.</div></div></div>',
+  privacy: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Privacy Policy</h3><p style="font-size:12px;color:#4A5568;margin-bottom:12px;">Last updated: June 2026</p><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><div><strong style="color:#E6EDF3;">Information We Collect:</strong> Email address and username on signup. Portfolio data is stored locally in your browser only. Support tickets include information you voluntarily provide.</div><div><strong style="color:#E6EDF3;">How We Use It:</strong> Your email is used for authentication and support only. We do not sell or share your personal information.</div><div><strong style="color:#E6EDF3;">Third-Party Services:</strong> Finnhub (market data), PulseAI (AI analysis), Supabase (auth and community), Vercel (hosting).</div><div><strong style="color:#E6EDF3;">Data Deletion:</strong> You may request deletion of your account at any time by contacting support@pulsestock.com</div></div>',
   disclaimer: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Investment Disclaimer</h3><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><p><strong style="color:#E6EDF3;">Not Financial Advice:</strong> Information on PulseStock is for informational and educational purposes only. Nothing here constitutes financial, investment, legal, or tax advice. PulseStock is not a registered investment advisor or broker-dealer.</p><p><strong style="color:#E6EDF3;">No Guarantee:</strong> We strive for accuracy but make no warranties about completeness or reliability. Market data may be delayed and AI analysis is automated and may contain errors.</p><p><strong style="color:#E6EDF3;">Investment Risk:</strong> All investing involves risk including potential loss of principal. Past performance is not indicative of future results.</p><p><strong style="color:#E6EDF3;">AI Analysis:</strong> AI-generated content is produced by automated systems and does not represent the opinion of any licensed financial professional. Always conduct your own due diligence.</p></div>',
   cookies: '<h3 style="font-size:15px;font-weight:700;color:#E6EDF3;margin-bottom:12px;">Cookie Policy</h3><div style="display:flex;flex-direction:column;gap:12px;font-size:13px;color:#8A95A3;line-height:1.8;"><div><strong style="color:#E6EDF3;">localStorage (Essential):</strong> We save your portfolio, watchlist, and ticker preferences in your browser. This data never leaves your device.</div><div><strong style="color:#E6EDF3;">Session Storage:</strong> Supabase uses session storage to maintain your login session.</div><div><strong style="color:#E6EDF3;">No Tracking Cookies:</strong> PulseStock does not use advertising cookies, tracking pixels, or third-party analytics. We do not track you across the web.</div><div><strong style="color:#E6EDF3;">Third-Party Scripts:</strong> Google Fonts and TradingView may set their own cookies subject to their own policies.</div></div>'
 };
