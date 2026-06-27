@@ -1,34 +1,21 @@
-import { NextResponse } from 'next/server';
+export const config = {
+  matcher: '/((?!api/gate|gate|_vercel|favicon.ico|assets/).*)',
+};
 
-const COOKIE_NAME = 'ps_demo_access';
-const COOKIE_VALUE = 'granted';
-const PUBLIC_PATHS = ['/gate', '/api/gate'];
+export default function middleware(request) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
 
-export function middleware(request) {
-  const { pathname } = request.nextUrl;
-
-  // Allow gate page and gate API through without cookie check
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
-    return NextResponse.next();
-  }
-
-  // Allow static assets through
-  if (pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|ttf|map)$/)) {
-    return NextResponse.next();
+  // Allow static file extensions through
+  if (/\.(ico|png|jpg|jpeg|svg|css|woff|woff2|ttf|map|gif|webp)$/.test(pathname)) {
+    return;
   }
 
   // Check for access cookie
-  const cookie = request.cookies.get(COOKIE_NAME);
-  if (cookie && cookie.value === COOKIE_VALUE) {
-    return NextResponse.next();
+  const cookies = request.headers.get('cookie') || '';
+  const hasAccess = cookies.includes('ps_demo_access=granted');
+
+  if (!hasAccess) {
+    return Response.redirect(new URL('/gate', request.url));
   }
-
-  // Redirect to gate
-  const url = request.nextUrl.clone();
-  url.pathname = '/gate';
-  return NextResponse.redirect(url);
 }
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-};
