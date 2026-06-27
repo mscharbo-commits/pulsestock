@@ -4794,5 +4794,89 @@ function showFooter(id) {
   });
 })();
 </script>
+
+<script>
+// ── CUSTOM SCREENER CRITERIA ──────────────────────────────────────────────
+var _crit = [];
+var _critType = 'fundamental';
+var _FUND = [
+  {key:'pe',    label:'P/E Ratio',        unit:'x',  hint:'e.g. < 25 for value stocks'},
+  {key:'score', label:'PulseStock Score',  unit:'',   hint:'e.g. > 80 for top-rated'},
+  {key:'cap',   label:'Market Cap',        unit:'$B', hint:'e.g. > 100 for large-cap'},
+  {key:'div',   label:'Dividend Yield',    unit:'%',  hint:'e.g. > 2 for income investing'},
+];
+var _TECH = [
+  {key:'pct',   label:'Price Change Today',unit:'%',  hint:'e.g. > 1 for up-trending stocks'},
+  {key:'score', label:'PulseStock Score',  unit:'',   hint:'e.g. > 75 for high-rated'},
+];
+function addCriteria(type) {
+  _critType = type;
+  var ms = type === 'fundamental' ? _FUND : _TECH;
+  document.getElementById('criteria-modal-title').textContent = type === 'fundamental' ? 'Fundamental Filter' : 'Technical Filter';
+  var sel = document.getElementById('criteria-metric');
+  sel.innerHTML = ms.map(function(m){ return '<option value="'+m.key+'">'+m.label+'</option>'; }).join('');
+  updateCriteriaHint();
+  document.getElementById('criteria-modal').style.display = 'flex';
+}
+function updateCriteriaHint() {
+  var ms = _critType === 'fundamental' ? _FUND : _TECH;
+  var m = ms.find(function(x){ return x.key === document.getElementById('criteria-metric').value; });
+  if (!m) return;
+  document.getElementById('criteria-unit').textContent = m.unit || '';
+  document.getElementById('criteria-hint').textContent = m.hint || '';
+}
+function closeCriteriaModal() { document.getElementById('criteria-modal').style.display = 'none'; }
+function applyCriteria() {
+  var ms = _critType === 'fundamental' ? _FUND : _TECH;
+  var key = document.getElementById('criteria-metric').value;
+  var cond = document.getElementById('criteria-condition').value;
+  var val = parseFloat(document.getElementById('criteria-value').value);
+  if (isNaN(val)) { alert('Please enter a number.'); return; }
+  var m = ms.find(function(x){ return x.key === key; });
+  var cl = {gt:'>',lt:'<',gte:'>=',lte:'<='}[cond];
+  _crit.push({key:key, cond:cond, val:val, label:m.label+' '+cl+' '+val+(m.unit?' '+m.unit:''), type:_critType});
+  _renderTags();
+  closeCriteriaModal();
+  runScreen();
+}
+function removeCriteria(i) { _crit.splice(i,1); _renderTags(); runScreen(); }
+function clearCriteria() { _crit = []; _renderTags(); runScreen(); }
+function _renderTags() {
+  var el = document.getElementById('custom-criteria-list');
+  if (!el) return;
+  if (!_crit.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);">No custom criteria added.</div>';
+    return;
+  }
+  el.innerHTML = _crit.map(function(c, i) {
+    var color = c.type === 'fundamental' ? 'var(--accent)' : '#0D9B6B';
+    var bg = c.type === 'fundamental' ? 'var(--accent-light)' : 'rgba(13,155,107,.1)';
+    return '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:'+bg+';border:1.5px solid '+color+';font-size:12px;font-weight:600;color:'+color+';margin:2px 4px 2px 0;">'
+      + c.label
+      + '<span onclick="removeCriteria('+i+')" style="cursor:pointer;opacity:.7;">&#x2715;</span></span>';
+  }).join('');
+}
+// Patch runScreen to apply custom criteria after base render
+var _origScreen = window.runScreen;
+if (_origScreen) {
+  window.runScreen = function() {
+    _origScreen();
+    if (!_crit.length) return;
+    document.querySelectorAll('#screen-result .result-row[data-ticker]').forEach(function(row) {
+      var s = SCREENER_DATA[row.getAttribute('data-ticker')];
+      if (!s) { row.style.display = 'none'; return; }
+      var ok = _crit.every(function(c) {
+        var v = parseFloat(s[c.key]);
+        if (isNaN(v)) return false;
+        if (c.cond === 'gt')  return v > c.val;
+        if (c.cond === 'lt')  return v < c.val;
+        if (c.cond === 'gte') return v >= c.val;
+        return v <= c.val;
+      });
+      if (!ok) row.style.display = 'none';
+    });
+  };
+}
+</script>
 </body>
 </html>
