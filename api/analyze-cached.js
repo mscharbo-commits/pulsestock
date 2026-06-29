@@ -12,7 +12,6 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const ticker = (body.ticker || '').toUpperCase();
     const tier = body.tier || 'free';
     const model = tier === 'paid' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
     const messages = body.messages || [];
@@ -25,15 +24,22 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    // Call Claude with streaming ON - pass stream through directly
+    // Web search enabled — Claude searches before answering current events questions
     const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05'
       },
-      body: JSON.stringify({ model, max_tokens: 1500, stream: true, messages })
+      body: JSON.stringify({
+        model,
+        max_tokens: 1500,
+        stream: true,
+        messages,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+      })
     });
 
     if (!anthropicResp.ok) {
@@ -41,7 +47,6 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Claude API error: ' + anthropicResp.status + ' ' + err.slice(0,200) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    // Pass the SSE stream straight through to the browser
     return new Response(anthropicResp.body, {
       headers: {
         ...CORS,
