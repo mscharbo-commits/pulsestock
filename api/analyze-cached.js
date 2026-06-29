@@ -12,24 +12,24 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const tier = body.tier || 'free';
-    const model = tier === 'paid' ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
     const messages = body.messages || [];
 
     if (!messages.length) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_KEY) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    // Web search enabled — Claude searches before answering current events questions
+    // Always use Sonnet — web search requires Sonnet, and Sonnet gives better analysis
+    const model = 'claude-sonnet-4-6';
+
     const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'x-api-key': process.env.ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'web-search-2025-03-05'
       },
