@@ -18,7 +18,7 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'No messages provided' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    if (!process.env.ANTHROPIC_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
@@ -29,7 +29,7 @@ export default async function handler(req) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_KEY,
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'web-search-2025-03-05'
       },
