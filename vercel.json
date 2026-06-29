@@ -31,5 +31,13 @@
       "src": "/gate",
       "dest": "/gate.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/analyze-cached.js": {
+      "maxDuration": 60
+    },
+    "api/chat.js": {
+      "maxDuration": 60
+    }
+  }
 }
