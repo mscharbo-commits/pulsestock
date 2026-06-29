@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs', maxDuration: 60 };
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -6,20 +6,20 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type'
 };
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
-  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+export default async function handler(req, res) {
+  Object.entries(CORS).forEach(([k,v]) => res.setHeader(k, v));
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const body = await req.json();
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const messages = body.messages || [];
-    if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
-    if (!process.env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    if (!messages.length) return res.status(400).json({ error: 'No messages' });
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'No API key' });
 
-    const system = body.system || 'You are an institutional stock analyst. Be concise and data-driven. Respond in 3-4 focused paragraphs.';
+    const system = body.system || 'You are an institutional stock analyst. Use web_search to find current news before answering questions about recent events, leadership changes, or anything time-sensitive.';
 
-    // Use TRUE streaming so first token arrives within seconds
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,31 +28,42 @@ export default async function handler(req) {
         'anthropic-beta': 'web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        stream: true,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
         system,
         messages,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }]
       })
     });
 
-    if (!resp.ok) {
-      const err = await resp.text();
-      return new Response(JSON.stringify({ error: err.slice(0,300) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    if (!apiResp.ok) {
+      const err = await apiResp.text();
+      return res.status(500).json({ error: 'Claude error ' + apiResp.status + ': ' + err.slice(0,200) });
     }
 
-    // Pipe the SSE stream directly to client
-    return new Response(resp.body, {
-      headers: {
-        ...CORS,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no'
-      }
-    });
+    const data = await apiResp.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n')
+      .trim() || 'No response generated.';
 
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    // Stream back as SSE for progressive display
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    const words = text.split(' ');
+    for (let i = 0; i < words.length; i += 8) {
+      const chunk = words.slice(i, i+8).join(' ') + (i+8 < words.length ? ' ' : '');
+      const evt = JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: chunk } });
+      res.write('data: ' + evt + '\n\n');
+    }
+    res.write('data: [DONE]\n\n');
+    res.end();
+
+  } catch(e) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: e.message });
+    }
   }
 }
