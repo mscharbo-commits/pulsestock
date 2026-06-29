@@ -1937,10 +1937,18 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     + '<div class="ai-streaming" id="ai-stream-body"><span style="color:var(--text3);">Generating institutional-grade analysis</span><span class="ai-cursor"></span></div></div>';
 
   try {
+    const systemMsg = 'You are an institutional stock analyst with real-time web search capability. '
+      + 'IMPORTANT: Before answering ANY question about recent events, leadership changes, earnings, '
+      + 'FDA decisions, contracts, or news — use your web_search tool to find current information. '
+      + 'Never rely solely on prompt data for current events. Search first, then analyze.';
     const resp = await fetch('/api/analyze-cached', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker, tier: 'free', messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({
+        ticker, tier: 'free',
+        system: systemMsg,
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
 
     if(!resp.ok){
