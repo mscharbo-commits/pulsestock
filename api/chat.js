@@ -75,29 +75,38 @@ Today's date: ${today()}.`;
 
     systemPrompt += `\n\nUsing the live data and news above, give a specific, analytical answer. Reference actual prices and headlines where relevant. Be concise (3-4 paragraphs max). Not financial advice.`;
 
+    // Add web search instruction to system prompt
+    systemPrompt += `\n\nIMPORTANT: You have web_search capability. For ANY question about recent news, leadership changes, earnings, FDA decisions, or current events — search the web FIRST before answering. Never rely only on the headlines above for current events.`;
+
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
         messages: [
           { role: 'user', content: systemPrompt + '\n\nQuestion: ' + question }
-        ]
+        ],
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
       })
     });
 
     if (!resp.ok) {
       const err = await resp.text();
-      return new Response(JSON.stringify({ error: 'Claude error: ' + resp.status }), { status: 500, headers: cors });
+      return new Response(JSON.stringify({ error: 'Claude error: ' + resp.status + ' ' + err.slice(0,100) }), { status: 500, headers: cors });
     }
 
     const data = await resp.json();
-    const text = data?.content?.[0]?.text || '';
+    // Extract all text blocks (web search adds multiple content blocks)
+    const text = (data?.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('\n') || data?.content?.[0]?.text || '';
     return new Response(JSON.stringify({ text }), { headers: cors });
 
   } catch(e) {
