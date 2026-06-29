@@ -22,8 +22,22 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    // Always use Sonnet — web search requires Sonnet, and Sonnet gives better analysis
+    // Always Sonnet — required for web search
     const model = 'claude-sonnet-4-6';
+
+    // Build request — include system message if provided
+    const claudeBody = {
+      model,
+      max_tokens: 1500,
+      stream: true,
+      messages,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+    };
+
+    // Pass system message if provided
+    if (body.system) {
+      claudeBody.system = body.system;
+    }
 
     const anthropicResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -33,13 +47,7 @@ export default async function handler(req) {
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'web-search-2025-03-05'
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1500,
-        stream: true,
-        messages,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
-      })
+      body: JSON.stringify(claudeBody)
     });
 
     if (!anthropicResp.ok) {
@@ -48,11 +56,7 @@ export default async function handler(req) {
     }
 
     return new Response(anthropicResp.body, {
-      headers: {
-        ...CORS,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache'
-      }
+      headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }
     });
 
   } catch (err) {
