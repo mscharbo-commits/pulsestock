@@ -1980,11 +1980,21 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
           if(!data) continue;
           try{
             const parsed = JSON.parse(data);
-            // Handle both streaming formats
-            if(parsed.type === 'content_block_delta' && parsed.delta?.text){
+            // Handle text deltas
+            if(parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text){
               fullText += parsed.delta.text;
-            } else if(parsed.delta?.type === 'text_delta' && parsed.delta?.text){
+            } else if(parsed.delta && parsed.delta.type === 'text_delta' && parsed.delta.text){
               fullText += parsed.delta.text;
+            }
+            // Handle web search tool use — show searching indicator
+            if(parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use'){
+              const streamEl = document.getElementById('ai-stream-body');
+              if(streamEl && !fullText) streamEl.innerHTML = '<span style="color:var(--text3);font-size:13px">🔍 Searching the web for current information…</span><span class="ai-cursor"></span>';
+            }
+            // Handle tool result — web search results coming back
+            if(parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_result'){
+              const streamEl = document.getElementById('ai-stream-body');
+              if(streamEl && !fullText) streamEl.innerHTML = '<span style="color:var(--text3);font-size:13px">📰 Processing search results…</span><span class="ai-cursor"></span>';
             }
             if(fullText) {
               const streamEl = document.getElementById('ai-stream-body');
