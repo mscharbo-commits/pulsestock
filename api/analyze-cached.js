@@ -16,9 +16,9 @@ export default async function handler(req) {
     if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     if (!process.env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-    const system = body.system || 'You are an institutional stock analyst. Always use web_search to find the latest news before answering.';
+    const system = body.system || 'You are an institutional stock analyst. Be concise and data-driven. Respond in 3-4 focused paragraphs.';
 
-    // Non-streaming call — get full response including search results
+    // Use TRUE streaming so first token arrives within seconds
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -28,8 +28,9 @@ export default async function handler(req) {
         'anthropic-beta': 'web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        stream: true,
         system,
         messages,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }]
@@ -41,36 +42,14 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: err.slice(0,300) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
 
-    const data = await resp.json();
-
-    // Extract all text from response content blocks
-    const textParts = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('');
-
-    // Stream back as SSE
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const enc = new TextEncoder();
-
-    (async () => {
-      try {
-        // Stream in small chunks so browser shows progressive rendering
-        const words = textParts.split(' ');
-        for (let i = 0; i < words.length; i += 8) {
-          const chunk = words.slice(i, i + 8).join(' ') + (i + 8 < words.length ? ' ' : '');
-          const evt = JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: chunk } });
-          await writer.write(enc.encode('data: ' + evt + '\n\n'));
-        }
-      } finally {
-        await writer.write(enc.encode('data: [DONE]\n\n'));
-        await writer.close();
+    // Pipe the SSE stream directly to client
+    return new Response(resp.body, {
+      headers: {
+        ...CORS,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no'
       }
-    })();
-
-    return new Response(readable, {
-      headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }
     });
 
   } catch (err) {
