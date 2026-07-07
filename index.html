@@ -1297,6 +1297,19 @@ async function doAnalyze(){
   const name=profile?.name||ticker;
   const sector=profile?.finnhubIndustry||f.sector||'—';
   const mktCap=profile?.marketCapitalization?(profile.marketCapitalization>1000?'$'+(profile.marketCapitalization/1000).toFixed(2)+'T':'$'+profile.marketCapitalization.toFixed(0)+'B'):'—';
+  // ── 4 STAT BOXES ───────────────────────────────────────────────────────
+  function fmtBig(n){if(!n||isNaN(n))return '—';n=parseFloat(n);if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return (n/1e3).toFixed(0)+'K';return n.toFixed(0);}
+  var sm=stockMetrics||{};
+  var sharesOut   = sm.shareOutstanding   ? fmtBig(sm.shareOutstanding*1e6)           : '—';
+  var avgVol90    = sm['3MonthADTV']      ? fmtBig(sm['3MonthADTV']*1e6)              : (sm['10DayAverageTradingVolume'] ? fmtBig(sm['10DayAverageTradingVolume']*1e6) : '—');
+  var floatSh     = sm.float              ? fmtBig(sm.float*1e6)                      : '—';
+  var shortFl     = sm['shortInterest']   ? (sm['shortInterest']*100).toFixed(2)+'%'  : (sm['shortRatio'] ? sm['shortRatio'].toFixed(1)+'d DTC' : '—');
+  var statBoxes = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
+    +'<div class="met"><div class="ml">Shares Out</div><div class="mv">'+sharesOut+'</div></div>'
+    +'<div class="met"><div class="ml">Avg Daily Vol</div><div class="mv">'+avgVol90+'</div></div>'
+    +'<div class="met"><div class="ml">Float</div><div class="mv">'+floatSh+'</div></div>'
+    +'<div class="met"><div class="ml">Short Float</div><div class="mv">'+shortFl+'</div></div>'
+    +'</div>';
   const h52=analyst?.fiftyTwoWeekHigh?analyst.fiftyTwoWeekHigh.toFixed(2):(f.h52||'—');
   const l52=analyst?.fiftyTwoWeekLow?analyst.fiftyTwoWeekLow.toFixed(2):(f.l52||'—');
   const pricePct=h52!=='—'&&l52!=='—'?((quote.price-parseFloat(l52))/(parseFloat(h52)-parseFloat(l52))*100).toFixed(0):50;
@@ -1342,6 +1355,7 @@ async function doAnalyze(){
       </div>
     </div>
 
+    ${statBoxes}
     <!-- TradingView Chart -->
     <div id="chart-${ticker}">
     <div class="tv-chart-wrap" id="tv-wrap-${ticker}">
