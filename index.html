@@ -1361,7 +1361,7 @@ async function doAnalyze(){
         <div style="margin-top:8px;font-size:12px;color:var(--text2);text-align:right;font-weight:500;">
           H $${quote.high.toFixed(2)} · L $${quote.low.toFixed(2)} · O $${quote.open.toFixed(2)}
         </div>
-        <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Vol ${quote.volume>0?(quote.volume>=1e6?(quote.volume/1e6).toFixed(2)+'M':quote.volume>=1e3?(quote.volume/1e3).toFixed(0)+'K':quote.volume):'--'}</div>
+        <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Vol ${quote.volume>0?(quote.volume>=1e6?(quote.volume/1e6).toFixed(2)+'M':quote.volume>=1e3?(quote.volume/1e3).toFixed(0)+'K':quote.volume):'--'}</div>\n        <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;">Avg Vol <span id="avgvol-${ticker}">—</span></div>
         <div style="margin-top:2px;font-size:12px;color:var(--text2);text-align:right;font-weight:500;">Prev close $${quote.prevClose.toFixed(2)}</div>
         <div style="margin-top:2px;font-size:11px;color:var(--text3);text-align:right;" id="52w-display-${ticker}">52W: Loading...</div>
         <div style="margin-top:2px;font-size:11px;background:var(--green-bg);color:var(--green);padding:2px 8px;border-radius:4px;display:inline-block;float:right;">● Live</div>
