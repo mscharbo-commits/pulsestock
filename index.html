@@ -5005,31 +5005,29 @@ var _moLoaded = {indexes:false, commodities:false, crypto:false};
 var _moInterval = null;
 
 var MO_SYMBOLS = {
+  live: [],
   indexes: [
-    {sym:'SPY', name:'S&P 500'},
-    {sym:'QQQ', name:'Nasdaq 100'},
-    {sym:'DIA', name:'Dow Jones'},
-    {sym:'IWM', name:'Russell 2000'},
-    {sym:'VIX', name:'Volatility'},
-    {sym:'TLT', name:'20Y Treasury'},
+    {sym:'SPY',name:'S&P 500'},{sym:'QQQ',name:'Nasdaq 100'},
+    {sym:'DIA',name:'Dow Jones'},{sym:'IWM',name:'Russell 2000'},
+    {sym:'VIX',name:'Volatility'},{sym:'TLT',name:'20Y Treasury'},
+  ],
+  sectors: [
+    {sym:'XLK',name:'Technology'},{sym:'XLF',name:'Financials'},
+    {sym:'XLE',name:'Energy'},{sym:'XLV',name:'Healthcare'},
+    {sym:'XLI',name:'Industrials'},{sym:'XLY',name:'Consumer Disc.'},
+    {sym:'XLP',name:'Consumer Staples'},{sym:'XLU',name:'Utilities'},
+    {sym:'XLRE',name:'Real Estate'},{sym:'XLC',name:'Communication'},
+    {sym:'XLB',name:'Materials'},
   ],
   commodities: [
-    {sym:'GLD',  name:'Gold'},
-    {sym:'SLV',  name:'Silver'},
-    {sym:'USO',  name:'Crude Oil'},
-    {sym:'UNG',  name:'Natural Gas'},
-    {sym:'CPER', name:'Copper'},
-    {sym:'WEAT', name:'Wheat'},
-    {sym:'CORN', name:'Corn'},
-    {sym:'SOYB', name:'Soybeans'},
+    {sym:'GLD',name:'Gold'},{sym:'SLV',name:'Silver'},
+    {sym:'USO',name:'WTI Crude'},{sym:'UNG',name:'Natural Gas'},
+    {sym:'CPER',name:'Copper'},{sym:'WEAT',name:'Wheat'},
   ],
   crypto: [
-    {sym:'BTC-USD', name:'Bitcoin',   disp:'BTC'},
-    {sym:'ETH-USD', name:'Ethereum',  disp:'ETH'},
-    {sym:'SOL-USD', name:'Solana',    disp:'SOL'},
-    {sym:'XRP-USD', name:'XRP',       disp:'XRP'},
-    {sym:'AVAX-USD',name:'Avalanche', disp:'AVAX'},
-    {sym:'DOGE-USD',name:'Dogecoin',  disp:'DOGE'},
+    {sym:'BTC-USD',name:'Bitcoin',disp:'BTC'},{sym:'ETH-USD',name:'Ethereum',disp:'ETH'},
+    {sym:'SOL-USD',name:'Solana',disp:'SOL'},{sym:'XRP-USD',name:'XRP',disp:'XRP'},
+    {sym:'AVAX-USD',name:'Avalanche',disp:'AVAX'},{sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE'},
   ]
 };
 
