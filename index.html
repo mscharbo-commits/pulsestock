@@ -1284,22 +1284,13 @@ async function doAnalyze(){
     stockMetrics = m;
     if(!m) return;
     var sharesEl = document.getElementById('sb-shares-'+ticker);
-    var avgvolEl = document.getElementById('sb-avgvol-'+ticker);
     var floatEl  = document.getElementById('sb-float-'+ticker);
-    var shortEl  = document.getElementById('sb-short-'+ticker);
+    var avgvolEl = document.getElementById('avgvol-'+ticker);
     var w52El    = document.getElementById('52w-display-'+ticker);
-    var volEl    = document.getElementById('sb-vol-'+ticker);
-    if(sharesEl) sharesEl.textContent = m.sharesOut   || '—';
-    if(avgvolEl) avgvolEl.textContent = m.avgVol      || '—';
-    if(floatEl)  floatEl.textContent  = m.float       || '—';
-    if(shortEl)  shortEl.textContent  = m.shortDisplay|| '—';
+    if(sharesEl) sharesEl.textContent = m.sharesOut    || '—';
+    if(floatEl)  floatEl.textContent  = m.float        || '—';
+    if(avgvolEl) avgvolEl.textContent = m.avgVol        || '—';
     if(w52El)    w52El.textContent    = m.week52 ? '52W: '+m.week52 : '52W: —';
-    // Update today's volume with Polygon VWAP if available
-    var volDisplay = document.querySelector('#quick-nav-'+ticker+' ~ div .vol-live');
-    if(m.vwap && m.polyVol) {
-      var vwapEl = document.getElementById('vwap-'+ticker);
-      if(vwapEl) vwapEl.textContent = 'VWAP '+m.vwap+' · Vol '+m.polyVol;
-    }
   });
   // Load short interest first, then FTD after DOM is ready
   setTimeout(function(){ fetchInsiderTransactions(ticker); }, 500);
@@ -1330,13 +1321,7 @@ async function doAnalyze(){
   // ── 4 STAT BOXES ───────────────────────────────────────────────────────
   function fmtBig(n){if(!n||isNaN(n))return '—';n=parseFloat(n);if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return (n/1e3).toFixed(0)+'K';return n.toFixed(0);}
   // stat boxes filled async via fetchMetrics
-  // Stat boxes rendered as placeholder - populated after metrics load
-  var statBoxes = '<div id="stat-boxes-'+ticker+'" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
-    +'<div class="met"><div class="ml">Shares Out</div><div class="mv" id="sb-shares-'+ticker+'">Loading...</div></div>'
-    +'<div class="met"><div class="ml">Avg Daily Vol</div><div class="mv" id="sb-avgvol-'+ticker+'">Loading...</div></div>'
-    +'<div class="met"><div class="ml">Float</div><div class="mv" id="sb-float-'+ticker+'">Loading...</div></div>'
-    +'<div class="met"><div class="ml">Short Float</div><div class="mv" id="sb-short-'+ticker+'">Loading...</div></div>'
-    +'</div>';
+  var statBoxes = ''; // metrics shown in relevant sections
   const h52=analyst?.fiftyTwoWeekHigh?analyst.fiftyTwoWeekHigh.toFixed(2):(f.h52||'—');
   const l52=analyst?.fiftyTwoWeekLow?analyst.fiftyTwoWeekLow.toFixed(2):(f.l52||'—');
   const pricePct=h52!=='—'&&l52!=='—'?((quote.price-parseFloat(l52))/(parseFloat(h52)-parseFloat(l52))*100).toFixed(0):50;
@@ -1557,6 +1542,8 @@ async function doAnalyze(){
       <div class="met"><div class="ml">Op Margin</div><div class="mv">${f.om||'—'}</div></div>
       <div class="met"><div class="ml">Net Margin</div><div class="mv">${f.nm||'—'}</div></div>
       <div class="met"><div class="ml">ROE</div><div class="mv">${f.roe||'—'}</div></div>
+      <div class="met"><div class="ml">Shares Out</div><div class="mv" id="sb-shares-${ticker}">—</div></div>
+      <div class="met"><div class="ml">Float</div><div class="mv" id="sb-float-${ticker}">—</div></div>
     </div>
     <div class="mgrid mg3">
       <div class="met"><div class="ml">Cash</div><div class="mv">${f.cash||'—'}</div></div>
