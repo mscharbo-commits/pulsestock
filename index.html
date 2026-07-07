@@ -1268,7 +1268,9 @@ async function fetchAnalyst(ticker){
   }catch(e){ return null; }
 }
 
+var stockMetrics = null; // declared at module scope
 async function doAnalyze(){
+  stockMetrics = null; // reset on each analyze
   var rawInput=document.getElementById('ticker-input').value.trim();
   // If user typed a full name, try to extract just the ticker symbol
   const ticker=rawInput.toUpperCase().split(' ')[0].replace(/[^A-Z0-9.\-]/g,'');
