@@ -1,7 +1,7 @@
 export const config = { runtime: 'edge' };
 
-const FINNHUB  = process.env.FINNHUB_KEY  || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
-const POLYGON  = process.env.POLYGON_API_KEY || '';
+const FINNHUB = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
+const POLYGON = process.env.POLYGON_API_KEY || '';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'no-store'};
 
 async function sf(url, t=5000) {
@@ -15,32 +15,44 @@ async function sf(url, t=5000) {
   } catch(e){ return null; }
 }
 
-const INDEX_SYMS = ['SPY','QQQ','DIA','IWM','VIX','TLT'];
+const INDEX_SYMS  = ['SPY','QQQ','DIA','IWM','VIX','TLT'];
 const COMMOD_SYMS = ['GLD','SLV','USO','UNG','CPER','WEAT'];
-const CRYPTO_SYMS = ['X:BTCUSD','X:ETHUSD','X:SOLUSD','X:XRPUSD','X:AVAXUSD','X:DOGEUSD'];
+const CRYPTO_PAIRS = [
+  {sym:'BTC-USD', name:'Bitcoin',   disp:'BTC'},
+  {sym:'ETH-USD', name:'Ethereum',  disp:'ETH'},
+  {sym:'SOL-USD', name:'Solana',    disp:'SOL'},
+  {sym:'XRP-USD', name:'XRP',       disp:'XRP'},
+  {sym:'AVAX-USD',name:'Avalanche', disp:'AVAX'},
+  {sym:'DOGE-USD',name:'Dogecoin',  disp:'DOGE'},
+];
 
 export default async function handler(req) {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
   const {searchParams} = new URL(req.url);
   const tab = searchParams.get('tab') || 'indexes';
-
   let result = {};
 
   if(tab === 'crypto') {
-    if(!POLYGON) return new Response(JSON.stringify({error:'No Polygon key'}),{status:500,headers:CORS});
-    // Batch crypto snapshot
-    const syms = CRYPTO_SYMS.join(',');
-    const data = await sf(`https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers?tickers=${encodeURIComponent(syms)}&apiKey=${POLYGON}`);
-    if(data?.tickers) {
-      data.tickers.forEach(function(t) {
-        const price = t.day?.c || t.prevDay?.c || 0;
-        const prev  = t.prevDay?.c || 0;
-        const pct   = prev ? ((price-prev)/prev*100) : 0;
-        result[t.ticker] = {price, pct, change: price-prev};
-      });
-    }
+    // Polygon crypto - use individual quotes for reliability
+    const quotes = await Promise.all(
+      CRYPTO_PAIRS.map(p => sf(`https://api.polygon.io/v2/aggs/ticker/X:${p.sym.replace('-','')}/prev?adjusted=true&apiKey=${POLYGON}`, 5000))
+    );
+    CRYPTO_PAIRS.forEach(function(p, i) {
+      const d = quotes[i];
+      const r = d?.results?.[0];
+      if(r) {
+        result[p.sym] = {
+          name: p.name,
+          disp: p.disp,
+          price: r.c || 0,
+          open:  r.o || 0,
+          pct: r.o ? ((r.c - r.o) / r.o * 100) : 0,
+          change: r.o ? (r.c - r.o) : 0,
+          vol: r.v || 0
+        };
+      }
+    });
   } else {
-    // Indexes or Commodities - use Finnhub batch quote
     const syms = tab === 'indexes' ? INDEX_SYMS : COMMOD_SYMS;
     const quotes = await Promise.all(
       syms.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`, 4000))
