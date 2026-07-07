@@ -9,6 +9,21 @@ const CORS = {
 const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
 const POLYGON_KEY = process.env.POLYGON_API_KEY || '';
 
+// Map Finnhub industry to sector ETF
+const SECTOR_ETF = {
+  'Technology': 'XLK', 'Semiconductors': 'XLK', 'Software': 'XLK',
+  'Financial Services': 'XLF', 'Banks': 'XLF', 'Insurance': 'XLF',
+  'Energy': 'XLE', 'Oil & Gas': 'XLE',
+  'Healthcare': 'XLV', 'Biotechnology': 'XLV', 'Pharmaceuticals': 'XLV',
+  'Industrials': 'XLI', 'Aerospace & Defense': 'XLI',
+  'Consumer Cyclical': 'XLY', 'Retail': 'XLY', 'Automotive': 'XLY',
+  'Consumer Defensive': 'XLP', 'Food & Beverage': 'XLP',
+  'Communication Services': 'XLC', 'Media': 'XLC',
+  'Real Estate': 'XLRE',
+  'Utilities': 'XLU',
+  'Basic Materials': 'XLB', 'Metals & Mining': 'XLB',
+};
+
 async function safeFetch(url, timeout = 4000) {
   try {
     const ctrl = new AbortController();
@@ -31,57 +46,97 @@ export default async function handler(req) {
     if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     if (!process.env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-    // Pre-fetch market data in parallel so Claude doesn't need web search
     let contextData = '';
+
     if (ticker) {
       const today = new Date().toISOString().split('T')[0];
       const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+      const monthAgo = new Date(Date.now() - 30*86400000).toISOString().split('T')[0];
 
-      const [quote, profile, news, metrics] = await Promise.all([
+      // Step 1: fetch profile first to get sector
+      const profile = await safeFetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`);
+      const sector = profile?.finnhubIndustry || '';
+      const sectorEtf = SECTOR_ETF[sector] || null;
+
+      // Step 2: fetch everything else in parallel
+      const fetchList = [
         safeFetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`),
-        safeFetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`),
-        safeFetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${weekAgo}&to=${today}&token=${FINNHUB_KEY}`),
         safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`),
-      ]);
+        safeFetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${weekAgo}&to=${today}&token=${FINNHUB_KEY}`),
+        // Broad market
+        safeFetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`),
+        safeFetch(`https://finnhub.io/api/v1/quote?symbol=QQQ&token=${FINNHUB_KEY}`),
+        safeFetch(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB_KEY}`),
+        // Sector ETF
+        sectorEtf ? safeFetch(`https://finnhub.io/api/v1/quote?symbol=${sectorEtf}&token=${FINNHUB_KEY}`) : Promise.resolve(null),
+        sectorEtf ? safeFetch(`https://finnhub.io/api/v1/company-news?symbol=${sectorEtf}&from=${weekAgo}&to=${today}&token=${FINNHUB_KEY}`) : Promise.resolve(null),
+        // Polygon for volume/VWAP
+        POLYGON_KEY ? safeFetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON_KEY}`) : Promise.resolve(null),
+      ];
 
-      // Polygon snapshot for additional data
-      let polySnap = null;
-      if (POLYGON_KEY) {
-        polySnap = await safeFetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON_KEY}`);
-      }
+      const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap] = await Promise.all(fetchList);
 
       const parts = [];
-      if (quote?.c) parts.push(`Current price: $${quote.c.toFixed(2)}, Change: ${quote.dp?.toFixed(2)}%, High: $${quote.h}, Low: $${quote.l}, Open: $${quote.o}, Prev Close: $${quote.pc}`);
-      if (profile?.name) parts.push(`Company: ${profile.name}, Sector: ${profile.finnhubIndustry}, Market Cap: $${profile.marketCapitalization?.toFixed(0)}M, Exchange: ${profile.exchange}`);
+
+      // Stock data
+      if (quote?.c) {
+        parts.push(`=== ${ticker} CURRENT DATA ===`);
+        parts.push(`Price: $${quote.c.toFixed(2)} | Change: ${quote.dp >= 0 ? '+' : ''}${quote.dp?.toFixed(2)}% ($${quote.d?.toFixed(2)}) | High: $${quote.h} | Low: $${quote.l} | Open: $${quote.o} | Prev Close: $${quote.pc}`);
+      }
+      if (profile?.name) {
+        parts.push(`Company: ${profile.name} | Sector: ${sector} | Industry: ${profile.finnhubIndustry} | Market Cap: $${profile.marketCapitalization ? (profile.marketCapitalization/1000).toFixed(1)+'B' : 'N/A'} | Exchange: ${profile.exchange}`);
+      }
+      if (polySnap?.ticker?.day) {
+        const d = polySnap.ticker.day;
+        parts.push(`Volume: ${d.v?.toLocaleString()} | VWAP: $${d.vw?.toFixed(2)}`);
+      }
       if (metrics?.metric) {
         const m = metrics.metric;
-        const metricStr = [
-          m['peBasicExclExtraTTM'] ? `P/E TTM: ${m['peBasicExclExtraTTM'].toFixed(1)}` : '',
-          m['epsBasicExclExtraAnnual'] ? `EPS: $${m['epsBasicExclExtraAnnual'].toFixed(2)}` : '',
-          m['revenueGrowthTTMYoy'] ? `Revenue Growth YoY: ${(m['revenueGrowthTTMYoy']*100).toFixed(1)}%` : '',
-          m['netProfitMarginAnnual'] ? `Net Margin: ${m['netProfitMarginAnnual'].toFixed(1)}%` : '',
-          m['52WeekHigh'] ? `52W High: $${m['52WeekHigh']}, 52W Low: $${m['52WeekLow']}` : '',
-          m['beta'] ? `Beta: ${m['beta'].toFixed(2)}` : '',
-        ].filter(Boolean).join(', ');
-        if (metricStr) parts.push(`Key Metrics: ${metricStr}`);
+        const metricParts = [
+          m.peBasicExclExtraTTM ? `P/E TTM: ${m.peBasicExclExtraTTM.toFixed(1)}x` : '',
+          m.epsBasicExclExtraAnnual ? `EPS: $${m.epsBasicExclExtraAnnual.toFixed(2)}` : '',
+          m.revenueGrowthTTMYoy ? `Rev Growth: ${(m.revenueGrowthTTMYoy*100).toFixed(1)}%` : '',
+          m.netProfitMarginAnnual ? `Net Margin: ${m.netProfitMarginAnnual.toFixed(1)}%` : '',
+          m['52WeekHigh'] ? `52W Range: $${m['52WeekLow']} - $${m['52WeekHigh']}` : '',
+          m.beta ? `Beta: ${m.beta.toFixed(2)}` : '',
+          m.rsi14 ? `RSI: ${m.rsi14.toFixed(0)}` : '',
+        ].filter(Boolean).join(' | ');
+        if (metricParts) parts.push(`Fundamentals: ${metricParts}`);
       }
+
+      // Stock news
       if (news?.length) {
-        const topNews = news.slice(0, 3).map(n => n.headline).join(' | ');
-        parts.push(`Recent News: ${topNews}`);
+        parts.push(`\n=== ${ticker} RECENT NEWS (last 7 days) ===`);
+        news.slice(0, 5).forEach(n => {
+          parts.push(`• ${n.headline} (${new Date(n.datetime*1000).toLocaleDateString()})`);
+        });
       }
-      if (polySnap?.ticker) {
-        const pt = polySnap.ticker;
-        if (pt.day) parts.push(`Today Volume: ${pt.day.v?.toLocaleString()}, VWAP: $${pt.day.vw?.toFixed(2)}`);
+
+      // Sector performance
+      if (sectorEtf && sectorQ?.c) {
+        parts.push(`\n=== SECTOR PERFORMANCE (${sector}) ===`);
+        parts.push(`${sectorEtf} ETF: $${sectorQ.c.toFixed(2)} | ${sectorQ.dp >= 0 ? '+' : ''}${sectorQ.dp?.toFixed(2)}% today`);
+        if (sectorNews?.length) {
+          parts.push(`Sector News:`);
+          sectorNews.slice(0, 3).forEach(n => {
+            parts.push(`• ${n.headline}`);
+          });
+        }
       }
+
+      // Broad market
+      parts.push(`\n=== BROAD MARKET CONTEXT ===`);
+      if (spy?.c) parts.push(`SPY (S&P 500): $${spy.c.toFixed(2)} | ${spy.dp >= 0 ? '+' : ''}${spy.dp?.toFixed(2)}% — ${spy.dp > 0.5 ? 'Risk-On' : spy.dp < -0.5 ? 'Risk-Off' : 'Neutral'}`);
+      if (qqq?.c) parts.push(`QQQ (Nasdaq): $${qqq.c.toFixed(2)} | ${qqq.dp >= 0 ? '+' : ''}${qqq.dp?.toFixed(2)}%`);
+      if (vix?.c) parts.push(`VIX: ${vix.c.toFixed(1)} — ${vix.c > 25 ? 'High Fear (>25)' : vix.c > 18 ? 'Elevated Volatility' : 'Low Fear / Complacent'}`);
+
       contextData = parts.join('\n');
     }
 
-    // Build system prompt with pre-fetched data — no web search needed
     const system = contextData
-      ? `You are an institutional stock analyst providing deep-dive analysis. Use this live market data:\n\n${contextData}\n\nProvide specific, data-driven analysis referencing these exact numbers. Be concise — 4-5 focused paragraphs covering: current technicals, fundamentals, recent news catalysts, risks, and outlook. No disclaimers.`
-      : (body.system || 'You are an institutional stock analyst. Be concise and data-driven. Respond in 4 focused paragraphs.');
+      ? `You are a senior institutional stock analyst delivering a deep-dive analysis. Today\'s live market data:\n\n${contextData}\n\nUsing ONLY this data, write a comprehensive analysis in exactly 5 sections with headers:\n\n1. **Market Context** — How is the broad market and sector performing today? Is this a headwind or tailwind for ${ticker}?\n2. **Technical Picture** — Price action, momentum, key levels based on today\'s data.\n3. **Fundamental Snapshot** — Key metrics, valuation, growth profile.\n4. **News & Catalysts** — What news is driving the stock? Any sector-level catalysts?\n5. **Outlook & Strategy** — Bull case, bear case, key levels to watch.\n\nBe specific with the actual numbers from the data. No disclaimers. Write for a sophisticated institutional investor.`
+      : 'You are an institutional stock analyst. Provide a deep-dive analysis in 5 sections: Market Context, Technical Picture, Fundamentals, News & Catalysts, Outlook & Strategy.';
 
-    // Stream directly — no web search tool needed since we pre-fetched data
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -91,7 +146,7 @@ export default async function handler(req) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 1500,
         stream: true,
         system,
         messages
