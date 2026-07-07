@@ -462,33 +462,33 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
     </div>
     <!-- MARKET OVERVIEW -->
-    <div id="market-overview" style="margin-top:24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.2px;">📊 Market Overview</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="font-size:11px;color:var(--text3);" id="market-overview-time"></div>
-          <div style="display:flex;gap:6px;">
-            <button onclick="setMarketTab('indexes',this)" class="mo-tab mo-tab-active">Indexes</button>
-            <button onclick="setMarketTab('commodities',this)" class="mo-tab">Commodities</button>
-            <button onclick="setMarketTab('crypto',this)" class="mo-tab">Crypto</button>
-          </div>
-        </div>
+    <div id="market-overview" style="margin-top:28px;">
+      <!-- Tab buttons with taglines -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+        <button onclick="setMarketTab('indexes',this)" class="mo-tab-card mo-tab-card-active" id="motab-indexes">
+          <div style="font-size:18px;margin-bottom:4px;">📊</div>
+          <div style="font-size:13px;font-weight:700;">Indexes</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">S&P 500, Nasdaq, Dow &amp; more</div>
+        </button>
+        <button onclick="setMarketTab('commodities',this)" class="mo-tab-card" id="motab-commodities">
+          <div style="font-size:18px;margin-bottom:4px;">🥇</div>
+          <div style="font-size:13px;font-weight:700;">Commodities</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Gold, Oil, Silver &amp; futures</div>
+        </button>
+        <button onclick="setMarketTab('crypto',this)" class="mo-tab-card" id="motab-crypto">
+          <div style="font-size:18px;margin-bottom:4px;">₿</div>
+          <div style="font-size:13px;font-weight:700;">Crypto</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">BTC, ETH, SOL &amp; top coins</div>
+        </button>
       </div>
-      <div id="mo-indexes" class="mo-panel">
-        <div class="mo-grid" id="mo-indexes-grid">
-          <div class="mo-loading">Loading market data...</div>
-        </div>
+      <!-- Panel header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;" id="mo-panel-label">Major Indexes</div>
+        <div style="font-size:11px;color:var(--text3);" id="market-overview-time"></div>
       </div>
-      <div id="mo-commodities" class="mo-panel" style="display:none;">
-        <div class="mo-grid" id="mo-commodities-grid">
-          <div class="mo-loading">Loading commodities...</div>
-        </div>
-      </div>
-      <div id="mo-crypto" class="mo-panel" style="display:none;">
-        <div class="mo-grid" id="mo-crypto-grid">
-          <div class="mo-loading">Loading crypto...</div>
-        </div>
-      </div>
+      <div id="mo-indexes" class="mo-panel"><div class="mo-grid" id="mo-indexes-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-commodities" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-commodities-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-crypto" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-crypto-grid"><div class="mo-loading">Loading...</div></div></div>
     </div>
 
     <div id="analyze-result"></div>
@@ -5016,63 +5016,35 @@ var MO_SYMBOLS = {
   ]
 };
 
+var MO_LABELS = {indexes:'Major Indexes', commodities:'Commodities & Futures', crypto:'Cryptocurrency'};
 function setMarketTab(tab, btn) {
   _moTab = tab;
-  document.querySelectorAll('.mo-tab').forEach(function(b){ b.classList.remove('mo-tab-active'); });
-  btn.classList.add('mo-tab-active');
+  document.querySelectorAll('.mo-tab-card').forEach(function(b){ b.classList.remove('mo-tab-card-active'); });
+  document.getElementById('motab-'+tab).classList.add('mo-tab-card-active');
   document.querySelectorAll('.mo-panel').forEach(function(p){ p.style.display='none'; });
   document.getElementById('mo-'+tab).style.display='block';
+  var lbl = document.getElementById('mo-panel-label');
+  if(lbl) lbl.textContent = MO_LABELS[tab]||tab;
   if(!_moLoaded[tab]) loadMarketTab(tab);
 }
 
 async function loadMarketTab(tab) {
-  var syms = MO_SYMBOLS[tab];
   var grid = document.getElementById('mo-'+tab+'-grid');
   if(!grid) return;
   grid.innerHTML = '<div class="mo-loading">Loading...</div>';
 
-  var POLYGON = '2c90554e-b7d3-485f-a497-b350eb8136f5';
-  var FINNHUB = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
-
-  async function getQuote(item) {
-    try {
-      if(tab === 'crypto') {
-        // Polygon crypto
-        var r = await fetch('https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/'+item.sym+'?apiKey='+POLYGON);
-        if(!r.ok) return null;
-        var d = await r.json();
-        var t = d.ticker;
-        if(!t) return null;
-        var price = t.day?.c || t.prevDay?.c || 0;
-        var prevClose = t.prevDay?.c || 0;
-        var pct = prevClose ? ((price - prevClose)/prevClose*100) : 0;
-        return {price:price, pct:pct, change:price-prevClose};
-      } else {
-        // Finnhub for stocks/ETFs
-        var r2 = await fetch('https://finnhub.io/api/v1/quote?symbol='+item.sym+'&token='+FINNHUB);
-        if(!r2.ok) return null;
-        var d2 = await r2.json();
-        var price2 = d2.c || d2.pc || 0;
-        return {price:price2, pct:d2.dp||0, change:d2.d||0};
-      }
-    } catch(e){ return null; }
+  try {
+    var r = await fetch('/api/market-overview?tab='+tab+'&t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var results = await r.json();
+    _moData[tab] = results;
+    _moLoaded[tab] = true;
+    renderMarketTab(tab);
+    var timeEl = document.getElementById('market-overview-time');
+    if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    grid.innerHTML = '<div class="mo-loading" style="color:var(--red);">Failed to load. <span onclick="loadMarketTab(\''+tab+'\');" style="cursor:pointer;color:var(--accent);">Retry</span></div>';
   }
-
-  // Fetch with small delay to avoid rate limits
-  var results = {};
-  for(var i=0; i<syms.length; i++) {
-    var q = await getQuote(syms[i]);
-    if(q) results[syms[i].sym] = q;
-    await new Promise(function(res){setTimeout(res,150);});
-  }
-
-  _moData[tab] = results;
-  _moLoaded[tab] = true;
-  renderMarketTab(tab);
-
-  // Update timestamp
-  var timeEl = document.getElementById('market-overview-time');
-  if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
 function renderMarketTab(tab) {
