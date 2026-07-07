@@ -1,5 +1,5 @@
 export const config = { runtime: 'edge' };
-const FINNHUB_KEY = 'd8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0';
+const FINNHUB_KEY = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
 async function getQuote(symbol) {
   try {
     const r = await fetch('https://finnhub.io/api/v1/quote?symbol='+symbol+'&token='+FINNHUB_KEY);
