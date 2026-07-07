@@ -366,6 +366,22 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 .ticker-idx{background:#1E2530;color:#8A95A3;}
 .ticker-loading{font-size:13px;color:#8A95A3;padding:0 20px;}
 @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* MARKET OVERVIEW ROWS */
+.mo-tab-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:left;transition:all .15s;width:100%;}
+.mo-tab-card:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(26,107,245,.1);}
+.mo-tab-card-active{border-color:var(--accent);background:var(--accent-light);}
+.mo-panel{}
+.mo-grid{display:flex;flex-direction:column;gap:6px;}
+.mo-row{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;transition:all .15s;gap:14px;}
+.mo-row:hover{box-shadow:0 2px 8px rgba(0,0,0,.07);border-color:var(--accent);}
+.mo-row-sym{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);min-width:52px;}
+.mo-row-name{font-size:12px;color:var(--text3);flex:1;}
+.mo-row-bar{width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.mo-row-bar-fill{height:100%;border-radius:2px;}
+.mo-row-price{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;text-align:right;min-width:82px;}
+.mo-row-chg{font-size:12px;font-weight:700;text-align:right;min-width:68px;}
+.mo-loading{font-size:13px;color:var(--text3);padding:16px 0;}
 </style>
 </head>
 <body>
