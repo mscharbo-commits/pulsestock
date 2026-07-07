@@ -461,6 +461,36 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <button class="chip" onclick="qs('JPM')">JPM</button>
       </div>
     </div>
+    <!-- MARKET OVERVIEW -->
+    <div id="market-overview" style="margin-top:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.2px;">📊 Market Overview</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:11px;color:var(--text3);" id="market-overview-time"></div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="setMarketTab('indexes',this)" class="mo-tab mo-tab-active">Indexes</button>
+            <button onclick="setMarketTab('commodities',this)" class="mo-tab">Commodities</button>
+            <button onclick="setMarketTab('crypto',this)" class="mo-tab">Crypto</button>
+          </div>
+        </div>
+      </div>
+      <div id="mo-indexes" class="mo-panel">
+        <div class="mo-grid" id="mo-indexes-grid">
+          <div class="mo-loading">Loading market data...</div>
+        </div>
+      </div>
+      <div id="mo-commodities" class="mo-panel" style="display:none;">
+        <div class="mo-grid" id="mo-commodities-grid">
+          <div class="mo-loading">Loading commodities...</div>
+        </div>
+      </div>
+      <div id="mo-crypto" class="mo-panel" style="display:none;">
+        <div class="mo-grid" id="mo-crypto-grid">
+          <div class="mo-loading">Loading crypto...</div>
+        </div>
+      </div>
+    </div>
+
     <div id="analyze-result"></div>
     <div class="indicator-panel" id="ind-panel" style="display:none;margin-top:16px;">
       <div class="indicator-tabs">
@@ -4950,5 +4980,155 @@ if (_origScreen) {
   };
 }
 </script>
+
+// ── MARKET OVERVIEW ──────────────────────────────────────────────────────
+var _moTab = 'indexes';
+var _moData = {indexes:{}, commodities:{}, crypto:{}};
+var _moLoaded = {indexes:false, commodities:false, crypto:false};
+var _moInterval = null;
+
+var MO_SYMBOLS = {
+  indexes: [
+    {sym:'SPY', name:'S&P 500'},
+    {sym:'QQQ', name:'Nasdaq 100'},
+    {sym:'DIA', name:'Dow Jones'},
+    {sym:'IWM', name:'Russell 2000'},
+    {sym:'VIX', name:'Volatility'},
+    {sym:'TLT', name:'20Y Treasury'},
+  ],
+  commodities: [
+    {sym:'GLD',  name:'Gold'},
+    {sym:'SLV',  name:'Silver'},
+    {sym:'USO',  name:'Crude Oil'},
+    {sym:'UNG',  name:'Natural Gas'},
+    {sym:'CPER', name:'Copper'},
+    {sym:'WEAT', name:'Wheat'},
+    {sym:'CORN', name:'Corn'},
+    {sym:'SOYB', name:'Soybeans'},
+  ],
+  crypto: [
+    {sym:'X:BTCUSD', name:'Bitcoin',     disp:'BTC'},
+    {sym:'X:ETHUSD', name:'Ethereum',    disp:'ETH'},
+    {sym:'X:SOLUSD', name:'Solana',      disp:'SOL'},
+    {sym:'X:XRPUSD', name:'XRP',         disp:'XRP'},
+    {sym:'X:AVAXUSD',name:'Avalanche',   disp:'AVAX'},
+    {sym:'X:LINKUSD',name:'Chainlink',   disp:'LINK'},
+  ]
+};
+
+function setMarketTab(tab, btn) {
+  _moTab = tab;
+  document.querySelectorAll('.mo-tab').forEach(function(b){ b.classList.remove('mo-tab-active'); });
+  btn.classList.add('mo-tab-active');
+  document.querySelectorAll('.mo-panel').forEach(function(p){ p.style.display='none'; });
+  document.getElementById('mo-'+tab).style.display='block';
+  if(!_moLoaded[tab]) loadMarketTab(tab);
+}
+
+async function loadMarketTab(tab) {
+  var syms = MO_SYMBOLS[tab];
+  var grid = document.getElementById('mo-'+tab+'-grid');
+  if(!grid) return;
+  grid.innerHTML = '<div class="mo-loading">Loading...</div>';
+
+  var POLYGON = '2c90554e-b7d3-485f-a497-b350eb8136f5';
+  var FINNHUB = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
+
+  async function getQuote(item) {
+    try {
+      if(tab === 'crypto') {
+        // Polygon crypto
+        var r = await fetch('https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/'+item.sym+'?apiKey='+POLYGON);
+        if(!r.ok) return null;
+        var d = await r.json();
+        var t = d.ticker;
+        if(!t) return null;
+        var price = t.day?.c || t.prevDay?.c || 0;
+        var prevClose = t.prevDay?.c || 0;
+        var pct = prevClose ? ((price - prevClose)/prevClose*100) : 0;
+        return {price:price, pct:pct, change:price-prevClose};
+      } else {
+        // Finnhub for stocks/ETFs
+        var r2 = await fetch('https://finnhub.io/api/v1/quote?symbol='+item.sym+'&token='+FINNHUB);
+        if(!r2.ok) return null;
+        var d2 = await r2.json();
+        var price2 = d2.c || d2.pc || 0;
+        return {price:price2, pct:d2.dp||0, change:d2.d||0};
+      }
+    } catch(e){ return null; }
+  }
+
+  // Fetch with small delay to avoid rate limits
+  var results = {};
+  for(var i=0; i<syms.length; i++) {
+    var q = await getQuote(syms[i]);
+    if(q) results[syms[i].sym] = q;
+    await new Promise(function(res){setTimeout(res,150);});
+  }
+
+  _moData[tab] = results;
+  _moLoaded[tab] = true;
+  renderMarketTab(tab);
+
+  // Update timestamp
+  var timeEl = document.getElementById('market-overview-time');
+  if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+
+function renderMarketTab(tab) {
+  var grid = document.getElementById('mo-'+tab+'-grid');
+  if(!grid) return;
+  var syms = MO_SYMBOLS[tab];
+  var data = _moData[tab];
+
+  var html = syms.map(function(item) {
+    var q = data[item.sym];
+    var sym = item.disp || item.sym;
+    var name = item.name;
+    if(!q || !q.price) {
+      return '<div class="mo-tile"><div class="mo-tile-sym">'+sym+'</div><div class="mo-tile-name">'+name+'</div>'
+        +'<div class="mo-tile-price" style="color:var(--text3);">—</div></div>';
+    }
+    var up = q.pct >= 0;
+    var color = up ? 'var(--green)' : 'var(--red)';
+    var price = tab === 'crypto' ? (q.price >= 1000 ? '$'+q.price.toLocaleString(undefined,{maximumFractionDigits:0}) : '$'+q.price.toFixed(2)) : '$'+q.price.toFixed(2);
+    var onclick = tab === 'crypto' ? '' : ' onclick="qs(\''+item.sym+'\')"';
+    return '<div class="mo-tile"'+onclick+'>'
+      +'<div class="mo-tile-sym">'+sym+'</div>'
+      +'<div class="mo-tile-name">'+name+'</div>'
+      +'<div class="mo-tile-price" style="color:'+color+';">'+price+'</div>'
+      +'<div class="mo-tile-chg" style="color:'+color+';">'+(up?'▲':'▼')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
+      +'</div>';
+  }).join('');
+
+  grid.innerHTML = html || '<div class="mo-loading">No data available</div>';
+}
+
+// Load indexes on page load, refresh every 60s
+function initMarketOverview() {
+  loadMarketTab('indexes');
+  if(_moInterval) clearInterval(_moInterval);
+  _moInterval = setInterval(function(){
+    if(_moLoaded[_moTab]) loadMarketTab(_moTab);
+  }, 60000);
+}
+
+// Init when page loads - but only show overview when analyze page is active
+var _origShowPage = showPage;
+showPage = function(id, btn) {
+  _origShowPage(id, btn);
+  if(id === 'analyze') {
+    var mo = document.getElementById('market-overview');
+    if(mo) mo.style.display = 'block';
+  } else {
+    var mo = document.getElementById('market-overview');
+    if(mo) mo.style.display = 'none';
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(initMarketOverview, 500);
+});
+
 </body>
 </html>
