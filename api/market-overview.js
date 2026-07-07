@@ -15,29 +15,23 @@ async function sf(url, t=5000) {
   } catch(e){ return null; }
 }
 
-// Using ETFs as commodity proxies - labeled clearly
-// GLD tracks gold at ~1/10th oz price, multiply by 10 for approximate spot
-// USO tracks WTI crude but is NOT 1:1 - use as directional indicator only
-const INDEX_SYMS = ['SPY','QQQ','DIA','IWM','VIX','TLT'];
-
-// Commodity ETFs with scaling factors and actual labels
-const COMMOD_CONFIG = [
-  {sym:'GLD',  label:'Gold',        unit:'ETF', note:'GLD ETF'},
-  {sym:'SLV',  label:'Silver',      unit:'ETF', note:'SLV ETF'},
-  {sym:'USO',  label:'WTI Crude',   unit:'ETF', note:'USO ETF'},
-  {sym:'UNG',  label:'Natural Gas', unit:'ETF', note:'UNG ETF'},
-  {sym:'CPER', label:'Copper',      unit:'ETF', note:'CPER ETF'},
-  {sym:'WEAT', label:'Wheat',       unit:'ETF', note:'WEAT ETF'},
-];
-
+const INDEX_SYMS  = ['SPY','QQQ','DIA','IWM','VIX','TLT'];
+const SECTOR_SYMS = ['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
+const COMMOD_SYMS = ['GLD','SLV','USO','UNG','CPER','WEAT'];
+const LIVE_SYMS   = ['SPY','QQQ','DIA','IWM','VIX','AAPL','NVDA','MSFT','META','TSLA','AMZN','JPM'];
 const CRYPTO_PAIRS = [
-  {sym:'BTC-USD', name:'Bitcoin',   disp:'BTC'},
-  {sym:'ETH-USD', name:'Ethereum',  disp:'ETH'},
-  {sym:'SOL-USD', name:'Solana',    disp:'SOL'},
-  {sym:'XRP-USD', name:'XRP',       disp:'XRP'},
-  {sym:'AVAX-USD',name:'Avalanche', disp:'AVAX'},
-  {sym:'DOGE-USD',name:'Dogecoin',  disp:'DOGE'},
+  {sym:'BTC-USD',name:'Bitcoin',disp:'BTC'},
+  {sym:'ETH-USD',name:'Ethereum',disp:'ETH'},
+  {sym:'SOL-USD',name:'Solana',disp:'SOL'},
+  {sym:'XRP-USD',name:'XRP',disp:'XRP'},
+  {sym:'AVAX-USD',name:'Avalanche',disp:'AVAX'},
+  {sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE'},
 ];
+const SECTOR_NAMES = {
+  XLK:'Technology',XLF:'Financials',XLE:'Energy',XLV:'Healthcare',
+  XLI:'Industrials',XLY:'Consumer Disc.',XLP:'Consumer Staples',
+  XLU:'Utilities',XLRE:'Real Estate',XLC:'Communication',XLB:'Materials'
+};
 
 export default async function handler(req) {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
@@ -47,52 +41,46 @@ export default async function handler(req) {
 
   if(tab === 'crypto') {
     const quotes = await Promise.all(
-      CRYPTO_PAIRS.map(p => sf(
-        `https://api.polygon.io/v2/aggs/ticker/X:${p.sym.replace('-','')}USD/prev?adjusted=true&apiKey=${POLYGON}`, 5000
-      ))
+      CRYPTO_PAIRS.map(p => sf(`https://api.polygon.io/v2/aggs/ticker/X:${p.sym.replace('-','')}USD/prev?adjusted=true&apiKey=${POLYGON}`,5000))
     );
-    CRYPTO_PAIRS.forEach(function(p, i) {
+    CRYPTO_PAIRS.forEach((p,i) => {
       const r = quotes[i]?.results?.[0];
-      if(r && r.c) {
-        result[p.sym] = {
-          name: p.name, disp: p.disp,
-          price: r.c,
-          pct: r.o ? ((r.c - r.o) / r.o * 100) : 0,
-          change: r.o ? (r.c - r.o) : 0,
-        };
-      }
+      if(r && r.c) result[p.sym] = {name:p.name,disp:p.disp,price:r.c,pct:r.o?((r.c-r.o)/r.o*100):0,change:r.o?(r.c-r.o):0};
     });
-  } else if(tab === 'commodities') {
-    const syms = COMMOD_CONFIG.map(c => c.sym);
-    const quotes = await Promise.all(
-      syms.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`, 4000))
-    );
-    COMMOD_CONFIG.forEach(function(cfg, i) {
+  } else if(tab === 'sectors') {
+    const quotes = await Promise.all(SECTOR_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
+    SECTOR_SYMS.forEach((sym,i) => {
       const d = quotes[i];
-      if(d && (d.c || d.pc)) {
-        const price = d.c || d.pc;
-        result[cfg.sym] = {
-          price,
-          pct: d.dp || 0,
-          change: d.d || 0,
-          prevClose: d.pc || 0,
-          label: cfg.label,
-          note: cfg.note,
-        };
-      }
+      if(d && (d.c||d.pc)) result[sym] = {price:d.c||d.pc,pct:d.dp||0,change:d.d||0,prevClose:d.pc||0,name:SECTOR_NAMES[sym]||sym};
+    });
+  } else if(tab === 'live') {
+    const quotes = await Promise.all(LIVE_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
+    LIVE_SYMS.forEach((sym,i) => {
+      const d = quotes[i];
+      if(d && (d.c||d.pc)) result[sym] = {price:d.c||d.pc,pct:d.dp||0,change:d.d||0,prevClose:d.pc||0};
+    });
+    // Market status
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const h = et.getHours(), m = et.getMinutes(), dow = et.getDay();
+    result._market = {
+      isOpen: dow>=1&&dow<=5&&(h>9||(h===9&&m>=30))&&h<16,
+      time: et.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'})+' ET'
+    };
+  } else if(tab === 'commodities') {
+    const quotes = await Promise.all(COMMOD_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
+    COMMOD_SYMS.forEach((sym,i) => {
+      const d = quotes[i];
+      if(d&&(d.c||d.pc)) result[sym] = {price:d.c||d.pc,pct:d.dp||0,change:d.d||0,prevClose:d.pc||0};
     });
   } else {
-    // Indexes
-    const quotes = await Promise.all(
-      INDEX_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`, 4000))
-    );
-    INDEX_SYMS.forEach(function(sym, i) {
+    // indexes
+    const quotes = await Promise.all(INDEX_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
+    INDEX_SYMS.forEach((sym,i) => {
       const d = quotes[i];
-      if(d && (d.c || d.pc)) {
-        result[sym] = {price: d.c||d.pc, pct: d.dp||0, change: d.d||0, prevClose: d.pc||0};
-      }
+      if(d&&(d.c||d.pc)) result[sym] = {price:d.c||d.pc,pct:d.dp||0,change:d.d||0,prevClose:d.pc||0};
     });
   }
 
-  return new Response(JSON.stringify(result), {headers:CORS});
+  return new Response(JSON.stringify(result),{headers:CORS});
 }
