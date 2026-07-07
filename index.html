@@ -2028,6 +2028,28 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     if(!fullText) throw new Error('No response received. Please try again.');
     const streamEl = document.getElementById('ai-stream-body');
     if(streamEl) streamEl.innerHTML = formatAIResponse(fullText);
+
+    // Append key metrics boxes below the analysis
+    var f2 = FUNDAMENTALS[ticker] || {};
+    var sm2 = stockMetrics || {};
+    function fmtM(n){ if(!n||isNaN(n))return '—'; n=parseFloat(n); if(n>=1e9)return (n/1e9).toFixed(2)+'B'; if(n>=1e6)return (n/1e6).toFixed(1)+'M'; return n.toFixed(0); }
+    var boxes = [
+      { label:'P/E (TTM)',     val: f2.pe ? f2.pe+'x'                                                         : (sm2.peBasicExclExtraTTM ? sm2.peBasicExclExtraTTM.toFixed(1)+'x' : '—') },
+      { label:'Fwd P/E',       val: f2.fwdPe ? f2.fwdPe+'x'                                                   : '—' },
+      { label:'EV/EBITDA',     val: f2.evEbitda ? f2.evEbitda+'x'                                             : '—' },
+      { label:'Beta',          val: sm2.beta ? sm2.beta.toFixed(2)                                            : (f2.beta || '—') },
+      { label:'52W High',      val: sm2['52WeekHigh'] ? '$'+sm2['52WeekHigh'].toFixed(2)                      : '—' },
+      { label:'52W Low',       val: sm2['52WeekLow']  ? '$'+sm2['52WeekLow'].toFixed(2)                       : '—' },
+      { label:'Revenue',       val: f2.rev || '—' },
+      { label:'Net Margin',    val: sm2.netProfitMarginAnnual ? sm2.netProfitMarginAnnual.toFixed(1)+'%'       : (f2.margin || '—') },
+    ];
+    var boxHtml = '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Key Metrics</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'
+      + boxes.map(function(b){ return '<div class="met"><div class="ml">'+b.label+'</div><div class="mv">'+b.val+'</div></div>'; }).join('')
+      + '</div></div>';
+    if(streamEl) streamEl.innerHTML += boxHtml;
+
     if(btn){ btn.textContent = '↑ Refresh Analysis'; btn.disabled = false; }
     output.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
