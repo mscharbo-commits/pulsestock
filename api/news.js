@@ -12,7 +12,7 @@ export default async function handler(req) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(
-      'https://finnhub.io/api/v1/company-news?symbol='+ticker+'&from='+from+'&to='+to+'&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0',
+      'https://finnhub.io/api/v1/company-news?symbol='+ticker+'&from='+from+'&to='+to+'&token=d95c889r01qihq3l33k0d95c889r01qihq3l33kg',
       { signal: controller.signal }
     );
     clearTimeout(timeout);
