@@ -1253,6 +1253,13 @@ function renderNews(ticker, articles){
   el.innerHTML = makePaginator(articles, 10, renderNewsItems, newsContainerId);
 }
 
+async function fetchMetrics(ticker){
+  try{
+    var r=await fetchWithTimeout('https://finnhub.io/api/v1/stock/metric?symbol='+ticker+'&metric=all&token='+FINNHUB_KEY,5000);
+    return r&&r.metric?r.metric:null;
+  }catch(e){return null;}
+}
+
 async function fetchAnalyst(ticker){
   try{
     const r = await fetch('/api/analyst?ticker='+encodeURIComponent(ticker));
@@ -1271,6 +1278,7 @@ async function doAnalyze(){
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 90),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
+  fetchMetrics(ticker).then(function(m){ stockMetrics = m; });
   // Load short interest first, then FTD after DOM is ready
   setTimeout(function(){ fetchInsiderTransactions(ticker); }, 500);
   setTimeout(function(){ fetchIntelligence(ticker); }, 800);
