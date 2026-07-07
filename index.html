@@ -881,8 +881,10 @@ async function fetchQuote(ticker){
   if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<10000) return quoteCache[ticker].data;
   return fetchWithTimeout('https://finnhub.io/api/v1/quote?symbol='+ticker+'&token='+FINNHUB_KEY, 5000)
     .then(function(d){
-      if(!d||d.c===0) return null;
-      var data={price:d.c,change:d.d,pct:d.dp,high:d.h,low:d.l,open:d.o,prevClose:d.pc,volume:d.v||0};
+      if(!d||(d.c===0&&d.pc===0)) return null;
+      // Use prevClose when market is closed (c=0)
+      var price = (d.c && d.c > 0) ? d.c : d.pc;
+      var data={price:price,change:d.d||0,pct:d.dp||0,high:d.h||price,low:d.l||price,open:d.o||price,prevClose:d.pc||price,volume:d.v||0,marketClosed:!d.c||d.c===0};
       quoteCache[ticker]={data,ts:Date.now()};
       return data;
     }).catch(function(){ return null; });
@@ -1284,13 +1286,14 @@ async function doAnalyze(){
   });
   window._currentProfile = profile;
 
-  if(!quote||quote.price===0){
+  if(!quote||!quote.price){
     el.innerHTML=`<div class="card" style="border-color:var(--red);background:var(--red-bg);"><p style="color:var(--red);font-size:14px;font-weight:500;">⚠ Could not find "${ticker}"</p><p style="color:#9B2C1F;font-size:13px;margin-top:4px;">Check the ticker symbol and try again.</p></div>`;
     return;
   }
 
   const f=FUNDAMENTALS[ticker]||{};
   const up=quote.pct>=0;
+  const marketClosedBadge=quote.marketClosed?'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#FEF3C7;color:#B45309;margin-left:8px;">Market Closed</span>':'';
   const name=profile?.name||ticker;
   const sector=profile?.finnhubIndustry||f.sector||'—';
   const mktCap=profile?.marketCapitalization?(profile.marketCapitalization>1000?'$'+(profile.marketCapitalization/1000).toFixed(2)+'T':'$'+profile.marketCapitalization.toFixed(0)+'B'):'—';
