@@ -5008,12 +5008,12 @@ var MO_SYMBOLS = {
     {sym:'SOYB', name:'Soybeans'},
   ],
   crypto: [
-    {sym:'X:BTCUSD', name:'Bitcoin',     disp:'BTC'},
-    {sym:'X:ETHUSD', name:'Ethereum',    disp:'ETH'},
-    {sym:'X:SOLUSD', name:'Solana',      disp:'SOL'},
-    {sym:'X:XRPUSD', name:'XRP',         disp:'XRP'},
-    {sym:'X:AVAXUSD',name:'Avalanche',   disp:'AVAX'},
-    {sym:'X:LINKUSD',name:'Chainlink',   disp:'LINK'},
+    {sym:'BTC-USD', name:'Bitcoin',   disp:'BTC'},
+    {sym:'ETH-USD', name:'Ethereum',  disp:'ETH'},
+    {sym:'SOL-USD', name:'Solana',    disp:'SOL'},
+    {sym:'XRP-USD', name:'XRP',       disp:'XRP'},
+    {sym:'AVAX-USD',name:'Avalanche', disp:'AVAX'},
+    {sym:'DOGE-USD',name:'Dogecoin',  disp:'DOGE'},
   ]
 };
 
@@ -5059,18 +5059,29 @@ function renderMarketTab(tab) {
     var sym = item.disp || item.sym;
     var name = item.name;
     if(!q || !q.price) {
-      return '<div class="mo-tile"><div class="mo-tile-sym">'+sym+'</div><div class="mo-tile-name">'+name+'</div>'
-        +'<div class="mo-tile-price" style="color:var(--text3);">—</div></div>';
+      return '<div class="mo-row">'
+        +'<div class="mo-row-sym">'+sym+'</div>'
+        +'<div class="mo-row-name">'+name+'</div>'
+        +'<div class="mo-row-price" style="color:var(--text3);">—</div>'
+        +'<div class="mo-row-chg" style="color:var(--text3);">—</div>'
+        +'</div>';
     }
     var up = q.pct >= 0;
     var color = up ? 'var(--green)' : 'var(--red)';
-    var price = tab === 'crypto' ? (q.price >= 1000 ? '$'+q.price.toLocaleString(undefined,{maximumFractionDigits:0}) : '$'+q.price.toFixed(2)) : '$'+q.price.toFixed(2);
+    var fmtPrice;
+    if(tab === 'crypto') {
+      fmtPrice = q.price >= 10000 ? '$'+Math.round(q.price).toLocaleString() : q.price >= 1 ? '$'+q.price.toFixed(2) : '$'+q.price.toFixed(4);
+    } else {
+      fmtPrice = '$'+q.price.toFixed(2);
+    }
     var onclick = tab === 'crypto' ? '' : ' onclick="qs(\''+item.sym+'\')"';
-    return '<div class="mo-tile"'+onclick+'>'
-      +'<div class="mo-tile-sym">'+sym+'</div>'
-      +'<div class="mo-tile-name">'+name+'</div>'
-      +'<div class="mo-tile-price" style="color:'+color+';">'+price+'</div>'
-      +'<div class="mo-tile-chg" style="color:'+color+';">'+(up?'▲':'▼')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
+    var barW = Math.min(100, Math.abs(q.pct) * 10).toFixed(0);
+    return '<div class="mo-row"'+onclick+'>'
+      +'<div class="mo-row-sym">'+sym+'</div>'
+      +'<div class="mo-row-name">'+name+'</div>'
+      +'<div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+barW+'%;background:'+color+';"></div></div>'
+      +'<div class="mo-row-price">'+fmtPrice+'</div>'
+      +'<div class="mo-row-chg" style="color:'+color+';">'+(up?'▲':'▼')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
       +'</div>';
   }).join('');
 
