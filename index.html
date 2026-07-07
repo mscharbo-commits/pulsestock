@@ -503,7 +503,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <div style="font-size:11px;color:var(--text3);" id="market-overview-time"></div>
       </div>
       <div id="mo-indexes" class="mo-panel"><div class="mo-grid" id="mo-indexes-grid"><div class="mo-loading">Loading...</div></div></div>
-      <div id="mo-commodities" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-commodities-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-commodities" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-commodities-grid"><div class="mo-loading">Loading...</div></div><div style="font-size:10px;color:var(--text3);margin-top:8px;">* Prices shown are ETF prices tracking the underlying commodity. Not spot prices.</div></div>
       <div id="mo-crypto" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-crypto-grid"><div class="mo-loading">Loading...</div></div></div>
     </div>
 
@@ -5073,7 +5073,8 @@ function renderMarketTab(tab) {
   var html = syms.map(function(item) {
     var q = data[item.sym];
     var sym = item.disp || item.sym;
-    var name = item.name;
+    var name = q?.label ? q.label : item.name;
+    var note = q?.note ? q.note : '';
     if(!q || !q.price) {
       return '<div class="mo-row">'
         +'<div class="mo-row-sym">'+sym+'</div>'
@@ -5094,7 +5095,7 @@ function renderMarketTab(tab) {
     var barW = Math.min(100, Math.abs(q.pct) * 10).toFixed(0);
     return '<div class="mo-row"'+onclick+'>'
       +'<div class="mo-row-sym">'+sym+'</div>'
-      +'<div class="mo-row-name">'+name+'</div>'
+      +'<div class="mo-row-name">'+name+(note?' <span style="font-size:10px;opacity:.6;">'+note+'</span>':'')+'</div>'
       +'<div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+barW+'%;background:'+color+';"></div></div>'
       +'<div class="mo-row-price">'+fmtPrice+'</div>'
       +'<div class="mo-row-chg" style="color:'+color+';">'+(up?'▲':'▼')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
