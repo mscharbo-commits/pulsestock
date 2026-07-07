@@ -5085,22 +5085,9 @@ function initMarketOverview() {
   }, 60000);
 }
 
-// Init when page loads - but only show overview when analyze page is active
-var _origShowPage = showPage;
-showPage = function(id, btn) {
-  _origShowPage(id, btn);
-  if(id === 'analyze') {
-    var mo = document.getElementById('market-overview');
-    if(mo) mo.style.display = 'block';
-  } else {
-    var mo = document.getElementById('market-overview');
-    if(mo) mo.style.display = 'none';
-  }
-};
+// Market overview always visible on analyze page
 
-document.addEventListener('DOMContentLoaded', function(){
-  setTimeout(initMarketOverview, 500);
-});
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketOverview, 500); });
 
 </body>
 </html>
