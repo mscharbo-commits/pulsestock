@@ -11,7 +11,7 @@ export default async function handler(req) {
     const from = now.toISOString().split('T')[0];
     const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const r = await fetch(
-      `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&symbol=${ticker}&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0`
+      `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&symbol=${ticker}&token=d95c889r01qihq3l33k0d95c889r01qihq3l33kg`
     );
     const data = await r.json();
     const earnings = (data.earningsCalendar || []).slice(0, 5).map(e => ({
@@ -27,7 +27,7 @@ export default async function handler(req) {
     
     // Also get historical earnings surprises
     const r2 = await fetch(
-      `https://finnhub.io/api/v1/stock/earnings?symbol=${ticker}&limit=4&token=d8fhh6hr01qn443a0bngd8fhh6hr01qn443a0bo0`
+      `https://finnhub.io/api/v1/stock/earnings?symbol=${ticker}&limit=4&token=d95c889r01qihq3l33k0d95c889r01qihq3l33kg`
     );
     const hist = await r2.json();
     
