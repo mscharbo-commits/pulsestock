@@ -1255,8 +1255,8 @@ function renderNews(ticker, articles){
 
 async function fetchMetrics(ticker){
   try{
-    var r=await fetchWithTimeout('https://finnhub.io/api/v1/stock/metric?symbol='+ticker+'&metric=all&token='+FINNHUB_KEY,5000);
-    return r&&r.metric?r.metric:null;
+    var r=await fetchWithTimeout('/api/metrics?ticker='+encodeURIComponent(ticker),8000);
+    return r&&!r.error?r:null;
   }catch(e){return null;}
 }
 
@@ -1283,19 +1283,22 @@ async function doAnalyze(){
   fetchMetrics(ticker).then(function(m){
     stockMetrics = m;
     if(!m) return;
-    function fmtBig(n){if(!n||isNaN(n))return '—';n=parseFloat(n);if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return (n/1e3).toFixed(0)+'K';return n.toFixed(0);}
     var sharesEl = document.getElementById('sb-shares-'+ticker);
     var avgvolEl = document.getElementById('sb-avgvol-'+ticker);
     var floatEl  = document.getElementById('sb-float-'+ticker);
     var shortEl  = document.getElementById('sb-short-'+ticker);
-    if(sharesEl) sharesEl.textContent = m.shareOutstanding ? fmtBig(m.shareOutstanding*1e6) : '—';
-    if(avgvolEl) avgvolEl.textContent = m['3MonthADTV'] ? fmtBig(m['3MonthADTV']*1e6) : (m['10DayAverageTradingVolume'] ? fmtBig(m['10DayAverageTradingVolume']*1e6) : '—');
-    if(floatEl)  floatEl.textContent  = m.float ? fmtBig(m.float*1e6) : '—';
-    if(shortEl)  shortEl.textContent  = m['shortInterest'] ? (m['shortInterest']*100).toFixed(2)+'%' : (m['shortRatio'] ? m['shortRatio'].toFixed(1)+'d DTC' : '—');
-    // Update 52W display
-    var w52El = document.getElementById('52w-display-'+ticker);
-    if(w52El && m['52WeekHigh'] && m['52WeekLow']) {
-      w52El.textContent = '52W: $'+m['52WeekLow'].toFixed(2)+' — $'+m['52WeekHigh'].toFixed(2);
+    var w52El    = document.getElementById('52w-display-'+ticker);
+    var volEl    = document.getElementById('sb-vol-'+ticker);
+    if(sharesEl) sharesEl.textContent = m.sharesOut   || '—';
+    if(avgvolEl) avgvolEl.textContent = m.avgVol      || '—';
+    if(floatEl)  floatEl.textContent  = m.float       || '—';
+    if(shortEl)  shortEl.textContent  = m.shortDisplay|| '—';
+    if(w52El)    w52El.textContent    = m.week52 ? '52W: '+m.week52 : '52W: —';
+    // Update today's volume with Polygon VWAP if available
+    var volDisplay = document.querySelector('#quick-nav-'+ticker+' ~ div .vol-live');
+    if(m.vwap && m.polyVol) {
+      var vwapEl = document.getElementById('vwap-'+ticker);
+      if(vwapEl) vwapEl.textContent = 'VWAP '+m.vwap+' · Vol '+m.polyVol;
     }
   });
   // Load short interest first, then FTD after DOM is ready
@@ -1326,11 +1329,7 @@ async function doAnalyze(){
   const mktCap=profile?.marketCapitalization?(profile.marketCapitalization>1000?'$'+(profile.marketCapitalization/1000).toFixed(2)+'T':'$'+profile.marketCapitalization.toFixed(0)+'B'):'—';
   // ── 4 STAT BOXES ───────────────────────────────────────────────────────
   function fmtBig(n){if(!n||isNaN(n))return '—';n=parseFloat(n);if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return (n/1e3).toFixed(0)+'K';return n.toFixed(0);}
-  var sm=stockMetrics||{};
-  var sharesOut   = sm.shareOutstanding   ? fmtBig(sm.shareOutstanding*1e6)           : '—';
-  var avgVol90    = sm['3MonthADTV']      ? fmtBig(sm['3MonthADTV']*1e6)              : (sm['10DayAverageTradingVolume'] ? fmtBig(sm['10DayAverageTradingVolume']*1e6) : '—');
-  var floatSh     = sm.float              ? fmtBig(sm.float*1e6)                      : '—';
-  var shortFl     = sm['shortInterest']   ? (sm['shortInterest']*100).toFixed(2)+'%'  : (sm['shortRatio'] ? sm['shortRatio'].toFixed(1)+'d DTC' : '—');
+  // stat boxes filled async via fetchMetrics
   // Stat boxes rendered as placeholder - populated after metrics load
   var statBoxes = '<div id="stat-boxes-'+ticker+'" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">'
     +'<div class="met"><div class="ml">Shares Out</div><div class="mv" id="sb-shares-'+ticker+'">Loading...</div></div>'
