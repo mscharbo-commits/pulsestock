@@ -15,21 +15,12 @@ async function sf(url, t=5000) {
   } catch(e) { return null; }
 }
 
-function fmtNum(n) {
-  if(!n||isNaN(n)) return null;
-  n = parseFloat(n);
-  if(n>=1e12) return '$'+(n/1e12).toFixed(2)+'T';
-  if(n>=1e9)  return '$'+(n/1e9).toFixed(2)+'B';
-  if(n>=1e6)  return '$'+(n/1e6).toFixed(1)+'M';
-  if(n>=1e3)  return (n/1e3).toFixed(0)+'K';
-  return n.toLocaleString();
-}
-
 function fmtShares(n) {
   if(!n||isNaN(n)) return null;
   n = parseFloat(n);
   if(n>=1e9) return (n/1e9).toFixed(2)+'B';
   if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(0)+'K';
   return n.toFixed(0);
 }
 
@@ -39,61 +30,63 @@ export default async function handler(req) {
   const ticker = (searchParams.get('ticker')||'').toUpperCase();
   if(!ticker) return new Response(JSON.stringify({error:'No ticker'}),{status:400,headers:CORS});
 
-  // Fetch from multiple sources in parallel
-  const [finnMetric, finnProfile, polySnap, polyDetails] = await Promise.all([
+  const [finnMetric, finnProfile, polySnap, polyTicker] = await Promise.all([
     sf(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB}`),
     sf(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB}`),
-    POLYGON ? sf(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON}`) : Promise.resolve(null),
-    POLYGON ? sf(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${POLYGON}`) : Promise.resolve(null),
+    POLYGON ? sf(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON}`) : null,
+    POLYGON ? sf(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${POLYGON}`) : null,
   ]);
 
-  const m = finnMetric?.metric || {};
-  const p = finnProfile || {};
-  const pt = polySnap?.ticker || {};
-  const pd = polyDetails?.results || {};
+  const m  = finnMetric?.metric  || {};
+  const p  = finnProfile          || {};
+  const pt = polySnap?.ticker     || {};
+  const pr = polyTicker?.results  || {};
 
-  // Build comprehensive metrics object
+  // Shares outstanding - try multiple sources
+  const sharesOutRaw =
+    (m.shareOutstanding       ? m.shareOutstanding * 1e6          : null) ||
+    (pr.share_class_shares_outstanding                              || null) ||
+    (pr.weighted_shares_outstanding                                 || null) ||
+    (p.shareOutstanding       ? p.shareOutstanding * 1e6          : null);
+
+  // Float - Finnhub float is in millions
+  const floatRaw =
+    (m.float                  ? m.float * 1e6                     : null);
+
+  // Short interest
+  const shortPct =
+    (m['shortInterest']       ? (m['shortInterest']*100).toFixed(2)+'%' : null) ||
+    (m.shortRatio             ? m.shortRatio.toFixed(1)+'d DTC'         : null);
+
+  // Volume - use prevDay when market closed
+  const todayVol   = pt.day?.v     || pt.prevDay?.v   || null;
+  const todayVWAP  = pt.day?.vw    || pt.prevDay?.vw  || null;
+
+  // Avg volume
+  const avgVolRaw  =
+    (m['3MonthADTV']          ? m['3MonthADTV']*1e6               : null) ||
+    (m['10DayAverageTradingVolume'] ? m['10DayAverageTradingVolume']*1e6 : null);
+
   const result = {
-    // Price & Range
-    week52High:   m['52WeekHigh']     || pd.market_cap ? null : null,
-    week52Low:    m['52WeekLow']      || null,
-    week52HighRaw: m['52WeekHigh']    || null,
-    week52LowRaw:  m['52WeekLow']     || null,
-
-    // Share structure
-    sharesOutRaw:  m.shareOutstanding  ? m.shareOutstanding * 1e6  : (pd.share_class_shares_outstanding || null),
-    floatRaw:      m.float             ? m.float * 1e6             : (pd.weighted_shares_outstanding   || null),
-
-    // Volume
-    avgVol10Raw:   m['10DayAverageTradingVolume'] ? m['10DayAverageTradingVolume']*1e6 : null,
-    avgVol3MRaw:   m['3MonthADTV']               ? m['3MonthADTV']*1e6               : null,
-    todayVol:      pt.day?.v   || pt.prevDay?.v  || null,
-    todayVWAP:     pt.day?.vw  || pt.prevDay?.vw || null,
-
-    // Short interest
-    shortRatio:    m.shortRatio        || null,
-    shortInterest: m['shortInterest']  || null,
-    shortPct:      m['shortPercent']   || null,
-
+    // Formatted for display
+    week52:       (m['52WeekHigh'] && m['52WeekLow']) ? '$'+parseFloat(m['52WeekLow']).toFixed(2)+' — $'+parseFloat(m['52WeekHigh']).toFixed(2) : null,
+    week52High:   m['52WeekHigh'] ? '$'+parseFloat(m['52WeekHigh']).toFixed(2) : null,
+    week52Low:    m['52WeekLow']  ? '$'+parseFloat(m['52WeekLow']).toFixed(2)  : null,
+    sharesOut:    fmtShares(sharesOutRaw),
+    float:        fmtShares(floatRaw),
+    avgVol:       fmtShares(avgVolRaw),
+    polyVol:      fmtShares(todayVol),
+    vwap:         todayVWAP ? '$'+parseFloat(todayVWAP).toFixed(2) : null,
+    shortDisplay: shortPct,
     // Fundamentals
-    pe:            m.peBasicExclExtraTTM        || null,
-    eps:           m.epsBasicExclExtraAnnual    || null,
-    revGrowth:     m.revenueGrowthTTMYoy        ? (m.revenueGrowthTTMYoy*100).toFixed(1) : null,
-    netMargin:     m.netProfitMarginAnnual      || null,
-    roe:           m.roeTTM                     || null,
-    beta:          m.beta                       || null,
-    marketCap:     p.marketCapitalization       ? p.marketCapitalization * 1e6 : null,
-
-    // Formatted strings for display
-    week52:        (m['52WeekHigh'] && m['52WeekLow']) ? '$'+m['52WeekLow'].toFixed(2)+' — $'+m['52WeekHigh'].toFixed(2) : null,
-    sharesOut:     fmtShares(m.shareOutstanding ? m.shareOutstanding*1e6 : pd.share_class_shares_outstanding),
-    float:         fmtShares(m.float ? m.float*1e6 : pd.weighted_shares_outstanding),
-    avgVol:        fmtShares(m['3MonthADTV'] ? m['3MonthADTV']*1e6 : m['10DayAverageTradingVolume'] ? m['10DayAverageTradingVolume']*1e6 : null),
-    shortDisplay:  m['shortInterest'] ? (m['shortInterest']*100).toFixed(2)+'%' : (m.shortRatio ? m.shortRatio.toFixed(1)+'d DTC' : null),
-
-    // Polygon extras
-    polyVol:       pt.day?.v ? fmtShares(pt.day.v) : (pt.prevDay?.v ? fmtShares(pt.prevDay.v) : null),
-    vwap:          pt.day?.vw ? '$'+pt.day.vw.toFixed(2) : (pt.prevDay?.vw ? '$'+pt.prevDay.vw.toFixed(2) : null),
+    pe:           m.peBasicExclExtraTTM   ? parseFloat(m.peBasicExclExtraTTM).toFixed(1)   : null,
+    beta:         m.beta                  ? parseFloat(m.beta).toFixed(2)                  : null,
+    netMargin:    m.netProfitMarginAnnual ? parseFloat(m.netProfitMarginAnnual).toFixed(1) : null,
+    roe:          m.roeTTM                ? parseFloat(m.roeTTM).toFixed(1)                : null,
+    // Raw numbers for deep dive
+    sharesOutRaw, floatRaw, avgVolRaw, todayVol, todayVWAP,
+    week52HighRaw: m['52WeekHigh'] || null,
+    week52LowRaw:  m['52WeekLow']  || null,
   };
 
   return new Response(JSON.stringify(result), {headers:CORS});
