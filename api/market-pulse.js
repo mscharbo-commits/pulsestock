@@ -279,7 +279,31 @@ WRITING STYLE:
         messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse.`}]
       })
     });
-    if(aiResp.ok){const d=await aiResp.json();narrative=d.content?.[0]?.text||narrative;}
+    if(aiResp.ok){
+      const d=await aiResp.json();
+      let raw=d.content?.[0]?.text||narrative;
+      // Strip markdown artifacts
+      raw=raw.replace(/^#+\s+[^
+]+
+/gm,'');  // remove # headers
+      raw=raw.replace(/\*\*([^*]+)\*\*/g,'$1'); // remove **bold**
+      raw=raw.replace(/\*([^*]+)\*/g,'$1');      // remove *italic*
+      raw=raw.replace(/^[-*]{3,}\s*$/gm,'---');  // normalize dividers to ---
+      raw=raw.trim();
+      // If no --- delimiter, try to split after first 2 sentences
+      if(raw.indexOf('\n---\n')===-1&&raw.indexOf('---')===-1){
+        // Find end of 2nd sentence
+        var sentences=raw.match(/[^.!?]+[.!?]+/g)||[];
+        if(sentences.length>2){
+          var hook=sentences.slice(0,2).join('').trim();
+          var rest=sentences.slice(2).join('').trim();
+          raw=hook+'\n---\n'+rest;
+        }
+      }
+      // Clean up multiple blank lines
+      raw=raw.replace(/\n{3,}/g,'\n\n');
+      narrative=raw;
+    }
   }
 
   const result={
