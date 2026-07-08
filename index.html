@@ -5110,15 +5110,46 @@ function renderLiveTab(d) {
 
   // Catalysts are woven into the narrative — no separate list needed
 
+  // Sentiment score color
+  var sent = d.sentiment || 50;
+  var sentLabel = d.sentLabel || 'Neutral';
+  var sentColor = sent>=70?'#0D9B6B':sent>=55?'#16A34A':sent>=45?'#B45309':sent>=30?'#DC2626':'#991B1B';
+  var sentBg    = sent>=70?'rgba(13,155,107,.12)':sent>=55?'rgba(22,163,74,.1)':sent>=45?'rgba(180,83,9,.1)':sent>=30?'rgba(220,38,38,.1)':'rgba(153,27,27,.1)';
+
+  // Breadth
+  var breadth = d.breadth || {};
+  var breadthColor = (breadth.pct||0)>=70?'var(--green)':(breadth.pct||0)>=50?'var(--text)':'var(--red)';
+
   var html = ''
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+    // Top bar: market status + session
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +'<div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:16px;background:'+mktColor+'20;color:'+mktColor+';">'+mktText+'</div>'
     +'<div style="font-size:11px;color:var(--text3);">'+session+'</div>'
     +'</div>'
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;">'
+    // Sentiment + Breadth strip
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">'
+    +'<div style="background:'+sentBg+';border:1.5px solid '+sentColor+';border-radius:10px;padding:10px 14px;text-align:center;">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Sentiment</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+sentColor+';margin-top:2px;">'+sent+'<span style="font-size:11px;">/100</span></div>'
+    +'<div style="font-size:11px;font-weight:600;color:'+sentColor+';">'+sentLabel+'</div>'
+    +'</div>'
+    +'<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Breadth</div>'
+    +'<div style="font-size:20px;font-weight:700;color:'+breadthColor+';margin-top:2px;">'+(breadth.up||'—')+'<span style="font-size:11px;">/'+(breadth.total||11)+'</span></div>'
+    +'<div style="font-size:11px;color:var(--text3);">sectors advancing</div>'
+    +'</div>'
+    +'<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;">'
+    +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">VIX</div>'
+    +'<div style="font-size:20px;font-weight:700;color:var(--text);margin-top:2px;">'+(d.data&&d.data.VIX?d.data.VIX.price.toFixed(1):'—')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);">'+(d.vixNote?d.vixNote.split('—')[0].trim():'volatility index')+'</div>'
+    +'</div>'
+    +'</div>'
+    // AI Narrative card
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;">'
     +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">&#x1F9E0; PulseAI Market Narrative</div>'
     +'<div style="font-size:14px;color:var(--text);line-height:1.9;">'+narrativeHtml+'</div>'
     +'</div>'
+    // Mini price strip
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
     +['SPY','QQQ','IWM','VIX','AAPL','NVDA','MSFT','TSLA'].map(function(s){ return miniTile(s,s); }).join('')
     +'</div>';
