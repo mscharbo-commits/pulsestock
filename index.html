@@ -5082,7 +5082,9 @@ async function loadLiveTab() {
     var d = await r.json();
     _moData['live'] = d;
     _moLoaded['live'] = true;
+    _lastPulseData = d;
     renderLiveTab(d);
+    updatePulseTime();
     var timeEl = document.getElementById('market-overview-time');
     if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
