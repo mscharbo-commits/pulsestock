@@ -5134,7 +5134,11 @@ function renderLiveTab(d) {
   function fmtProse(text) {
     if(!text) return '';
     return text.split(/\n\n+/).filter(function(p){return p.trim();}).map(function(p){
-      return '<p style="margin:0 0 14px 0;line-height:1.8;font-size:14px;">'+p.trim().replace(/\n/g,' ')+'</p>';
+      // Join single newlines into spaces, wrap decimal numbers in nowrap spans
+      var line = p.trim().replace(/\n/g,' ');
+      // Protect decimals and percentages from line breaks
+      line = line.replace(/(\d+\.\d+%?)/g,'<span style="white-space:nowrap;">$1</span>');
+      return '<p style="margin:0 0 16px 0;line-height:1.85;font-size:14px;color:var(--text);">'+line+'</p>';
     }).join('');
   }
 
@@ -5183,11 +5187,11 @@ function renderLiveTab(d) {
     +'<div id="pulse-countdown" style="font-size:10px;color:var(--text3);margin-top:4px;"></div>'
     +'</div>'
     // Hook — always visible, slightly larger
-    +'<div style="font-size:15px;font-weight:500;color:var(--text);line-height:1.8;">'+fmtProse(hook)+'</div>'
+    +'<div style="font-size:15px;font-weight:500;color:var(--text);line-height:1.85;">'+fmtProse(hook)+'</div>'
     // Full analysis — hidden by default
     +(full
       ? '<div id="pulse-full" style="display:none;color:var(--text);border-top:1px solid var(--border);padding-top:16px;margin-top:4px;">'+fmtProse(full)+'</div>'
-        +'<button id="pulse-expand-btn" onclick="togglePulse()" style="margin-top:4px;font-size:13px;font-weight:700;padding:10px 0;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;width:100%;">Full Market Analysis &#x2193;</button>'
+        +'<button id="pulse-expand-btn" onclick="togglePulse()" style="margin-top:8px;font-size:13px;font-weight:700;padding:12px 0;border-radius:8px;background:linear-gradient(135deg,var(--accent),#2563EB);color:#fff;border:none;cursor:pointer;width:100%;letter-spacing:.02em;box-shadow:0 2px 8px rgba(26,107,245,.3);">&#x1F4CA; Read Full Market Analysis</button>'
       : '')
     +'</div>'
 
