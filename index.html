@@ -5093,96 +5093,93 @@ async function loadLiveTab() {
 
 function renderLiveTab(d) {
   var grid = document.getElementById('mo-live-grid');
-  if(!grid) return;
+  if(!grid||!d) return;
+
   var mktColor = d.isOpen ? '#0D9B6B' : '#B45309';
   var mktText  = d.isOpen ? '&#x1F7E2; Market Open' : '&#x1F7E1; Market Closed';
-  var session  = d.session||'';
+  var sent     = d.sentiment||50;
+  var sentLabel= d.sentLabel||'Neutral';
+  var sentColor= sent>=70?'#0D9B6B':sent>=55?'#16A34A':sent>=45?'#B45309':sent>=30?'#DC2626':'#991B1B';
+  var sentBg   = sent>=70?'rgba(13,155,107,.12)':sent>=55?'rgba(22,163,74,.1)':sent>=45?'rgba(180,83,9,.1)':'rgba(220,38,38,.1)';
+  var breadth  = d.breadth||{};
+  var breadthColor = (breadth.pct||0)>=70?'var(--green)':(breadth.pct||0)>=50?'var(--text)':'var(--red)';
+  var vixVal   = d.data&&d.data.VIX ? d.data.VIX.price.toFixed(1) : '—';
 
-  // Format the AI narrative with nice typography
-  var narrative = d.narrative || 'Market data loaded.';
-  // Split into sentences - but NOT on decimal points (e.g. 1.85%)
-  // Only split on . ! ? that are followed by a space and capital letter, or end of string
-  var narrativeHtml = '<p style="margin:0;line-height:1.9;font-size:14px;">'+narrative+'</p>';
+  // Split narrative on --- delimiter
+  var narrative = d.narrative||'';
+  var delimIdx  = narrative.indexOf('\n---\n');
+  var hook = delimIdx > -1 ? narrative.slice(0, delimIdx).trim() : narrative.slice(0, 300).trim();
+  var full = delimIdx > -1 ? narrative.slice(delimIdx + 5).trim() : narrative.slice(300).trim();
 
-  // Mini data strip below narrative
-  var data = d.data || {};
-  function miniTile(sym, label) {
-    var q = data[sym];
+  // Format prose — split on double newlines into paragraphs
+  function fmtProse(text) {
+    if(!text) return '';
+    return text.split(/\n\n+/).filter(function(p){return p.trim();}).map(function(p){
+      return '<p style="margin:0 0 14px 0;line-height:1.8;font-size:14px;">'+p.trim().replace(/\n/g,' ')+'</p>';
+    }).join('');
+  }
+
+  // Index tile
+  function indexTile(sym, label) {
+    var q = d.data&&d.data[sym];
     if(!q) return '';
-    var up = q.pct>=0, c=up?'var(--green)':'var(--red)';
-    return '<div style="text-align:center;padding:8px 10px;background:var(--surface2);border-radius:8px;min-width:70px;">'
+    var up=q.pct>=0, c=up?'var(--green)':'var(--red)';
+    return '<div style="flex:1;min-width:80px;text-align:center;padding:10px 8px;background:var(--surface2);border-radius:8px;">'
       +'<div style="font-size:11px;font-weight:700;color:var(--text3);">'+label+'</div>'
-      +'<div style="font-size:13px;font-weight:700;font-family:monospace;margin-top:2px;">$'+q.price.toFixed(2)+'</div>'
-      +'<div style="font-size:11px;font-weight:600;color:'+c+';">'+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
+      +'<div style="font-size:14px;font-weight:700;font-family:monospace;margin-top:3px;color:var(--text);">$'+q.price.toFixed(2)+'</div>'
+      +'<div style="font-size:11px;font-weight:600;color:'+c+';margin-top:2px;">'+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
       +'</div>';
   }
 
-  // Catalysts are woven into the narrative — no separate list needed
-
-  // Sentiment score color
-  var sent = d.sentiment || 50;
-  var sentLabel = d.sentLabel || 'Neutral';
-  var sentColor = sent>=70?'#0D9B6B':sent>=55?'#16A34A':sent>=45?'#B45309':sent>=30?'#DC2626':'#991B1B';
-  var sentBg    = sent>=70?'rgba(13,155,107,.12)':sent>=55?'rgba(22,163,74,.1)':sent>=45?'rgba(180,83,9,.1)':sent>=30?'rgba(220,38,38,.1)':'rgba(153,27,27,.1)';
-
-  // Breadth
-  var breadth = d.breadth || {};
-  var breadthColor = (breadth.pct||0)>=70?'var(--green)':(breadth.pct||0)>=50?'var(--text)':'var(--red)';
-
   var html = ''
-    // Top bar: market status + session
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
     +'<div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:16px;background:'+mktColor+'20;color:'+mktColor+';">'+mktText+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);">'+session+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);">'+(d.timeStr||'')+(d.cached?' · cached':'')+'</div>'
     +'</div>'
-    // Sentiment + Breadth strip
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">'
+
+    // 3 metric boxes
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">'
     +'<div style="background:'+sentBg+';border:1.5px solid '+sentColor+';border-radius:10px;padding:10px 14px;text-align:center;">'
     +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Sentiment</div>'
-    +'<div style="font-size:20px;font-weight:700;color:'+sentColor+';margin-top:2px;">'+sent+'<span style="font-size:11px;">/100</span></div>'
+    +'<div style="font-size:22px;font-weight:700;color:'+sentColor+';margin-top:2px;">'+sent+'<span style="font-size:11px;opacity:.7;">/100</span></div>'
     +'<div style="font-size:11px;font-weight:600;color:'+sentColor+';">'+sentLabel+'</div>'
     +'</div>'
     +'<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;">'
     +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">Breadth</div>'
-    +'<div style="font-size:20px;font-weight:700;color:'+breadthColor+';margin-top:2px;">'+(breadth.up||'—')+'<span style="font-size:11px;">/'+(breadth.total||11)+'</span></div>'
+    +'<div style="font-size:22px;font-weight:700;color:'+breadthColor+';margin-top:2px;">'+(breadth.up||'—')+'<span style="font-size:11px;opacity:.7;">/'+(breadth.total||11)+'</span></div>'
     +'<div style="font-size:11px;color:var(--text3);">sectors advancing</div>'
     +'</div>'
     +'<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;">'
     +'<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;">VIX</div>'
-    +'<div style="font-size:20px;font-weight:700;color:var(--text);margin-top:2px;">'+(d.data&&d.data.VIX?d.data.VIX.price.toFixed(1):'—')+'</div>'
+    +'<div style="font-size:22px;font-weight:700;color:var(--text);margin-top:2px;">'+vixVal+'</div>'
     +'<div style="font-size:11px;color:var(--text3);">'+(d.vixNote?d.vixNote.split('—')[0].trim():'volatility index')+'</div>'
     +'</div>'
     +'</div>'
-    // AI Narrative card
-    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px;">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
-    +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">&#x1F9E0; PulseAI Market Narrative</div>'
-    +(d.newsTickers&&d.newsTickers.length?'<div style="font-size:10px;color:var(--text3);">Tracking: '+d.newsTickers.join(' · ')+'</div>':'')
+
+    // Narrative card
+    +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">&#x1F9E0; PulseAI Market Pulse</div>'
+    +(d.newsTickers&&d.newsTickers.length?'<div style="font-size:10px;color:var(--text3);">Tracking: '+d.newsTickers.slice(0,6).join(' · ')+'</div>':'')
     +'</div>'
-    // Teaser: split on raw narrative text (before wrapping in <p>)
-    +'<div id="pulse-teaser" style="font-size:14px;color:var(--text);line-height:1.9;">'
-    + (function(){
-        // Split on sentence boundaries — period/!/?  followed by space+capital or end
-        var raw = narrative;
-        var parts = raw.split(/(?<=[.!?])\s+(?=[A-Z])/);
-        var teaser = parts.slice(0,2).join(' ').trim();
-        var rest   = parts.slice(2).join(' ').trim();
-        return '<p style="margin:0;line-height:1.9;" id="pulse-short">'+teaser+'</p>'
-          +(rest?'<p style="margin:8px 0 0 0;line-height:1.9;display:none;" id="pulse-full">'+rest+'</p>':'');
-      })()
+    // Hook — always visible, slightly larger
+    +'<div style="font-size:15px;font-weight:500;color:var(--text);line-height:1.8;">'+fmtProse(hook)+'</div>'
+    // Full analysis — hidden by default
+    +(full
+      ? '<div id="pulse-full" style="display:none;color:var(--text);border-top:1px solid var(--border);padding-top:16px;margin-top:4px;">'+fmtProse(full)+'</div>'
+        +'<button id="pulse-expand-btn" onclick="togglePulse()" style="margin-top:4px;font-size:13px;font-weight:700;padding:10px 0;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;width:100%;">Full Market Analysis &#x2193;</button>'
+      : '')
     +'</div>'
-    +'<div style="margin-top:14px;display:flex;align-items:center;gap:10px;">'
-    +'<button id="pulse-expand-btn" onclick="togglePulse()" style="font-size:12px;font-weight:700;padding:7px 18px;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;">Full Analysis &#x2193;</button>'
-    +'<div style="font-size:11px;color:var(--text3);">Updated '+(d.timeStr||'')+(d.cached?' · cached':'')+'</div>'
-    +'</div>'
-    +'</div>'
-    // Mini price strip
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
-    +['SPY','QQQ','IWM','VIX','AAPL','NVDA','MSFT','TSLA'].map(function(s){ return miniTile(s,s); }).join('')
+
+    // Index strip — clean, indexes only
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Indexes</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    +[['SPY','S&P 500'],['QQQ','Nasdaq'],['DIA','Dow'],['IWM','Russell'],['VIX','VIX'],['TLT','Bonds']].map(function(x){return indexTile(x[0],x[1]);}).join('')
     +'</div>';
 
   grid.innerHTML = html;
 }
+
 
 function renderMarketTab(tab) {
   var grid = document.getElementById('mo-'+tab+'-grid');
