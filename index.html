@@ -5160,7 +5160,8 @@ function renderLiveTab(d) {
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
     +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">&#x1F9E0; PulseAI Market Pulse</div>'
-    +(d.newsTickers&&d.newsTickers.length?'<div style="font-size:10px;color:var(--text3);">Tracking: '+d.newsTickers.slice(0,6).join(' · ')+'</div>':'')
+    +(d.newsTickers&&d.newsTickers.length?'<div style="font-size:10px;color:var(--text3);">Tracking: '+d.newsTickers.slice(0,6).join(' \xB7 ')+'</div>':'')
+    +'<div id="pulse-countdown" style="font-size:10px;color:var(--text3);margin-top:4px;"></div>'
     +'</div>'
     // Hook — always visible, slightly larger
     +'<div style="font-size:15px;font-weight:500;color:var(--text);line-height:1.8;">'+fmtProse(hook)+'</div>'
@@ -5207,10 +5208,110 @@ function togglePulse() {
   btn.style.border = expanded ? 'none' : '1.5px solid var(--border)';
 }
 
+// ── MARKET PULSE EVENT ENGINE ─────────────────────────────────────────────
+var _lastPulseData = null;       // last known market snapshot
+var _lastPulseTime = 0;          // when we last generated a narrative
+var _pulseCountdown = null;      // countdown display interval
+var _pulseCheckInterval = null;  // price check interval
+var PULSE_REFRESH_MS  = 5 * 60 * 1000;   // 5 min normal refresh
+var PULSE_EVENT_MS    = 60 * 1000;        // check for events every 60s
+var SPY_MOVE_THRESH   = 0.5;              // % move triggers immediate refresh
+var VIX_SPIKE_THRESH  = 10;              // % VIX spike triggers refresh
+
+function updateCountdown() {
+  var el = document.getElementById('pulse-countdown');
+  if(!el) return;
+  var elapsed = Math.floor((Date.now() - _lastPulseTime) / 1000);
+  var remaining = Math.max(0, 300 - elapsed);
+  if(remaining === 0) {
+    el.textContent = 'Refreshing...';
+    el.style.color = 'var(--accent)';
+  } else {
+    var m = Math.floor(remaining/60), s = remaining%60;
+    el.textContent = 'Next update in ' + (m>0?m+'m ':'')+s+'s';
+    el.style.color = 'var(--text3)';
+  }
+}
+
+async function checkForMarketEvents() {
+  // Only check when Live tab is active and market is open
+  if(_moTab !== 'live') return;
+  if(!_lastPulseData || !_lastPulseData.data) return;
+
+  try {
+    // Quick price check via ticker-bar (cached, cheap)
+    var r = await fetch('/api/ticker-bar?syms=SPY,VIX&t='+Date.now());
+    if(!r.ok) return;
+    var prices = await r.json();
+    var spy = prices['SPY'];
+    var vix = prices['VIX'];
+    var prevSpy = _lastPulseData.data['SPY'];
+    var prevVix = _lastPulseData.data['VIX'];
+
+    if(!spy || !prevSpy) return;
+
+    var spyMove   = Math.abs((spy.price - prevSpy.price) / prevSpy.price * 100);
+    var vixSpike  = prevVix ? ((vix?.price - prevVix.price) / prevVix.price * 100) : 0;
+    var timeSince = Date.now() - _lastPulseTime;
+
+    var triggered = false;
+    var triggerReason = '';
+
+    // SPY moved more than 0.5% since last narrative
+    if(spyMove >= SPY_MOVE_THRESH && timeSince > 90000) {
+      triggered = true;
+      triggerReason = 'MARKET ALERT: SPY moved ' + (spy.pct>=0?'+':'') + spy.pct.toFixed(2) + '%';
+    }
+    // VIX spiked more than 10%
+    if(Math.abs(vixSpike) >= VIX_SPIKE_THRESH && timeSince > 90000) {
+      triggered = true;
+      triggerReason = 'VOLATILITY ALERT: VIX spiked ' + Math.abs(vixSpike).toFixed(1) + '%';
+    }
+    // Normal 5-minute refresh
+    if(timeSince >= PULSE_REFRESH_MS) {
+      triggered = true;
+      triggerReason = '';
+    }
+
+    if(triggered) {
+      _moLoaded['live'] = false;
+      // Show alert badge if event-triggered
+      if(triggerReason) {
+        var grid = document.getElementById('mo-live-grid');
+        if(grid) {
+          var alertDiv = document.createElement('div');
+          alertDiv.style.cssText = 'background:#FEF3C7;border:1px solid #D97706;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:#92400E;margin-bottom:12px;';
+          alertDiv.textContent = '⚡ ' + triggerReason + ' — regenerating analysis...';
+          grid.insertBefore(alertDiv, grid.firstChild);
+          setTimeout(function(){ if(alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv); }, 8000);
+        }
+      }
+      loadLiveTab();
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+function updatePulseTime() {
+  _lastPulseTime = Date.now();
+  updateCountdown();
+}
+
 function initMarketOverview() {
   loadLiveTab();
   if(_moInterval) clearInterval(_moInterval);
-  _moInterval = setInterval(function(){ if(_moTab==='live'){_moLoaded.live=false;loadLiveTab();}else if(_moLoaded[_moTab]){loadMarketTab(_moTab);} }, 120000);
+  if(_pulseCheckInterval) clearInterval(_pulseCheckInterval);
+  if(_pulseCountdown) clearInterval(_pulseCountdown);
+
+  // Event check every 60 seconds
+  _pulseCheckInterval = setInterval(checkForMarketEvents, PULSE_EVENT_MS);
+
+  // Countdown display updates every second
+  _pulseCountdown = setInterval(updateCountdown, 1000);
+
+  // Other tabs refresh every 60s
+  _moInterval = setInterval(function(){
+    if(_moTab !== 'live' && _moLoaded[_moTab]) loadMarketTab(_moTab);
+  }, 60000);
 }
 
 document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketOverview, 500); });
