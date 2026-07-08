@@ -5108,21 +5108,31 @@ function renderLiveTab(d) {
       +'</div>';
   }
 
+  // News headlines section
+  var newsHtml = '';
+  if(d.headlines && d.headlines.length) {
+    newsHtml = '<div style="margin-top:16px;">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">&#x1F4F0; News Catalysts</div>'
+      + d.headlines.map(function(n){
+          return '<a href="'+n.url+'" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);text-decoration:none;">'
+            +'<div style="font-size:11px;color:var(--text3);white-space:nowrap;padding-top:1px;">'+n.source+'</div>'
+            +'<div style="font-size:13px;color:var(--text);line-height:1.4;flex:1;">'+n.headline+'</div>'
+            +'</a>';
+        }).join('')
+      +'</div>';
+  }
+
   var html = ''
-    // Header
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
     +'<div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:16px;background:'+mktColor+'20;color:'+mktColor+';">'+mktText+'</div>'
     +'<div style="font-size:11px;color:var(--text3);">'+session+'</div>'
     +'</div>'
-    // AI Narrative
     +'<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;">'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
-    +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">&#x1F9E0; PulseAI Market Narrative</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">&#x1F9E0; PulseAI Market Narrative</div>'
+    +'<div style="font-size:14px;color:var(--text);line-height:1.9;">'+narrativeHtml+'</div>'
+    + newsHtml
     +'</div>'
-    +'<div style="font-size:14px;color:var(--text);font-weight:400;">'+narrativeHtml+'</div>'
-    +'</div>'
-    // Mini price strip
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
     +['SPY','QQQ','IWM','VIX','AAPL','NVDA','MSFT','TSLA'].map(function(s){ return miniTile(s,s); }).join('')
     +'</div>';
 
