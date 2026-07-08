@@ -7,7 +7,10 @@ const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json
 
 let _cache = null;
 let _cacheTime = 0;
+let _candleCache = {};
+let _candleCacheTime = {};
 const CACHE_TTL = 5 * 60 * 1000;
+const CANDLE_TTL = 60 * 60 * 1000; // candles cache 1 hour
 
 async function sf(url, t=5000) {
   try {
@@ -20,280 +23,251 @@ async function sf(url, t=5000) {
   } catch(e){ return null; }
 }
 
-// ── TECHNICAL CALCULATIONS ─────────────────────────────────────────────────
-function sma(closes, period) {
-  if(closes.length < period) return null;
-  return closes.slice(0,period).reduce((a,b)=>a+b,0)/period;
+// ── TECHNICALS ────────────────────────────────────────────────────────────
+function sma(arr, n) { return arr.length<n?null:arr.slice(0,n).reduce((a,b)=>a+b,0)/n; }
+
+function rsi(closes, n=14) {
+  if(closes.length<n+1) return null;
+  const rev=[...closes].reverse();
+  let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=rev[i]-rev[i-1];d>0?g+=d:l+=Math.abs(d);}
+  const ag=g/n,al=l/n;
+  return al===0?100:100-(100/(1+ag/al));
 }
 
-function ema(closes, period) {
-  if(closes.length < period) return null;
-  const rev = [...closes].reverse();
-  const k = 2/(period+1);
-  let val = rev.slice(0,period).reduce((a,b)=>a+b,0)/period;
-  for(let i=period;i<rev.length;i++) val = rev[i]*k + val*(1-k);
-  return val;
+function macdSignal(closes) {
+  if(closes.length<35) return null;
+  const rev=[...closes].reverse();
+  const k12=2/13,k26=2/27;
+  let e12=rev.slice(0,12).reduce((a,b)=>a+b,0)/12;
+  let e26=rev.slice(0,26).reduce((a,b)=>a+b,0)/26;
+  for(let i=12;i<rev.length;i++) e12=rev[i]*k12+e12*(1-k12);
+  for(let i=26;i<rev.length;i++) e26=rev[i]*k26+e26*(1-k26);
+  const line=e12-e26;
+  return {line:line.toFixed(3), bullish:line>0};
 }
 
-function rsi(closes, period=14) {
-  if(closes.length < period+1) return null;
-  const rev = [...closes].reverse();
-  let gains=0, losses=0;
-  for(let i=1;i<=period;i++){
-    const diff=rev[i]-rev[i-1];
-    if(diff>0) gains+=diff; else losses+=Math.abs(diff);
-  }
-  const avgG=gains/period, avgL=losses/period;
-  if(avgL===0) return 100;
-  return 100-(100/(1+avgG/avgL));
-}
-
-function macd(closes, fast=12, slow=26, signal=9) {
-  if(closes.length < slow+signal) return null;
-  const fastEma = ema(closes, fast);
-  const slowEma = ema(closes, slow);
-  if(!fastEma||!slowEma) return null;
-  const macdLine = fastEma - slowEma;
-  // Signal line = EMA of MACD (approximate with last N values)
-  // For simplicity return macdLine and direction vs zero
-  return { macdLine, bullish: macdLine > 0 };
-}
-
-async function getCandles(sym, days=210) {
+async function getCandles(sym) {
+  const now=Date.now();
+  if(_candleCache[sym]&&now-_candleCacheTime[sym]<CANDLE_TTL) return _candleCache[sym];
   if(!POLYGON) return null;
-  const to = new Date().toISOString().split('T')[0];
-  const from = new Date(Date.now()-days*86400000).toISOString().split('T')[0];
-  const d = await sf(`https://api.polygon.io/v2/aggs/ticker/${sym}/range/1/day/${from}/${to}?adjusted=true&sort=desc&limit=${days}&apiKey=${POLYGON}`,6000);
-  return d?.results || null;
+  const to=new Date().toISOString().split('T')[0];
+  const from=new Date(now-220*86400000).toISOString().split('T')[0];
+  const d=await sf(`https://api.polygon.io/v2/aggs/ticker/${sym}/range/1/day/${from}/${to}?adjusted=true&sort=desc&limit=220&apiKey=${POLYGON}`,7000);
+  const res=d?.results||null;
+  if(res){ _candleCache[sym]=res; _candleCacheTime[sym]=now; }
+  return res;
 }
 
-async function getTechnicals(sym) {
-  const candles = await getCandles(sym, 210);
-  if(!candles || candles.length < 55) return null;
-  const closes  = candles.map(c=>c.c); // most recent first
-  const volumes = candles.map(c=>c.v);
-  const curr    = closes[0];
-
-  const sma20  = sma(closes, 20);
-  const sma50  = sma(closes, 50);
-  const sma200 = sma(closes, 200);
-  const rsi14  = rsi(closes, 14);
-  const macdData = macd(closes);
-
-  const vs20   = sma20  ? ((curr-sma20)/sma20*100)   : null;
-  const vs50   = sma50  ? ((curr-sma50)/sma50*100)   : null;
-  const vs200  = sma200 ? ((curr-sma200)/sma200*100) : null;
-
-  // Volume analysis — compare today vs 20-day avg
-  const avgVol20  = sma(volumes, 20);
-  const todayVol  = volumes[0];
-  const volRatio  = avgVol20 ? (todayVol/avgVol20) : null;
-
-  // 20-day range
-  const high20 = Math.max(...candles.slice(0,20).map(c=>c.h));
-  const low20  = Math.min(...candles.slice(0,20).map(c=>c.l));
-  const pctFromHigh = ((curr-high20)/high20*100);
-  const pctFromLow  = ((curr-low20)/low20*100);
-
-  // 52-week range
-  const high52 = Math.max(...candles.slice(0,252).map(c=>c.h));
-  const low52  = Math.min(...candles.slice(0,252).map(c=>c.l));
-  const pct52High = ((curr-high52)/high52*100);
-
+async function getTech(sym) {
+  const c=await getCandles(sym);
+  if(!c||c.length<55) return {sym,error:'insufficient data'};
+  const closes=c.map(x=>x.c);
+  const vols=c.map(x=>x.v);
+  const curr=closes[0];
+  const s20=sma(closes,20), s50=sma(closes,50), s200=sma(closes,200);
+  const r14=rsi(closes,14);
+  const mc=macdSignal(closes);
+  const avgVol=sma(vols,20);
+  const volR=avgVol?vols[0]/avgVol:null;
+  const h52=Math.max(...c.slice(0,Math.min(252,c.length)).map(x=>x.h));
+  const l52=Math.min(...c.slice(0,Math.min(252,c.length)).map(x=>x.l));
   return {
     sym, price:curr,
-    sma20, sma50, sma200,
-    vs20, vs50, vs200,
-    rsi14, macd:macdData,
-    volRatio, todayVol, avgVol20,
-    high20, low20, high52, low52,
-    pctFromHigh, pctFromLow, pct52High
+    sma20:s20, sma50:s50, sma200:s200,
+    vs20:s20?((curr-s20)/s20*100):null,
+    vs50:s50?((curr-s50)/s50*100):null,
+    vs200:s200?((curr-s200)/s200*100):null,
+    rsi14:r14, macd:mc,
+    volRatio:volR,
+    high52:h52, low52:l52,
+    pct52High:((curr-h52)/h52*100),
   };
 }
 
-function techNarrative(t) {
-  if(!t) return null;
-  const lines = [];
-  const sym = t.sym;
+function techBlock(t) {
+  if(!t||t.error) return null;
+  const p=n=>n!==null&&n!==undefined?n.toFixed(2):null;
+  const lines=[];
 
-  // 200-day MA — most important institutional level
-  if(t.vs200 !== null) {
-    if(Math.abs(t.vs200) < 1) lines.push(`${sym} is sitting right on its 200-day MA at $${t.sma200.toFixed(2)} — major inflection`);
-    else if(t.vs200 > 0) lines.push(`${sym} holds ${t.vs200.toFixed(1)}% above its 200-day MA ($${t.sma200.toFixed(2)}), bull trend intact`);
-    else lines.push(`${sym} is ${Math.abs(t.vs200).toFixed(1)}% below its 200-day MA ($${t.sma200.toFixed(2)}) — bearish structure`);
+  // 200-day — key trend indicator
+  if(t.vs200!==null){
+    const a=Math.abs(t.vs200).toFixed(1);
+    if(Math.abs(t.vs200)<0.8) lines.push(`${t.sym} sitting on its 200-day MA ($${p(t.sma200)}) — critical trend decision point`);
+    else if(t.vs200>0) lines.push(`${t.sym} ${a}% above 200-day MA ($${p(t.sma200)}) — uptrend intact`);
+    else lines.push(`${t.sym} ${a}% below 200-day MA ($${p(t.sma200)}) — bearish structure`);
   }
 
-  // 20-day MA — short-term momentum
-  if(t.vs20 !== null) {
-    if(Math.abs(t.vs20) < 0.5) lines.push(`${sym} testing 20-day MA at $${t.sma20.toFixed(2)} — watch closely`);
-    else if(t.vs20 > 0) lines.push(`${sym} +${t.vs20.toFixed(1)}% above 20-day ($${t.sma20.toFixed(2)})`);
-    else lines.push(`${sym} ${t.vs20.toFixed(1)}% below 20-day ($${t.sma20.toFixed(2)}) — momentum fading`);
+  // 20-day — short-term momentum
+  if(t.vs20!==null){
+    if(Math.abs(t.vs20)<0.4) lines.push(`testing 20-day at $${p(t.sma20)}`);
+    else if(t.vs20>0) lines.push(`${t.vs20.toFixed(1)}% above 20-day ($${p(t.sma20)})`);
+    else lines.push(`${Math.abs(t.vs20).toFixed(1)}% below 20-day ($${p(t.sma20)})`);
   }
 
-  // RSI
-  if(t.rsi14 !== null) {
-    if(t.rsi14 > 75)      lines.push(`RSI ${t.rsi14.toFixed(0)} — significantly overbought, watch for pullback`);
-    else if(t.rsi14 > 65) lines.push(`RSI ${t.rsi14.toFixed(0)} — momentum firm but getting stretched`);
-    else if(t.rsi14 < 25) lines.push(`RSI ${t.rsi14.toFixed(0)} — deeply oversold, bounce potential`);
-    else if(t.rsi14 < 35) lines.push(`RSI ${t.rsi14.toFixed(0)} — oversold, watching for stabilization`);
-    else if(t.rsi14 > 45 && t.rsi14 < 55) lines.push(`RSI ${t.rsi14.toFixed(0)} — neutral momentum`);
+  // RSI with specific levels
+  if(t.rsi14!==null){
+    const r=t.rsi14.toFixed(0);
+    if(t.rsi14>75)      lines.push(`RSI ${r} — overbought, elevated reversal risk`);
+    else if(t.rsi14>60) lines.push(`RSI ${r} — momentum firm`);
+    else if(t.rsi14<30) lines.push(`RSI ${r} — oversold, watch for bounce`);
+    else if(t.rsi14<40) lines.push(`RSI ${r} — momentum weakening`);
+    else                lines.push(`RSI ${r} — neutral`);
   }
 
-  // MACD
-  if(t.macd) {
-    if(t.macd.bullish && t.macd.macdLine > 0) lines.push(`MACD positive — momentum trending higher`);
-    else if(!t.macd.bullish) lines.push(`MACD negative — momentum under pressure`);
+  // MACD direction
+  if(t.macd){
+    lines.push(`MACD ${t.macd.bullish?'positive (bullish bias)':'negative (bearish bias)'} at ${t.macd.line}`);
   }
 
-  // Volume context
-  if(t.volRatio !== null) {
-    if(t.volRatio > 1.5) lines.push(`volume running ${(t.volRatio).toFixed(1)}x above average — conviction behind the move`);
-    else if(t.volRatio < 0.6) lines.push(`volume ${Math.round((1-t.volRatio)*100)}% below average — weak conviction`);
+  // Volume conviction
+  if(t.volRatio!==null){
+    if(t.volRatio>1.5)       lines.push(`volume ${t.volRatio.toFixed(1)}x above average — institutional conviction`);
+    else if(t.volRatio<0.55) lines.push(`volume ${Math.round((1-t.volRatio)*100)}% below average — thin tape, low conviction`);
   }
 
-  // 52-week context
-  if(t.pct52High > -2)       lines.push(`${sym} near 52-week highs`);
-  else if(t.pct52High < -20) lines.push(`${sym} ${Math.abs(t.pct52High).toFixed(0)}% off 52-week highs`);
+  // 52W context
+  if(t.pct52High>-2)       lines.push(`near 52-week highs ($${p(t.high52)})`);
+  else if(t.pct52High<-15) lines.push(`${Math.abs(t.pct52High).toFixed(0)}% off 52-week high ($${p(t.high52)})`);
 
-  return lines.length ? lines.join('; ') : null;
+  return lines.length?`${t.sym}: ${lines.join(', ')}`:null;
 }
 
 // ── NEWS FILTERS ──────────────────────────────────────────────────────────
-const MKT_KW = ['fed','federal reserve','fomc','rate','inflation','cpi','pce','jobs','gdp','payroll','earnings','revenue','profit','beat','miss','eps','guidance','outlook','forecast','yield','treasury','bond','rate cut','rate hike','interest rate','economic','economy','recession','growth','unemployment','retail sales','ism','pmi','manufacturing','housing','consumer','spending','rally','selloff','sell-off','plunge','surge','jump','drop','decline','gain','stocks','market','nasdaq','s&p','dow','equities','wall street','oil','gold','dollar','crypto','bitcoin','merger','acquisition','buyout','ipo','apple','nvidia','microsoft','meta','tesla','amazon','google','alphabet','jpmorgan','semiconductor','ai','artificial intelligence','cloud','tech','tariff','trade','quarter','fiscal','annual','report','results'];
-const GEO_KW = ['war','military','troops','soldier','attack','bomb','missile','ukraine','russia','israel','gaza','hamas','iran','north korea','election','vote','president','congress','senate','democrat','republican','crime','murder','shooting','arrest','police','court','trial','weather','hurricane','earthquake','flood','fire','tornado','celebrity','entertainment','oscar','grammy','nfl','nba','mlb'];
-const mktRel = h => { const l=h.toLowerCase(); return MKT_KW.some(k=>l.includes(k)); };
-const geoNoise = h => { const l=h.toLowerCase(); return GEO_KW.some(k=>l.includes(k)); };
+const MKT_KW=['fed','federal reserve','fomc','rate','inflation','cpi','pce','jobs','gdp','payroll','earnings','revenue','profit','beat','miss','eps','guidance','outlook','forecast','yield','treasury','bond','rate cut','rate hike','interest rate','economic','economy','recession','growth','unemployment','retail sales','ism','pmi','manufacturing','housing','consumer','spending','rally','selloff','sell-off','plunge','surge','jump','drop','decline','gain','stocks','market','nasdaq','s&p','dow','equities','wall street','oil','gold','dollar','crypto','bitcoin','merger','acquisition','ipo','apple','nvidia','microsoft','meta','tesla','amazon','google','alphabet','jpmorgan','semiconductor','ai','artificial intelligence','cloud','tech','tariff','trade','quarter','fiscal','annual','report','results'];
+const GEO_KW=['war','military','troops','soldier','attack','bomb','missile','ukraine','russia','israel','gaza','hamas','iran','north korea','election','vote','president','congress','senate','democrat','republican','crime','murder','shooting','arrest','police','court','trial','weather','hurricane','earthquake','flood','tornado','celebrity','entertainment','oscar','grammy','nfl','nba','mlb'];
+const mktRel=h=>{const l=h.toLowerCase();return MKT_KW.some(k=>l.includes(k));};
+const geoNoise=h=>{const l=h.toLowerCase();return GEO_KW.some(k=>l.includes(k));};
 
-// ── BREADTH from sector ETFs ──────────────────────────────────────────────
-function calcBreadth(data) {
-  const sectors = ['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
-  const up = sectors.filter(s=>data[s]&&data[s].pct>0).length;
-  const total = sectors.filter(s=>data[s]).length;
-  return {up, total, pct: total ? Math.round(up/total*100) : null};
+// ── BREADTH & SENTIMENT ───────────────────────────────────────────────────
+function calcBreadth(data){
+  const s=['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
+  const up=s.filter(x=>data[x]&&data[x].pct>0).length;
+  const tot=s.filter(x=>data[x]).length;
+  return {up,total:tot,pct:tot?Math.round(up/tot*100):null};
 }
 
-// ── SENTIMENT SCORE (0-100) ───────────────────────────────────────────────
-function calcSentiment(data, spyTech) {
-  let score = 50, factors = 0;
-  if(data.SPY)  { score += data.SPY.pct > 0 ? Math.min(data.SPY.pct*3,10) : Math.max(data.SPY.pct*3,-10); factors++; }
-  if(data.VIX)  { const vix=data.VIX.price; score += vix<15?10:vix<20?5:vix<25?0:vix<30?-8:-15; factors++; }
-  if(spyTech?.vs200 !== null && spyTech?.vs200 !== undefined) { score += spyTech.vs200>0?8:-8; factors++; }
-  if(spyTech?.rsi14) { const r=spyTech.rsi14; score += r>60?5:r<40?-5:0; factors++; }
-  const breadth = calcBreadth(data);
-  if(breadth.pct!==null) { score += breadth.pct>70?8:breadth.pct>50?3:breadth.pct<30?-8:-3; factors++; }
-  return Math.max(0, Math.min(100, Math.round(score)));
+function calcSentiment(data,spyT){
+  let sc=50;
+  if(data.SPY) sc+=Math.max(-12,Math.min(12,data.SPY.pct*4));
+  if(data.VIX){const v=data.VIX.price;sc+=v<15?12:v<20?6:v<25?0:v<30?-10:-18;}
+  if(spyT?.vs200!=null) sc+=spyT.vs200>0?8:-8;
+  if(spyT?.rsi14!=null){const r=spyT.rsi14;sc+=r>60?5:r<40?-5:0;}
+  const b=calcBreadth(data);
+  if(b.pct!=null) sc+=b.pct>70?10:b.pct>55?4:b.pct<30?-10:-4;
+  if(spyT?.macd?.bullish!=null) sc+=spyT.macd.bullish?5:-5;
+  return Math.max(0,Math.min(100,Math.round(sc)));
 }
 
 // ── MAIN HANDLER ──────────────────────────────────────────────────────────
 export default async function handler(req) {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
+  if(_cache&&Date.now()-_cacheTime<CACHE_TTL) return new Response(JSON.stringify({..._cache,cached:true}),{headers:CORS});
 
-  if(_cache && Date.now()-_cacheTime < CACHE_TTL) {
-    return new Response(JSON.stringify({..._cache,cached:true}),{headers:CORS});
-  }
-
-  const now = new Date();
-  const et = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const now=new Date();
+  const et=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
   const h=et.getHours(),m=et.getMinutes(),dow=et.getDay();
-  const isOpen    = dow>=1&&dow<=5&&(h>9||(h===9&&m>=30))&&h<16;
-  const isPreMkt  = dow>=1&&dow<=5&&h>=4&&(h<9||(h===9&&m<30));
-  const isPostMkt = dow>=1&&dow<=5&&h>=16&&h<20;
-  const session   = isOpen?'Market Open':isPreMkt?'Pre-Market':isPostMkt?'After Hours':'Market Closed';
-  const timeStr   = et.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' ET';
+  const isOpen=dow>=1&&dow<=5&&(h>9||(h===9&&m>=30))&&h<16;
+  const session=isOpen?'Market Open':dow>=1&&dow<=5&&h>=4&&(h<9||(h===9&&m<30))?'Pre-Market':dow>=1&&dow<=5&&h>=16&&h<20?'After Hours':'Market Closed';
+  const timeStr=et.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' ET';
 
-  const PRICE_SYMS = ['SPY','QQQ','DIA','IWM','VIX','TLT','SHY','AAPL','NVDA','MSFT','META','TSLA','AMZN','JPM','XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
-  const TECH_SYMS  = ['SPY','QQQ','IWM','XLK','GLD','USO'];
+  const PRICE_SYMS=['SPY','QQQ','DIA','IWM','VIX','TLT','SHY','AAPL','NVDA','MSFT','META','TSLA','AMZN','JPM','XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
+  const TECH_SYMS=['SPY','QQQ','XLK']; // limit to 3 for speed
 
-  const [quotes, genNews, bizNews, ...techResults] = await Promise.all([
+  // Fetch prices and technicals in parallel — technicals have their own cache
+  const [quotes,genNews,bizNews,...techArr]=await Promise.all([
     Promise.all(PRICE_SYMS.map(s=>sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000))),
     sf(`https://finnhub.io/api/v1/news?category=general&minId=0&token=${FINNHUB}`,5000),
     sf(`https://finnhub.io/api/v1/news?category=business&minId=0&token=${FINNHUB}`,5000),
-    ...TECH_SYMS.map(s=>getTechnicals(s)),
+    ...TECH_SYMS.map(s=>getTech(s)),
   ]);
 
-  const data = {};
-  PRICE_SYMS.forEach((s,i)=>{ const d=quotes[i]; if(d&&(d.c||d.pc)) data[s]={price:d.c||d.pc,pct:d.dp||0,change:d.d||0}; });
+  const data={};
+  PRICE_SYMS.forEach((s,i)=>{const d=quotes[i];if(d&&(d.c||d.pc))data[s]={price:d.c||d.pc,pct:d.dp||0,change:d.d||0};});
 
-  const techMap = {};
-  TECH_SYMS.forEach((s,i)=>{ if(techResults[i]) techMap[s]=techResults[i]; });
+  const techMap={};
+  TECH_SYMS.forEach((s,i)=>{if(techArr[i]&&!techArr[i].error)techMap[s]=techArr[i];});
 
-  // Breadth + Sentiment
-  const breadth   = calcBreadth(data);
-  const sentiment = calcSentiment(data, techMap['SPY']);
-  const sentLabel = sentiment>=70?'Bullish':sentiment>=55?'Mildly Bullish':sentiment>=45?'Neutral':sentiment>=30?'Mildly Bearish':'Bearish';
+  const breadth=calcBreadth(data);
+  const sentiment=calcSentiment(data,techMap.SPY);
+  const sentLabel=sentiment>=70?'Bullish':sentiment>=55?'Mildly Bullish':sentiment>=45?'Neutral':sentiment>=30?'Mildly Bearish':'Bearish';
 
-  // VIX interpretation
-  const vixLevel = data.VIX?.price;
-  const vixNote  = !vixLevel ? '' : vixLevel<15 ? 'near multi-year lows — complacency risk' : vixLevel<20 ? 'low fear, risk-on environment' : vixLevel<25 ? 'elevated — caution warranted' : vixLevel<30 ? 'fear elevated — watch for oversold bounce' : 'fear spike — defensive posture warranted';
+  const vixVal=data.VIX?.price;
+  const vixNote=!vixVal?'':vixVal<15?'near multi-year lows — complacency risk':vixVal<20?'low fear — risk-on':vixVal<25?'elevated — caution':vixVal<30?'fear elevated — watch for bounce':'fear spike — defensive posture';
 
-  // Yield curve (TLT=long, SHY=short — inversion proxy)
-  const tltPct = data.TLT?.pct;
-  const shyPct = data.SHY?.pct;
-  let yieldNote = '';
-  if(tltPct!==undefined && shyPct!==undefined) {
-    if(tltPct < shyPct-0.5) yieldNote = 'yield curve steepening (long rates rising faster than short) — reflation signal';
-    else if(tltPct > shyPct+0.5) yieldNote = 'yield curve flattening — recession watch signal';
-    else yieldNote = 'yield curve stable';
-  }
+  const tltPct=data.TLT?.pct, shyPct=data.SHY?.pct;
+  const yieldNote=tltPct!=null&&shyPct!=null?(tltPct<shyPct-0.4?'yield curve steepening (long rates rising — reflation/inflation signal)':tltPct>shyPct+0.4?'yield curve flattening — growth concern':'yield curve stable'):'';
 
-  // News
-  const sixHoursAgo = Math.floor(Date.now()/1000)-(6*3600);
-  const allNews = [...(genNews||[]),...(bizNews||[])]
-    .filter(n=>n.datetime>sixHoursAgo&&!geoNoise(n.headline)&&mktRel(n.headline))
-    .sort((a,b)=>b.datetime-a.datetime).slice(0,6);
-  const headlines = allNews.length ? allNews.map(n=>`• ${n.headline}`).join('\n') : 'No major economic catalysts in the last 6 hours.';
+  // News — filter + dedupe
+  const sixH=Math.floor(Date.now()/1000)-(6*3600);
+  const seen=new Set();
+  const allNews=[...(genNews||[]),...(bizNews||[])]
+    .filter(n=>n.datetime>sixH&&!geoNoise(n.headline)&&mktRel(n.headline))
+    .sort((a,b)=>b.datetime-a.datetime)
+    .filter(n=>{if(seen.has(n.headline))return false;seen.add(n.headline);return true;})
+    .slice(0,8);
+  const headlines=allNews.length?allNews.map(n=>`• ${n.headline} [${n.source}]`).join('\n'):'No major economic or earnings catalysts in the last 6 hours.';
 
-  // Tech narrative strings
-  const techLines = TECH_SYMS.map(s=>techNarrative(techMap[s])).filter(Boolean);
-  const techSummary = techLines.length ? techLines.map(l=>`• ${l}`).join('\n') : 'Technical data unavailable.';
+  // Technical blocks
+  const techLines=TECH_SYMS.map(s=>techBlock(techMap[s])).filter(Boolean);
+  const techSummary=techLines.length?techLines.join('\n'):'Technicals: awaiting candle data.';
 
-  function fmt(s){ const d=data[s]; if(!d) return `${s}: N/A`; return `${s} $${d.price.toFixed(2)} ${d.pct>=0?'▲':'▼'}${Math.abs(d.pct).toFixed(2)}%`; }
+  const fmt=s=>{const d=data[s];return d?`${s} $${d.price.toFixed(2)} ${d.pct>=0?'▲':'▼'}${Math.abs(d.pct).toFixed(2)}%`:`${s} N/A`;};
 
-  const priceSummary = [
-    `Indexes: ${fmt('SPY')} | ${fmt('QQQ')} | ${fmt('DIA')} | ${fmt('IWM')}`,
-    `VIX: ${vixLevel?vixLevel.toFixed(1):'N/A'} (${vixNote}) | Bonds: TLT ${data.TLT?.pct?.toFixed(2)||'N/A'}%`,
-    `Yield curve: ${yieldNote}`,
-    `Mega-caps: ${fmt('AAPL')} | ${fmt('NVDA')} | ${fmt('MSFT')} | ${fmt('META')} | ${fmt('TSLA')} | ${fmt('AMZN')}`,
-    `Sectors: Tech ${fmt('XLK')} | Energy ${fmt('XLE')} | Fins ${fmt('XLF')} | Health ${fmt('XLV')} | Ind ${fmt('XLI')}`,
-    `Market Breadth: ${breadth.up} of ${breadth.total} sectors positive (${breadth.pct}% advancing)`,
-    `Sentiment Score: ${sentiment}/100 — ${sentLabel}`,
+  const context=[
+    `=== SESSION: ${session} | ${timeStr} ===`,
+    ``,
+    `INDEXES: ${fmt('SPY')} | ${fmt('QQQ')} | ${fmt('DIA')} | ${fmt('IWM')}`,
+    `VOLATILITY: VIX ${vixVal?vixVal.toFixed(1):'N/A'} — ${vixNote}`,
+    `BONDS: TLT ${data.TLT?.pct?.toFixed(2)||'N/A'}% | ${yieldNote}`,
+    `BREADTH: ${breadth.up} of ${breadth.total} sectors advancing — ${breadth.pct}% positive`,
+    `SENTIMENT SCORE: ${sentiment}/100 — ${sentLabel}`,
+    ``,
+    `SECTORS: Tech ${fmt('XLK')} | Energy ${fmt('XLE')} | Fins ${fmt('XLF')} | Health ${fmt('XLV')} | Ind ${fmt('XLI')} | Disc ${fmt('XLY')} | Staples ${fmt('XLP')}`,
+    ``,
+    `MEGA-CAPS: ${fmt('AAPL')} | ${fmt('NVDA')} | ${fmt('MSFT')} | ${fmt('META')} | ${fmt('TSLA')} | ${fmt('AMZN')} | ${fmt('JPM')}`,
+    ``,
+    `TECHNICAL LEVELS (daily candles — SMA20/50/200, RSI14, MACD, Volume):`,
+    techSummary,
+    ``,
+    `ECONOMIC & EARNINGS CATALYSTS (last 6 hours):`,
+    headlines,
   ].join('\n');
 
-  let narrative = 'Market data loaded.';
+  let narrative='Market data loaded — refresh to try AI analysis.';
 
-  if(ANTHROPIC) {
-    const aiResp = await fetch('https://api.anthropic.com/v1/messages',{
+  if(ANTHROPIC){
+    const aiResp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
-        max_tokens:500,
-        system:`You are a senior market analyst on a trading desk writing a real-time market pulse for professional traders.
-Write exactly 5 sentences:
-1. MACRO: Lead with the dominant theme and the key economic/earnings catalyst. Include breadth context (e.g. "8 of 11 sectors green — broad-based rally" or "only tech positive — narrow rally on thin ice").
-2. SECTORS: Sector rotation story — what is leading, lagging, and why. Reference the yield curve or VIX if relevant.
-3. MOVERS: Biggest individual stock move and its specific catalyst. Include volume context if notable.
-4. TECHNICALS: Weave in the MA levels, RSI, and MACD signals. Be specific and actionable — e.g. "SPY is 2.1% above its 200-day MA at $512 with RSI at 58 — momentum intact but not overbought; QQQ is testing its 20-day at $712, a close below flips the short-term trend bearish."
-5. WATCH: One specific level, catalyst, or data release to monitor. Reference the sentiment score naturally.
-Rules: Use exact numbers. Never split a decimal. Active voice. No disclaimers. Sound like a Bloomberg terminal alert.`,
-        messages:[{role:'user',content:`Session: ${session} | ${timeStr}
+        max_tokens:600,
+        system:`You are a senior macro/equity analyst on a trading desk writing a real-time market pulse note for professional traders and portfolio managers.
 
-PRICE ACTION & MACRO:
-${priceSummary}
+Write exactly 6 SHORT, PUNCHY sentences. Each sentence should be ONE clear idea. No run-ons. No semicolons to chain ideas. Each sentence ends with a period.
 
-TECHNICAL LEVELS (SMA20/50/200, RSI14, MACD, Volume):
-${techSummary}
+Structure:
+1. MACRO THEME: What is the single dominant narrative driving the market today? Name the specific catalyst (Fed, CPI, earnings, macro data). Include breadth — is this broad-based or narrow?
+2. RATES & MACRO: What are bonds, yields, and the yield curve doing? How does this connect to the macro theme? What does VIX signal about risk appetite?
+3. SECTOR STORY: Which sector is leading and which is lagging? Name the specific ETF and connect it to the macro catalyst.
+4. TOP MOVER: The single biggest individual stock move — name it, give the exact % move, and state the specific catalyst driving it.
+5. TECHNICAL PICTURE: Reference the ACTUAL technical levels provided — specific MAs, RSI, MACD. Make it actionable: "SPY holds above its 200-day at $512 — bull trend intact" or "QQQ is testing 20-day support at $712 with RSI 38 — a close below opens the door to $695."
+6. WATCH: One specific level, catalyst, or upcoming event to monitor. Reference the sentiment score naturally at the end.
 
-ECONOMIC & EARNINGS CATALYSTS (last 6 hours):
-${headlines}
-
-Write the 5-sentence market pulse.`}]
+Critical rules:
+- Each sentence = one idea only. Short and sharp.
+- Never split a decimal number across a line (1.85% must stay together).
+- Use exact numbers from the data provided.
+- If technical data says "awaiting" — skip the MA levels and focus on RSI and price action.
+- Active voice always. No passive. No hedging. No disclaimers.`,
+        messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse note.`}]
       })
     });
-    if(aiResp.ok){ const d=await aiResp.json(); narrative=d.content?.[0]?.text||narrative; }
+    if(aiResp.ok){const d=await aiResp.json();narrative=d.content?.[0]?.text||narrative;}
   }
 
-  const result={narrative,data,session,isOpen,timeStr,breadth,sentiment,sentLabel,technicals:techMap,vixNote,yieldNote};
-  _cache=result; _cacheTime=Date.now();
+  const result={narrative,data,session,isOpen,timeStr,breadth,sentiment,sentLabel,vixNote,yieldNote,technicals:techMap};
+  _cache=result;_cacheTime=Date.now();
   return new Response(JSON.stringify(result),{headers:CORS});
 }
