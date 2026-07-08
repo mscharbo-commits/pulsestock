@@ -5046,7 +5046,10 @@ async function loadMarketTab(tab) {
     var data = await r.json();
     _moData[tab] = data;
     _moLoaded[tab] = true;
-    if(tab==='live') renderLiveTab(data);
+    if(tab==='live') {
+      try { renderLiveTab(data); }
+      catch(re) { console.error('renderLiveTab error:', re); grid.innerHTML='<div class="mo-loading" style="color:var(--red);">Render error: '+re.message+'</div>'; }
+    }
     else renderMarketTab(tab);
     var timeEl = document.getElementById('market-overview-time');
     if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
@@ -5078,7 +5081,8 @@ async function loadLiveTab() {
     var timeEl = document.getElementById('market-overview-time');
     if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
-    grid.innerHTML = '<div class="mo-loading" style="color:var(--red);">Failed to load. <button onclick="loadLiveTab()" style="background:none;border:none;cursor:pointer;color:var(--accent);font-weight:600;padding:0;">Retry</button></div>';
+    console.error('loadLiveTab error:', e);
+    grid.innerHTML = '<div class="mo-loading" style="color:var(--red);">Error: '+e.message+' <button onclick="loadLiveTab()" style="background:none;border:none;cursor:pointer;color:var(--accent);font-weight:600;padding:0;">Retry</button></div>';
   }
 }
 
