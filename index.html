@@ -479,34 +479,43 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     </div>
     <!-- MARKET OVERVIEW -->
     <div id="market-overview" style="margin-top:28px;">
-      <!-- Tab buttons with taglines -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-        <button onclick="setMarketTab('indexes',this)" class="mo-tab-card mo-tab-card-active" id="motab-indexes">
-          <div style="font-size:18px;margin-bottom:4px;">📊</div>
-          <div style="font-size:13px;font-weight:700;">Indexes</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">S&P 500, Nasdaq, Dow &amp; more</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;">
+        <button onclick="setMarketTab('live',this)" class="mo-tab-card mo-tab-card-active" id="motab-live">
+          <div style="font-size:16px;margin-bottom:3px;">📡</div>
+          <div style="font-size:12px;font-weight:700;">Live</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px;">Market pulse</div>
+        </button>
+        <button onclick="setMarketTab('indexes',this)" class="mo-tab-card" id="motab-indexes">
+          <div style="font-size:16px;margin-bottom:3px;">📊</div>
+          <div style="font-size:12px;font-weight:700;">Indexes</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px;">SPY, QQQ &amp; more</div>
+        </button>
+        <button onclick="setMarketTab('sectors',this)" class="mo-tab-card" id="motab-sectors">
+          <div style="font-size:16px;margin-bottom:3px;">🏭</div>
+          <div style="font-size:12px;font-weight:700;">Sectors</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px;">All 11 sectors</div>
         </button>
         <button onclick="setMarketTab('commodities',this)" class="mo-tab-card" id="motab-commodities">
-          <div style="font-size:18px;margin-bottom:4px;">🥇</div>
-          <div style="font-size:13px;font-weight:700;">Commodities</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Gold, Oil, Silver &amp; futures</div>
+          <div style="font-size:16px;margin-bottom:3px;">🥇</div>
+          <div style="font-size:12px;font-weight:700;">Commodities</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px;">Gold, Oil &amp; more</div>
         </button>
         <button onclick="setMarketTab('crypto',this)" class="mo-tab-card" id="motab-crypto">
-          <div style="font-size:18px;margin-bottom:4px;">₿</div>
-          <div style="font-size:13px;font-weight:700;">Crypto</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">BTC, ETH, SOL &amp; top coins</div>
+          <div style="font-size:16px;margin-bottom:3px;">&#x20BF;</div>
+          <div style="font-size:12px;font-weight:700;">Crypto</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px;">BTC, ETH, SOL</div>
         </button>
       </div>
-      <!-- Panel header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;" id="mo-panel-label">Major Indexes</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;" id="mo-panel-label">Live Market</div>
         <div style="font-size:11px;color:var(--text3);" id="market-overview-time"></div>
       </div>
-      <div id="mo-indexes" class="mo-panel"><div class="mo-grid" id="mo-indexes-grid"><div class="mo-loading">Loading...</div></div></div>
-      <div id="mo-commodities" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-commodities-grid"><div class="mo-loading">Loading...</div></div><div style="font-size:10px;color:var(--text3);margin-top:8px;">* Prices shown are ETF prices tracking the underlying commodity. Not spot prices.</div></div>
-      <div id="mo-crypto" class="mo-panel" style="display:none;"><div class="mo-grid" id="mo-crypto-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-live"><div id="mo-live-grid"><div class="mo-loading">Loading live market data...</div></div></div>
+      <div id="mo-indexes" style="display:none;"><div class="mo-grid" id="mo-indexes-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-sectors" style="display:none;"><div class="mo-grid" id="mo-sectors-grid"><div class="mo-loading">Loading...</div></div></div>
+      <div id="mo-commodities" style="display:none;"><div class="mo-grid" id="mo-commodities-grid"><div class="mo-loading">Loading...</div></div><div style="font-size:10px;color:var(--text3);margin-top:8px;">* ETF prices tracking underlying commodities. Not spot prices.</div></div>
+      <div id="mo-crypto" style="display:none;"><div class="mo-grid" id="mo-crypto-grid"><div class="mo-loading">Loading...</div></div></div>
     </div>
-
     <div id="analyze-result"></div>
     <div class="indicator-panel" id="ind-panel" style="display:none;margin-top:16px;">
       <div class="indicator-tabs">
@@ -4999,67 +5008,76 @@ if (_origScreen) {
 
 <script>
 // ── MARKET OVERVIEW ──────────────────────────────────────────────────────
-var _moTab = 'indexes';
-var _moData = {indexes:{}, commodities:{}, crypto:{}};
-var _moLoaded = {indexes:false, commodities:false, crypto:false};
+var _moTab = 'live';
+var _moData = {live:{},indexes:{},sectors:{},commodities:{},crypto:{}};
+var _moLoaded = {live:false,indexes:false,sectors:false,commodities:false,crypto:false};
 var _moInterval = null;
-
+var MO_LABELS = {live:'Live Market Overview',indexes:'Major Indexes',sectors:'Sector Performance',commodities:'Commodities & Futures',crypto:'Cryptocurrency'};
 var MO_SYMBOLS = {
-  live: [],
-  indexes: [
-    {sym:'SPY',name:'S&P 500'},{sym:'QQQ',name:'Nasdaq 100'},
-    {sym:'DIA',name:'Dow Jones'},{sym:'IWM',name:'Russell 2000'},
-    {sym:'VIX',name:'Volatility'},{sym:'TLT',name:'20Y Treasury'},
-  ],
-  sectors: [
-    {sym:'XLK',name:'Technology'},{sym:'XLF',name:'Financials'},
-    {sym:'XLE',name:'Energy'},{sym:'XLV',name:'Healthcare'},
-    {sym:'XLI',name:'Industrials'},{sym:'XLY',name:'Consumer Disc.'},
-    {sym:'XLP',name:'Consumer Staples'},{sym:'XLU',name:'Utilities'},
-    {sym:'XLRE',name:'Real Estate'},{sym:'XLC',name:'Communication'},
-    {sym:'XLB',name:'Materials'},
-  ],
-  commodities: [
-    {sym:'GLD',name:'Gold'},{sym:'SLV',name:'Silver'},
-    {sym:'USO',name:'WTI Crude'},{sym:'UNG',name:'Natural Gas'},
-    {sym:'CPER',name:'Copper'},{sym:'WEAT',name:'Wheat'},
-  ],
-  crypto: [
-    {sym:'BTC-USD',name:'Bitcoin',disp:'BTC'},{sym:'ETH-USD',name:'Ethereum',disp:'ETH'},
-    {sym:'SOL-USD',name:'Solana',disp:'SOL'},{sym:'XRP-USD',name:'XRP',disp:'XRP'},
-    {sym:'AVAX-USD',name:'Avalanche',disp:'AVAX'},{sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE'},
-  ]
+  live:[],
+  indexes:[{sym:'SPY',name:'S&P 500'},{sym:'QQQ',name:'Nasdaq 100'},{sym:'DIA',name:'Dow Jones'},{sym:'IWM',name:'Russell 2000'},{sym:'VIX',name:'Volatility'},{sym:'TLT',name:'20Y Treasury'}],
+  sectors:[{sym:'XLK',name:'Technology'},{sym:'XLF',name:'Financials'},{sym:'XLE',name:'Energy'},{sym:'XLV',name:'Healthcare'},{sym:'XLI',name:'Industrials'},{sym:'XLY',name:'Consumer Disc.'},{sym:'XLP',name:'Consumer Staples'},{sym:'XLU',name:'Utilities'},{sym:'XLRE',name:'Real Estate'},{sym:'XLC',name:'Communication'},{sym:'XLB',name:'Materials'}],
+  commodities:[{sym:'GLD',name:'Gold'},{sym:'SLV',name:'Silver'},{sym:'USO',name:'WTI Crude'},{sym:'UNG',name:'Natural Gas'},{sym:'CPER',name:'Copper'},{sym:'WEAT',name:'Wheat'}],
+  crypto:[{sym:'BTC-USD',name:'Bitcoin',disp:'BTC'},{sym:'ETH-USD',name:'Ethereum',disp:'ETH'},{sym:'SOL-USD',name:'Solana',disp:'SOL'},{sym:'XRP-USD',name:'XRP',disp:'XRP'},{sym:'AVAX-USD',name:'Avalanche',disp:'AVAX'},{sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE'}]
 };
 
-var MO_LABELS = {indexes:'Major Indexes', commodities:'Commodities & Futures', crypto:'Cryptocurrency'};
 function setMarketTab(tab, btn) {
   _moTab = tab;
   document.querySelectorAll('.mo-tab-card').forEach(function(b){ b.classList.remove('mo-tab-card-active'); });
-  document.getElementById('motab-'+tab).classList.add('mo-tab-card-active');
-  document.querySelectorAll('.mo-panel').forEach(function(p){ p.style.display='none'; });
-  document.getElementById('mo-'+tab).style.display='block';
+  var tabBtn = document.getElementById('motab-'+tab);
+  if(tabBtn) tabBtn.classList.add('mo-tab-card-active');
+  ['live','indexes','sectors','commodities','crypto'].forEach(function(t){
+    var el = document.getElementById('mo-'+t);
+    if(el) el.style.display = t===tab ? 'block' : 'none';
+  });
   var lbl = document.getElementById('mo-panel-label');
   if(lbl) lbl.textContent = MO_LABELS[tab]||tab;
   if(!_moLoaded[tab]) loadMarketTab(tab);
 }
 
 async function loadMarketTab(tab) {
-  var grid = document.getElementById('mo-'+tab+'-grid');
+  var gridId = tab==='live' ? 'mo-live-grid' : 'mo-'+tab+'-grid';
+  var grid = document.getElementById(gridId);
   if(!grid) return;
   grid.innerHTML = '<div class="mo-loading">Loading...</div>';
-
   try {
     var r = await fetch('/api/market-overview?tab='+tab+'&t='+Date.now());
     if(!r.ok) throw new Error('HTTP '+r.status);
-    var results = await r.json();
-    _moData[tab] = results;
+    var data = await r.json();
+    _moData[tab] = data;
     _moLoaded[tab] = true;
-    renderMarketTab(tab);
+    if(tab==='live') renderLiveTab(data);
+    else renderMarketTab(tab);
     var timeEl = document.getElementById('market-overview-time');
     if(timeEl) timeEl.textContent = 'Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
-    grid.innerHTML = '<div class="mo-loading" style="color:var(--red);">Failed to load. <span onclick="loadMarketTab(\''+tab+'\');" style="cursor:pointer;color:var(--accent);">Retry</span></div>';
+    grid.innerHTML = '<div class="mo-loading" style="color:var(--red);">Failed to load. <button onclick="loadMarketTab(\'' + tab + '\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-weight:600;padding:0;">Retry</button></div>';
   }
+}
+
+function _moRow(sym, name, q, clickable) {
+  if(!q||!q.price) return '<div class="mo-row"><div class="mo-row-sym">'+sym+'</div><div class="mo-row-name">'+name+'</div><div class="mo-row-bar"></div><div class="mo-row-price" style="color:var(--text3);">--</div><div class="mo-row-chg" style="color:var(--text3);">--</div></div>';
+  var up=q.pct>=0, c=up?'var(--green)':'var(--red)';
+  var barW=Math.min(100,Math.abs(q.pct)*10).toFixed(0);
+  var onclick = clickable ? ' data-sym="'+sym+'" onclick="qs(this.dataset.sym)"' : '';
+  var price = q.price >= 10000 ? '$'+Math.round(q.price).toLocaleString() : '$'+q.price.toFixed(2);
+  return '<div class="mo-row"'+onclick+'><div class="mo-row-sym">'+sym+'</div><div class="mo-row-name">'+name+'</div><div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+barW+'%;background:'+c+';"></div></div><div class="mo-row-price">'+price+'</div><div class="mo-row-chg" style="color:'+c+';">'+(up?'&#x25B2;':'&#x25BC;')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div></div>';
+}
+
+function renderLiveTab(data) {
+  var grid = document.getElementById('mo-live-grid');
+  if(!grid) return;
+  var mkt = data._market||{};
+  var mktColor = mkt.isOpen ? '#0D9B6B' : '#B45309';
+  var mktText  = mkt.isOpen ? '&#x1F7E2; Market Open' : '&#x1F7E1; Market Closed';
+  var indexNames={SPY:'S&P 500',QQQ:'Nasdaq',DIA:'Dow Jones',IWM:'Russell 2000'};
+  var stockNames={AAPL:'Apple',NVDA:'Nvidia',MSFT:'Microsoft',META:'Meta',TSLA:'Tesla',AMZN:'Amazon',JPM:'JPMorgan'};
+  var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:16px;background:'+mktColor+'20;color:'+mktColor+';">'+mktText+'</div>'+(mkt.time?'<div style="font-size:11px;color:var(--text3);">'+mkt.time+'</div>':'')+'</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Major Indexes</div>'
+    +'<div class="mo-grid" style="margin-bottom:14px;">'+['SPY','QQQ','DIA','IWM'].map(function(s){return _moRow(s,indexNames[s],data[s],true);}).join('')+'</div>'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Key Stocks</div>'
+    +'<div class="mo-grid">'+['AAPL','NVDA','MSFT','META','TSLA','AMZN','JPM'].map(function(s){return _moRow(s,stockNames[s],data[s],true);}).join('')+'</div>';
+  grid.innerHTML = html;
 }
 
 function renderMarketTab(tab) {
@@ -5067,52 +5085,20 @@ function renderMarketTab(tab) {
   if(!grid) return;
   var syms = MO_SYMBOLS[tab];
   var data = _moData[tab];
-
-  var html = syms.map(function(item) {
+  var html = syms.map(function(item){
     var q = data[item.sym];
-    var sym = item.disp || item.sym;
-    var name = q?.label ? q.label : item.name;
-    var note = q?.note ? q.note : '';
-    if(!q || !q.price) {
-      return '<div class="mo-row">'
-        +'<div class="mo-row-sym">'+sym+'</div>'
-        +'<div class="mo-row-name">'+name+'</div>'
-        +'<div class="mo-row-price" style="color:var(--text3);">—</div>'
-        +'<div class="mo-row-chg" style="color:var(--text3);">—</div>'
-        +'</div>';
-    }
-    var up = q.pct >= 0;
-    var color = up ? 'var(--green)' : 'var(--red)';
-    var fmtPrice;
-    if(tab === 'crypto') {
-      fmtPrice = q.price >= 10000 ? '$'+Math.round(q.price).toLocaleString() : q.price >= 1 ? '$'+q.price.toFixed(2) : '$'+q.price.toFixed(4);
-    } else {
-      fmtPrice = '$'+q.price.toFixed(2);
-    }
-    var onclick = tab === 'crypto' ? '' : ' onclick="qs(\''+item.sym+'\')"';
-    var barW = Math.min(100, Math.abs(q.pct) * 10).toFixed(0);
-    return '<div class="mo-row"'+onclick+'>'
-      +'<div class="mo-row-sym">'+sym+'</div>'
-      +'<div class="mo-row-name">'+name+(note?' <span style="font-size:10px;opacity:.6;">'+note+'</span>':'')+'</div>'
-      +'<div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+barW+'%;background:'+color+';"></div></div>'
-      +'<div class="mo-row-price">'+fmtPrice+'</div>'
-      +'<div class="mo-row-chg" style="color:'+color+';">'+(up?'▲':'▼')+' '+(up?'+':'')+q.pct.toFixed(2)+'%</div>'
-      +'</div>';
+    var sym = item.disp||item.sym;
+    var name = (q&&q.name)?q.name:item.name;
+    return _moRow(sym, name, q, tab!=='crypto');
   }).join('');
-
   grid.innerHTML = html || '<div class="mo-loading">No data available</div>';
 }
 
-// Load indexes on page load, refresh every 60s
 function initMarketOverview() {
-  loadMarketTab('indexes');
+  loadMarketTab('live');
   if(_moInterval) clearInterval(_moInterval);
-  _moInterval = setInterval(function(){
-    if(_moLoaded[_moTab]) loadMarketTab(_moTab);
-  }, 60000);
+  _moInterval = setInterval(function(){ if(_moLoaded[_moTab]) loadMarketTab(_moTab); }, 60000);
 }
-
-// Market overview always visible on analyze page
 
 document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketOverview, 500); });
 </script>
