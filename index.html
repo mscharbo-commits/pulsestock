@@ -3466,16 +3466,21 @@ async function saveTickerEditor() {
 }
 
 async function loadTickerBar(){
-  const results = await Promise.all(TICKER_SYMBOLS.map(async t => {
-    try {
-      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${t.sym}&token=${FINNHUB_KEY}`);
+  // Use server-side API to avoid Finnhub rate limits from browser
+  let valid = [];
+  try {
+    const syms = TICKER_SYMBOLS.map(t=>t.sym).join(',');
+    const r = await fetch('/api/ticker-bar?syms='+encodeURIComponent(syms));
+    if(r.ok) {
       const d = await r.json();
-      if (!d || !d.c) return null;
-      return {...t, price: d.c, change: d.d, pct: d.dp};
-    } catch(e){ return null; }
-  }));
+      valid = TICKER_SYMBOLS.map(t => {
+        const q = d[t.sym];
+        return q ? {...t, price:q.price, change:q.change, pct:q.pct} : null;
+      }).filter(Boolean);
+    }
+  } catch(e){ console.warn('ticker-bar error:', e); }
 
-  const valid = results.filter(Boolean);
+  const results = valid; // keep rest of function unchanged
   if (!valid.length) return;
 
   // Build items HTML (duplicate for seamless loop)
