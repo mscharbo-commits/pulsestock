@@ -5107,11 +5107,28 @@ function renderLiveTab(d) {
   var breadthColor = (breadth.pct||0)>=70?'var(--green)':(breadth.pct||0)>=50?'var(--text)':'var(--red)';
   var vixVal   = d.data&&d.data.VIX ? d.data.VIX.price.toFixed(1) : '—';
 
-  // Split narrative on --- delimiter
+  // Split narrative on --- delimiter (try multiple formats)
   var narrative = d.narrative||'';
-  var delimIdx  = narrative.indexOf('\n---\n');
-  var hook = delimIdx > -1 ? narrative.slice(0, delimIdx).trim() : narrative.slice(0, 300).trim();
-  var full = delimIdx > -1 ? narrative.slice(delimIdx + 5).trim() : narrative.slice(300).trim();
+  // Try various delimiter formats Claude might use
+  var delimIdx = narrative.indexOf('\n---\n');
+  if(delimIdx === -1) delimIdx = narrative.indexOf('\n---');
+  if(delimIdx === -1) delimIdx = narrative.indexOf('---\n');
+  var hook, full;
+  if(delimIdx > -1) {
+    hook = narrative.slice(0, delimIdx).trim();
+    full = narrative.slice(delimIdx).replace(/^-+\n?/,'').trim();
+  } else {
+    // Fallback: split after first paragraph break
+    var firstBreak = narrative.indexOf('\n\n');
+    if(firstBreak > 100) {
+      hook = narrative.slice(0, firstBreak).trim();
+      full = narrative.slice(firstBreak).trim();
+    } else {
+      // Last resort: first 250 chars as hook
+      hook = narrative.slice(0, 250).trim();
+      full = narrative.slice(250).trim();
+    }
+  }
 
   // Format prose — split on double newlines into paragraphs
   function fmtProse(text) {
