@@ -5196,16 +5196,14 @@ function renderMarketTab(tab) {
 }
 
 function togglePulse() {
-  var short = document.getElementById('pulse-short');
-  var full  = document.getElementById('pulse-full');
-  var btn   = document.getElementById('pulse-expand-btn');
-  if(!short||!btn) return;
-  var expanded = full && full.style.display !== 'none';
-  if(full) full.style.display = expanded ? 'none' : 'block';
-  short.style.display = expanded ? 'block' : 'none';
-  btn.innerHTML = expanded ? 'Full Analysis &#x2193;' : 'Collapse &#x2191;';
+  var full = document.getElementById('pulse-full');
+  var btn  = document.getElementById('pulse-expand-btn');
+  if(!full || !btn) return;
+  var expanded = full.style.display !== 'none';
+  full.style.display = expanded ? 'none' : 'block';
+  btn.innerHTML = expanded ? 'Full Market Analysis &#x2193;' : 'Collapse &#x2191;';
   btn.style.background = expanded ? 'var(--accent)' : 'var(--surface2)';
-  btn.style.color = expanded ? '#fff' : 'var(--text)';
+  btn.style.color = expanded ? '#fff' : 'var(--text3)';
   btn.style.border = expanded ? 'none' : '1.5px solid var(--border)';
 }
 
