@@ -174,13 +174,13 @@ export default async function handler(req) {
     sf(`https://finnhub.io/api/v1/news?category=business&minId=0&token=${FINNHUB}`,5000),
   ]);
 
-  const sixH=Math.floor(Date.now()/1000)-(6*3600);
+  const sixH=Math.floor(Date.now()/1000)-(12*3600); // 12 hour window
   const seen=new Set();
   const filteredNews=[...(genNews||[]),...(bizNews||[])]
-    .filter(n=>n.datetime>sixH&&!geoNoise(n.headline)&&mktRel(n.headline))
+    .filter(n=>n.datetime>sixH&&mktRel(n.headline))
     .sort((a,b)=>b.datetime-a.datetime)
     .filter(n=>{if(seen.has(n.headline))return false;seen.add(n.headline);return true;})
-    .slice(0,10);
+    .slice(0,15);
 
   // Extract tickers mentioned in headlines
   const allHeadlineText=filteredNews.map(n=>n.headline).join(' ');
@@ -208,7 +208,7 @@ export default async function handler(req) {
   const tltPct=data.TLT?.pct,shyPct=data.SHY?.pct;
   const yieldNote=tltPct!=null&&shyPct!=null?(tltPct<shyPct-0.4?'yield curve steepening — reflation signal':tltPct>shyPct+0.4?'yield curve flattening — growth concern':'yield curve stable'):'';
 
-  const headlines=filteredNews.length?filteredNews.slice(0,8).map(n=>`• ${n.headline} [${n.source}]`).join('\n'):'No major economic or earnings catalysts in the last 6 hours.';
+  const headlines=filteredNews.length?filteredNews.slice(0,12).map(n=>`• [${n.category||'market'}] ${n.headline} (${n.source})`).join('\n'):'No major economic or earnings catalysts in the last 6 hours.';
 
   // News-driven quotes summary
   const newsQuotes=newsTickers.filter(s=>data[s]).map(s=>{
@@ -239,25 +239,42 @@ export default async function handler(req) {
       headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
-        max_tokens:550,
-        system:`You are a senior macro/equity analyst on a trading desk writing a real-time market pulse note for professional traders and portfolio managers.
+        max_tokens:700,
+        system:`You are the chief market strategist at a top-tier investment bank. You have access to live market data, breaking news, technicals, and macro indicators. Your job is to synthesize ALL of it into a single compelling market narrative — not a list, not a checklist, but a story that explains what is driving markets right now and what it means for traders.
 
-Write exactly 6 sentences. Each sentence covers ONE distinct topic. Each ends with a period. No semicolons. No run-ons.
+INPUTS YOU HAVE:
+- Live price action across indexes, sectors, and individual stocks
+- Technical levels: SMA20/50/200, RSI, MACD for key instruments  
+- Market breadth: how many sectors are advancing vs declining
+- VIX, yield curve, bond market signals
+- Breaking news across ALL categories: geopolitical, economic, earnings, Fed, commodities, crypto, corporate
 
-REQUIRED COVERAGE — one sentence each:
-1. BROAD MARKET: What are SPY, QQQ, and DIA doing overall? Is this broad or narrow — reference the breadth (X of 11 sectors advancing). Identify the PRIMARY macro driver — this must be economic or financial (rates, Fed, inflation data, earnings cycle, growth data) NOT a geopolitical event.
-2. RATES & MACRO ENVIRONMENT: What are TLT bonds and the yield curve doing? What is VIX signaling about risk appetite? How does this macro backdrop explain today's equity moves?
-3. SECTOR WINNERS & LOSERS: Name the top performing AND worst performing sector ETF with exact % moves. Explain WHY each is moving — connect to the macro environment, not geopolitical incidents.
-4. INDIVIDUAL STOCK SPOTLIGHT: The most significant individual stock move today. Name it, give the exact %, and connect it to a fundamental catalyst — earnings, guidance, analyst action, or product news.
-5. TECHNICAL PICTURE: Reference the ACTUAL MA levels and RSI from the data. Be specific and actionable. Example: "SPY is 1.8% above its 200-day at $728 with RSI at 52 — neutral momentum; QQQ broke below its 20-day at $706 with RSI 38, next support at $695."
-6. FORWARD LOOK: The single most important thing to watch in the next 24-48 hours — an upcoming data release, earnings report, Fed speaker, or key technical level. End naturally with the sentiment score.
+YOUR JOB — weigh all inputs by actual market impact:
+• GEOPOLITICAL news matters IF it is moving commodities, currencies, or specific sectors (e.g. Middle East tensions spiking oil, China tensions hitting semis, Russia/Ukraine affecting wheat)
+• ECONOMIC DATA matters most when it changes rate expectations (CPI, NFP, GDP, PCE, ISM)
+• EARNINGS/GUIDANCE matters for individual stocks and their sector read-through
+• TECHNICALS matter for specific levels, momentum, and what happens next
+• FED/RATES matters because it reprices everything
 
-CRITICAL RULES:
-- PRIMARY MACRO DRIVER must be economic or financial. If the only news is geopolitical, state "no major economic catalysts" and focus on the rate and technical environment.
-- Every sentence = one idea. Period. No semicolons joining two ideas.
-- Never split a decimal number across words. 1.85% always stays together.
-- Use exact numbers from the data provided.
-- Active voice always. No hedging. No disclaimers. Sound like a Bloomberg terminal flash written by a 20-year veteran.`,
+NARRATIVE STRUCTURE — write 6-8 sentences in flowing prose, NOT a bulleted list:
+- Open with the single dominant theme that ties everything together today
+- Explain the macro/geopolitical catalyst that is driving it (if any — be honest if markets are drifting without a catalyst)
+- Cover sector rotation: who is benefiting and who is being hurt — and WHY
+- Name the biggest individual mover and explain the specific catalyst
+- Weave in the technical picture naturally: key MA levels, RSI, support/resistance
+- Address the bond market and VIX: what are smart money signals saying
+- Close with what to watch next: specific data, earnings, Fed speakers, or technical levels that will determine the next move
+
+CRITICAL WRITING RULES:
+- Write flowing prose, not a list. Each sentence flows into the next.
+- Every decimal number stays together (1.85% never splits across a line)  
+- Use exact numbers from the data — prices, percentages, levels
+- Weigh news by market IMPACT not by drama — a Fed speaker matters more than a cargo incident
+- If geopolitics is genuinely driving oil/gold/semis today, say so and explain the mechanism
+- Be specific and actionable. A trader should be able to act on every sentence.
+- Active voice. Present tense. No disclaimers. No hedging. 
+- Aim for 120-180 words total — comprehensive but tight
+- Sound like the opening paragraph of a Goldman Sachs morning note`,
         messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse.`}]
       })
     });
