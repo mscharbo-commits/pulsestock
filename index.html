@@ -5150,13 +5150,16 @@ function renderLiveTab(d) {
     +'<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;">&#x1F9E0; PulseAI Market Narrative</div>'
     +(d.newsTickers&&d.newsTickers.length?'<div style="font-size:10px;color:var(--text3);">Tracking: '+d.newsTickers.join(' · ')+'</div>':'')
     +'</div>'
-    // Teaser: show first 2 sentences only
+    // Teaser: split on raw narrative text (before wrapping in <p>)
     +'<div id="pulse-teaser" style="font-size:14px;color:var(--text);line-height:1.9;">'
     + (function(){
-        var sentences = narrativeHtml.match(/[^.!?]*[.!?]+/g) || [narrativeHtml];
-        var teaser = sentences.slice(0,2).join(' ').trim();
-        return '<span id="pulse-short">'+teaser+'</span>'
-          +'<span id="pulse-full" style="display:none;">'+narrativeHtml+'</span>';
+        // Split on sentence boundaries — period/!/?  followed by space+capital or end
+        var raw = narrative;
+        var parts = raw.split(/(?<=[.!?])\s+(?=[A-Z])/);
+        var teaser = parts.slice(0,2).join(' ').trim();
+        var rest   = parts.slice(2).join(' ').trim();
+        return '<p style="margin:0;line-height:1.9;" id="pulse-short">'+teaser+'</p>'
+          +(rest?'<p style="margin:8px 0 0 0;line-height:1.9;display:none;" id="pulse-full">'+rest+'</p>':'');
       })()
     +'</div>'
     +'<div style="margin-top:14px;display:flex;align-items:center;gap:10px;">'
@@ -5190,10 +5193,10 @@ function togglePulse() {
   var short = document.getElementById('pulse-short');
   var full  = document.getElementById('pulse-full');
   var btn   = document.getElementById('pulse-expand-btn');
-  if(!short||!full||!btn) return;
-  var expanded = full.style.display !== 'none';
-  short.style.display = expanded ? 'inline' : 'none';
-  full.style.display  = expanded ? 'none'   : 'inline';
+  if(!short||!btn) return;
+  var expanded = full && full.style.display !== 'none';
+  if(full) full.style.display = expanded ? 'none' : 'block';
+  short.style.display = expanded ? 'block' : 'none';
   btn.innerHTML = expanded ? 'Full Analysis &#x2193;' : 'Collapse &#x2191;';
   btn.style.background = expanded ? 'var(--accent)' : 'var(--surface2)';
   btn.style.color = expanded ? '#fff' : 'var(--text)';
