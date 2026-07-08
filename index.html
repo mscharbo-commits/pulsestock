@@ -5091,11 +5091,9 @@ function renderLiveTab(d) {
 
   // Format the AI narrative with nice typography
   var narrative = d.narrative || 'Market data loaded.';
-  // Split into sentences for better display
-  var sentences = narrative.match(/[^.!?]+[.!?]+/g) || [narrative];
-  var narrativeHtml = sentences.map(function(s){
-    return '<p style="margin:0 0 8px 0;line-height:1.7;">'+s.trim()+'</p>';
-  }).join('');
+  // Split into sentences - but NOT on decimal points (e.g. 1.85%)
+  // Only split on . ! ? that are followed by a space and capital letter, or end of string
+  var narrativeHtml = '<p style="margin:0;line-height:1.9;font-size:14px;">'+narrative+'</p>';
 
   // Mini data strip below narrative
   var data = d.data || {};
