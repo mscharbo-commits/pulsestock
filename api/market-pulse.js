@@ -282,14 +282,18 @@ WRITING STYLE:
     if(aiResp.ok){
       const d=await aiResp.json();
       let raw=d.content?.[0]?.text||narrative;
-      // Strip markdown artifacts
-      raw=raw.replace(/^#+\s+[^
-]+
-/gm,'');  // remove # headers
-      raw=raw.replace(/\*\*([^*]+)\*\*/g,'$1'); // remove **bold**
-      raw=raw.replace(/\*([^*]+)\*/g,'$1');      // remove *italic*
-      raw=raw.replace(/^[-*]{3,}\s*$/gm,'---');  // normalize dividers to ---
-      raw=raw.trim();
+      // Strip markdown artifacts - use simple line-by-line approach
+      raw = raw.split('\n').map(function(line){
+        // Remove # headers
+        if(/^#{1,4}\s/.test(line)) return '';
+        // Normalize --- dividers
+        if(/^[-]{3,}\s*$/.test(line)) return '---';
+        return line;
+      }).join('\n');
+      // Remove bold/italic markers
+      raw = raw.replace(/\*\*([^*]+)\*\*/g,'$1');
+      raw = raw.replace(/\*([^*]+)\*/g,'$1');
+      raw = raw.trim();
       // If no --- delimiter, try to split after first 2 sentences
       if(raw.indexOf('\n---\n')===-1&&raw.indexOf('---')===-1){
         // Find end of 2nd sentence
