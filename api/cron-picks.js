@@ -189,15 +189,11 @@ function buildOutput(results, macro, runType) {
   }
 
   function pickList(arr, type) {
-    const filtered = type==='growth'
-      ? arr.filter(s=>s.rating==='BUY')
-      : type==='shorts'
-        ? arr.filter(s=>s.rating==='AVOID').sort((a,b)=>(a.score||50)-(b.score||50))
-        : arr.filter(s=>s.rating==='BUY' || s.rating==='WATCH');
-    // For non-shorts, only show BUY in top picks
-    const top = (type==='shorts') ? filtered : filtered.filter(s=>s.rating==='BUY');
-    const toUse = top.length ? top : filtered.slice(0,5);
-    return [...toUse].sort(sortFn(type)).slice(0,5).map(s=>({
+    // Only BUY picks in top picks — shorts tab shows AVOID only
+    const filtered = type==='shorts'
+      ? arr.filter(s=>s.rating==='AVOID').sort((a,b)=>(a.score||50)-(b.score||50))
+      : arr.filter(s=>s.rating==='BUY');
+    return [...filtered].sort(sortFn(type)).slice(0,5).map(s=>({
       sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker, sector:s.sector||'',
       price:s.price||0, pct:s.pct||0, score:s.score||50,
       rating:s.rating||'WATCH',
@@ -293,11 +289,9 @@ export default async function handler(req, res) {
     const candidates = filterCandidates(universe, runType);
     if(!candidates.length) return send(500,{error:'No candidates after filtering'});
 
-    // Analyze in parallel batches of 8
-    // Each picks-analyze takes ~5s — 8 parallel = ~5s per batch
-    // 40 candidates / 8 per batch = 5 batches × 5s = ~25 seconds total
+    // Analyze in parallel batches of 5 with delay to avoid Finnhub rate limits
     const results = [];
-    const batchSize = 8;
+    const batchSize = 5;
 
     for(let i=0; i<candidates.length; i+=batchSize) {
       const batch = candidates.slice(i, i+batchSize);
@@ -307,11 +301,16 @@ export default async function handler(req, res) {
       const batchResults = await Promise.all(
         batch.map(s => analyzeCandidate(s.sym, host).catch(()=>null))
       );
-      results.push(...batchResults.filter(Boolean));
+      // Filter out SKIP (no price data) and nulls
+      const valid = batchResults.filter(r => r && r.rating && r.rating !== 'SKIP' && r.price > 0);
+      results.push(...valid);
 
-      // Stop if we're running out of time (save buffer for Gist save)
-      if(Date.now()-startTime > 220000) {
-        console.log('[picks] Time limit approaching — stopping early with', results.length, 'results');
+      // Small delay between batches to avoid Finnhub rate limits
+      if(i+batchSize < candidates.length) await new Promise(r=>setTimeout(r,800));
+
+      // Stop if running out of time
+      if(Date.now()-startTime > 200000) {
+        console.log('[picks] Time limit — stopping with', results.length, 'results');
         break;
       }
     }
