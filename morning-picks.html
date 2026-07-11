@@ -347,7 +347,11 @@ function renderContent(type) {
     +'</div>';
   html += '<div class="sector-grid">';
 
-  ALL_SECTORS.forEach(function(sec) {
+  // Get all sectors that have picks, plus standard list
+  var allSectorsWithPicks = Object.keys(bySector).filter(function(s){return bySector[s].length>0;});
+  var combinedSectors = ALL_SECTORS.concat(allSectorsWithPicks.filter(function(s){return ALL_SECTORS.indexOf(s)===-1;}));
+
+  combinedSectors.forEach(function(sec) {
     var stocks = bySector[sec] || [];
     html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
     if(!stocks.length) {
@@ -356,9 +360,10 @@ function renderContent(type) {
       stocks.forEach(function(s) {
         var up=(s.pct||0)>=0;
         var rc=s.rating==='BUY'?'var(--green)':s.rating==='AVOID'?'var(--red)':'var(--amber)';
-        html += '<div class="sector-row" onclick="qs(\''+s.sym+'\')">'
+        var ssym=s.sym||s.ticker||'?';
+        html += '<div class="sector-row" onclick="qs(\''+ssym+'\')">'
           +'<div>'
-            +'<div class="sector-sym">'+s.sym+'</div>'
+            +'<div class="sector-sym">'+ssym+'</div>'
             +'<div style="font-size:10px;color:var(--text3);">'+(s.name||'')+'</div>'
           +'</div>'
           +'<div class="sector-right">'
