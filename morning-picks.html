@@ -323,11 +323,10 @@ function renderContent(type) {
   var pt = pickTypes && pickTypes[type];
   var isShorts = type==='shorts';
   var rawOverall = pt && pt.overall || [];
-  // Only show BUY picks in top picks (except shorts tab shows AVOID)
+  // Filter: only valid prices, only BUY (or AVOID for shorts)
   var overall = isShorts
-    ? rawOverall.filter(function(p){return p.rating==='AVOID';})
-    : rawOverall.filter(function(p){return p.rating==='BUY';});
-  if(!overall.length && !isShorts) overall = rawOverall.slice(0,5); // fallback if no BUYs
+    ? rawOverall.filter(function(p){ return p.rating==='AVOID' && (p.price||0)>0; })
+    : rawOverall.filter(function(p){ return p.rating==='BUY' && (p.price||0)>0; });
   var bySector = pt && pt.bySector || {};
 
   var ALL_SECTORS = ['Technology','Financial Services','Healthcare','Energy','Industrials',
@@ -365,9 +364,8 @@ function renderContent(type) {
   combinedSectors.forEach(function(sec) {
     var rawStocks = bySector[sec] || [];
     var stocks = isShorts
-      ? rawStocks.filter(function(s){return s.rating==='AVOID';})
-      : rawStocks.filter(function(s){return s.rating==='BUY';});
-    if(!stocks.length && !isShorts) stocks = rawStocks.slice(0,3);
+      ? rawStocks.filter(function(s){ return s.rating==='AVOID' && (s.price||0)>0; })
+      : rawStocks.filter(function(s){ return s.rating==='BUY' && (s.price||0)>0; });
     html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
     if(!stocks.length) {
       html += '<div class="sector-empty">'+(_scanning?'<div class="dots"><span></span><span></span><span></span></div>':'No picks today')+'</div>';
