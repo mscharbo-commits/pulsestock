@@ -415,42 +415,100 @@ async function runScan() {
 
   btn.disabled=true; btn.textContent='⏳ Scanning...'; btn.className='scan-btn scanning';
   if(bar) bar.style.display='block';
-  if(fill) fill.style.width='0%';
+  if(fill) fill.style.width='5%';
+  if(status) status.textContent='Requesting server scan...';
+  renderContent(_activeType);
 
-  // Build picks data structure
+  var serverDone = false;
+
+  // Try server scan first — completes in ~60s and caches for ALL users
+  try {
+    var serverResp = await fetch('/api/cron-picks?secret=pulsestock2026&run=full');
+    if(serverResp.ok) {
+      var sd = await serverResp.json();
+      if(sd.success && sd.analyzed > 0) {
+        serverDone = true;
+        // Load from Gist
+        var gr = await fetch('/api/morning-picks?t='+Date.now());
+        var gd = JSON.parse(await gr.text());
+        if(gd.pickTypes && Object.keys(gd.pickTypes).length) {
+          _scanning=false; _data=gd;
+          if(gd.macro) renderMacro(gd.macro);
+          renderTabs(gd.pickTypes);
+          if(fill) fill.style.width='100%';
+          if(status) status.textContent='✅ Done — '+sd.analyzed+' stocks analyzed';
+          document.getElementById('meta-generated').textContent='Last updated: '+new Date().toLocaleString();
+          renderContent(_activeType);
+          btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn';
+          setTimeout(function(){if(bar)bar.style.display='none';if(status)status.textContent='';},3000);
+          return;
+        }
+      }
+    }
+  } catch(e) { console.log('Server scan failed:', e.message); }
+
+  // Server failed or timed out — run browser scan (visible progress, no caching)
+  if(!serverDone) {
+    console.log('[picks] Falling back to browser scan');
+    if(status) status.textContent='Running browser analysis...';
+    await doBrowserScan();
+  }
+}
+
+async function doBrowserScan() {
+  var btn    = document.getElementById('scan-btn');
+  var status = document.getElementById('scan-status');
+  var bar    = document.getElementById('scanning-bar');
+  var fill   = document.getElementById('scanning-fill');
+
+  // Init data structure
   _data = {
     generated: new Date().toISOString(),
     macro: {spyPct:'0',vix:'—',tltPct:'0',riskOn:true},
     pickTypes: {
-      general:  {label:'Best Opportunity',  icon:'🎯', overall:[], bySector:{}, totalAnalyzed:0},
-      growth:   {label:'Long-Term Growth',  icon:'🌱', overall:[], bySector:{}, totalAnalyzed:0},
-      momentum: {label:'Momentum / Swing',  icon:'🚀', overall:[], bySector:{}, totalAnalyzed:0},
-      intraday: {label:'Intraday',          icon:'⚡', overall:[], bySector:{}, totalAnalyzed:0},
+      general:  {label:'Best Opportunity', icon:'🎯', overall:[], bySector:{}, totalAnalyzed:0},
+      growth:   {label:'Long-Term Growth', icon:'🌱', overall:[], bySector:{}, totalAnalyzed:0},
+      momentum: {label:'Momentum / Swing', icon:'🚀', overall:[], bySector:{}, totalAnalyzed:0},
+      intraday: {label:'Intraday',         icon:'⚡', overall:[], bySector:{}, totalAnalyzed:0},
     }
   };
 
-  var allResults = [];
-
   // Fetch macro
   try {
-    var mr = await fetch('/api/ticker-bar?syms=SPY,VIX,TLT');
+    var mr = await fetch('/api/ticker-bar?syms=SPY,VIX,TLT&t='+Date.now());
     if(mr.ok) {
       var md = await mr.json();
-      if(md.SPY) _data.macro.spyPct = md.SPY.pct.toFixed(2);
-      if(md.VIX) _data.macro.vix = md.VIX.price.toFixed(1);
-      if(md.TLT) _data.macro.tltPct = md.TLT.pct.toFixed(2);
-      _data.macro.riskOn = (md.SPY?.pct||0)>0 && (md.VIX?.price||20)<22;
+      if(md.SPY) { _data.macro.spyPct=(md.SPY.pct||0).toFixed(2); _data.macro.riskOn=(md.SPY.pct||0)>0; }
+      if(md.VIX) _data.macro.vix=(md.VIX.price||20).toFixed(1);
+      if(md.TLT) _data.macro.tltPct=(md.TLT.pct||0).toFixed(2);
       renderMacro(_data.macro);
     }
   } catch(e){}
 
-  // Analyze each ticker in browser — one at a time, render after each
+  var allResults = [];
+  var ratingOrder = {BUY:0,WATCH:1,AVOID:2};
+
+  function pl(arr) {
+    return arr.slice(0,5).map(function(s){ return {
+      sym:s.sym, name:s.name||s.sym, sector:s.sector||'',
+      price:s.price||0, pct:s.pct||0, score:s.score||50,
+      rating:s.rating||'WATCH',
+      rsi:s.rsi?parseFloat(s.rsi).toFixed(0):null,
+      above50MA:s.sma50?(s.price||0)>s.sma50:null,
+      above200MA:s.sma200?(s.price||0)>s.sma200:null,
+      sma50:s.sma50?s.sma50.toFixed(2):null,
+      sma200:s.sma200?s.sma200.toFixed(2):null,
+      reasons:s.keySignals||[], thesis:s.thesis||null,
+      target:s.target||null, stopLoss:s.stopLoss||null, timeframe:s.timeframe||null,
+    };});
+  }
+
   for(var i=0; i<TICKERS.length; i++) {
     var sym = TICKERS[i];
     var pct = Math.round((i+1)/TICKERS.length*100);
     if(fill) fill.style.width=pct+'%';
-    if(status) status.textContent = sym+' ('+( i+1)+'/'+TICKERS.length+')';
-    btn.textContent = '⏳ '+(i+1)+'/'+TICKERS.length;
+    if(status) status.textContent=sym+' ('+(i+1)+'/'+TICKERS.length+')';
+    if(btn) btn.textContent='⏳ '+(i+1)+'/'+TICKERS.length;
 
     try {
       var r = await fetch('/api/picks-analyze?ticker='+sym+'&type=general&t='+Date.now());
@@ -458,47 +516,48 @@ async function runScan() {
         var d = await r.json();
         if(d && d.rating) {
           allResults.push(d);
-
-          // Add to sector breakdown
           var sec = d.sector||'Unknown';
-          var pt;
-          for(var ptk in _data.pickTypes) {
-            pt = _data.pickTypes[ptk];
-            if(!pt.bySector[sec]) pt.bySector[sec]=[];
-            if(pt.bySector[sec].length<5) pt.bySector[sec].push(d);
-            pt.totalAnalyzed++;
-          }
 
-          // Re-rank overall top 5 for each pick type
-          var ratingOrder={BUY:0,WATCH:1,AVOID:2};
-          var byScore=[...allResults].sort(function(a,b){
+          // Update sector breakdown across all types
+          Object.keys(_data.pickTypes).forEach(function(ptk){
+            var pt = _data.pickTypes[ptk];
+            if(!pt.bySector[sec]) pt.bySector[sec]=[];
+            if(pt.bySector[sec].length<5) pt.bySector[sec].push({
+              sym:d.sym, name:d.name||d.sym, price:d.price||0,
+              pct:d.pct||0, score:d.score||50, rating:d.rating, reasons:d.keySignals||[]
+            });
+            pt.totalAnalyzed = allResults.length;
+          });
+
+          // Re-rank top 5 for each type
+          var byScore = [...allResults].sort(function(a,b){
             var ro=(ratingOrder[a.rating]||1)-(ratingOrder[b.rating]||1);
             return ro!==0?ro:(b.score||50)-(a.score||50);
           });
-          var byMom=[...allResults].sort(function(a,b){return (b.pct||0)-(a.pct||0);});
-          var byVol=[...allResults].sort(function(a,b){return (b.volume||0)-(a.volume||0);});
+          var byMom = [...allResults].sort(function(a,b){return (b.pct||0)-(a.pct||0);});
+          var byVol = [...allResults].sort(function(a,b){return (b.volume||0)-(a.volume||0);});
 
-          _data.pickTypes.general.overall  = byScore.slice(0,5);
-          _data.pickTypes.growth.overall   = byScore.filter(function(s){return s.rating==='BUY';}).slice(0,5);
-          _data.pickTypes.momentum.overall = byMom.slice(0,5);
-          _data.pickTypes.intraday.overall = byVol.slice(0,5);
+          _data.pickTypes.general.overall  = pl(byScore);
+          _data.pickTypes.growth.overall   = pl(byScore.filter(function(s){return s.rating==='BUY';}));
+          _data.pickTypes.momentum.overall = pl(byMom);
+          _data.pickTypes.intraday.overall = pl(byVol.length?byVol:byMom);
 
           renderTabs(_data.pickTypes);
           renderContent(_activeType);
         }
       }
-    } catch(e) {}
+    } catch(e){}
   }
 
-  // Done
   _scanning = false;
   _data.generated = new Date().toISOString();
   if(fill) fill.style.width='100%';
   if(status) status.textContent='✅ Done — '+allResults.length+' stocks analyzed';
-  btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn';
+  if(btn){ btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn'; }
   document.getElementById('meta-generated').textContent='Last updated: '+new Date().toLocaleString();
-  setTimeout(function(){if(bar)bar.style.display='none'; if(status)status.textContent='';},4000);
+  renderTabs(_data.pickTypes);
   renderContent(_activeType);
+  setTimeout(function(){if(bar)bar.style.display='none';if(status)status.textContent='';},4000);
 }
 
 // Init
