@@ -129,31 +129,29 @@ var _activeType = 'general';
 function qs(sym) { window.location = '/stock.html?symbol=' + sym; }
 
 async function loadPicks() {
-  // Show loading state in content only, not tabs
-  document.getElementById('picks-content').innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading picks...</div>';
+  document.getElementById('picks-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Checking for picks...</div>';
   document.getElementById('type-tabs').innerHTML = '';
   document.getElementById('macro-strip').innerHTML = '';
-  document.getElementById('meta-date').textContent = 'Checking for today\'s picks...';
 
   try {
-    const r = await fetch('/api/morning-picks');
-    if(!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-
-    if(data.error) {
-      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s analysis.');
+    const r = await fetch('/api/morning-picks?t='+Date.now());
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+      showEmpty('Could not load picks. Click ⚡ Run Scan to generate.');
       return;
     }
-    if(data.pickTypes) {
+
+    if(data.pickTypes && Object.keys(data.pickTypes).length) {
       _picksData = data;
       renderEnhanced(data);
-    } else if(data.picks && data.picks.length) {
+    } else if(data.picks && data.picks.length > 0) {
       renderLegacy(data);
     } else {
-      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s analysis.');
+      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s picks.');
     }
   } catch(e) {
-    showEmpty('Could not load picks. Click ⚡ Run Scan to generate.');
+    showEmpty('No picks yet. Click ⚡ Run Scan to generate.');
   }
 }
 
