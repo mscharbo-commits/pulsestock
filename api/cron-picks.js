@@ -281,8 +281,13 @@ export default async function handler(req, res) {
     const output = {generated:new Date().toISOString(),runType,macro,pickTypes:{}};
 
     for(const [ptKey,ptCfg] of Object.entries(PICK_TYPES)){
-      const scored = enriched
-        .map(s=>{const{score,reasons}=scoreStock(s,ptKey,macro);return{...s,score,reasons};})
+      const allScored = enriched
+        .map(s=>{const{score,reasons}=scoreStock(s,ptKey,macro);return{...s,score,reasons};});
+    if(ptKey==='general') {
+      console.log('[picks] Score sample:', allScored.slice(0,5).map(s=>s.sym+':'+s.score.toFixed(1)).join(', '));
+      console.log('[picks] MinScore:', ptCfg.minScore);
+    }
+    const scored = allScored
         .filter(s=>s.score>=ptCfg.minScore)
         .sort((a,b)=>b.score-a.score);
 
