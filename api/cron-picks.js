@@ -93,12 +93,19 @@ export default async function handler(req, res) {
     };
 
     // Get universe snapshot (1 Polygon call)
-    const snapshot = await getSnapshot(TOP_TICKERS);
+    let snapshot = await getSnapshot(TOP_TICKERS);
     console.log(`[picks] Snapshot: ${snapshot.length} stocks`);
 
-    // Quick rank — pick top 12 candidates
-    const ranked = quickRank(snapshot).slice(0, 12);
-    console.log(`[picks] Top candidates: ${ranked.slice(0,5).map(s=>s.sym+'('+s.pct.toFixed(1)+'%)').join(', ')}`);
+    // Weekend/holiday fallback: use top 12 tickers directly
+    let ranked;
+    if(snapshot.length < 5) {
+      console.log('[picks] Snapshot empty — using fixed top 12');
+      ranked = ['NVDA','META','AAPL','MSFT','AMZN','GOOGL','TSLA','JPM','XOM','LLY','AVGO','AMD']
+        .map(sym => ({sym, price:0, pct:0, volume:0, vwap:0, quickScore:50}));
+    } else {
+      ranked = quickRank(snapshot).slice(0, 12);
+      console.log(`[picks] Top candidates: ${ranked.slice(0,5).map(s=>s.sym+'('+s.pct.toFixed(1)+'%)').join(', ')}`);
+    }
 
     // Run AI deep analysis on top 12, 3 at a time
     const PICK_TYPES = ['general','growth','momentum','intraday'];
