@@ -191,8 +191,13 @@ function buildOutput(results, macro, runType) {
   function pickList(arr, type) {
     const filtered = type==='growth'
       ? arr.filter(s=>s.rating==='BUY')
-      : arr;
-    return [...filtered].sort(sortFn(type)).slice(0,5).map(s=>({
+      : type==='shorts'
+        ? arr.filter(s=>s.rating==='AVOID').sort((a,b)=>(a.score||50)-(b.score||50))
+        : arr.filter(s=>s.rating==='BUY' || s.rating==='WATCH');
+    // For non-shorts, only show BUY in top picks
+    const top = (type==='shorts') ? filtered : filtered.filter(s=>s.rating==='BUY');
+    const toUse = top.length ? top : filtered.slice(0,5);
+    return [...toUse].sort(sortFn(type)).slice(0,5).map(s=>({
       sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker, sector:s.sector||'',
       price:s.price||0, pct:s.pct||0, score:s.score||50,
       rating:s.rating||'WATCH',
@@ -208,7 +213,10 @@ function buildOutput(results, macro, runType) {
 
   function bySectorMap(arr, type) {
     const g = {};
-    [...arr].sort(sortFn(type)).forEach(s => {
+    const filtered = type==='shorts'
+      ? arr.filter(s=>s.rating==='AVOID')
+      : arr.filter(s=>s.rating==='BUY');
+    [...filtered].sort(sortFn(type)).forEach(s => {
       const sec = s.sector||'Unknown';
       if(!g[sec]) g[sec]=[];
       if(g[sec].length<5) g[sec].push({
@@ -226,6 +234,7 @@ function buildOutput(results, macro, runType) {
     growth:   {label:'Long-Term Growth', icon:'🌱'},
     momentum: {label:'Momentum / Swing', icon:'🚀'},
     intraday: {label:'Intraday',         icon:'⚡'},
+    shorts:   {label:'Short Watch',      icon:'🐻'},
   };
 
   const pickTypes = {};
