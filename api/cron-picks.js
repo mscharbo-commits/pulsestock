@@ -1,265 +1,320 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 300 };
 
+const FINNHUB    = process.env.FINNHUB_KEY;
+const POLYGON    = process.env.POLYGON_API_KEY;
+const ANTHROPIC  = process.env.ANTHROPIC_API_KEY;
 const GIST_TOKEN = process.env.GITHUB_TOKEN;
-const FINNHUB_KEY = process.env.FINNHUB_KEY;
 const PICKS_GIST = 'd4890f15ec44f0ea94a0916285a488aa';
 const CRON_SECRET = process.env.CRON_SECRET;
+const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
 
-const UNIVERSE = [
-  {sym:'AAPL',name:'Apple',sector:'Tech'},{sym:'MSFT',name:'Microsoft',sector:'Tech'},
-  {sym:'NVDA',name:'Nvidia',sector:'Tech'},{sym:'GOOGL',name:'Alphabet',sector:'Tech'},
-  {sym:'META',name:'Meta',sector:'Tech'},{sym:'AMZN',name:'Amazon',sector:'Tech'},
-  {sym:'JPM',name:'JPMorgan',sector:'Finance'},{sym:'GS',name:'Goldman Sachs',sector:'Finance'},
-  {sym:'BAC',name:'Bank of America',sector:'Finance'},{sym:'V',name:'Visa',sector:'Finance'},
-  {sym:'UNH',name:'UnitedHealth',sector:'Healthcare'},{sym:'LLY',name:'Eli Lilly',sector:'Healthcare'},
-  {sym:'JNJ',name:'Johnson & Johnson',sector:'Healthcare'},{sym:'ABBV',name:'AbbVie',sector:'Healthcare'},
-  {sym:'XOM',name:'ExxonMobil',sector:'Energy'},{sym:'CVX',name:'Chevron',sector:'Energy'},
-  {sym:'OXY',name:'Occidental',sector:'Energy'},
-  {sym:'TSLA',name:'Tesla',sector:'Consumer'},{sym:'WMT',name:'Walmart',sector:'Consumer'},
-  {sym:'HD',name:'Home Depot',sector:'Consumer'},{sym:'NKE',name:'Nike',sector:'Consumer'},
-  {sym:'MCD',name:"McDonald's",sector:'Consumer'},
-  {sym:'CAT',name:'Caterpillar',sector:'Industrial'},{sym:'BA',name:'Boeing',sector:'Industrial'},
-  {sym:'GE',name:'GE Aerospace',sector:'Industrial'},
-  {sym:'AMD',name:'AMD',sector:'Semi'},{sym:'TSM',name:'TSMC',sector:'Semi'},
-  {sym:'INTC',name:'Intel',sector:'Semi'},
-  {sym:'SPY',name:'S&P 500 ETF',sector:'Index'},{sym:'QQQ',name:'Nasdaq ETF',sector:'Index'},
-];
+const PICK_TYPES = {
+  growth:   {label:'Long-Term Growth',  icon:'🌱', minScore:70, scoring:{momentum:15,fundamental:40,technical:20,quality:25}},
+  momentum: {label:'Momentum / Swing',  icon:'🚀', minScore:65, scoring:{momentum:40,fundamental:20,technical:30,quality:10}},
+  intraday: {label:'Intraday',          icon:'⚡', minScore:60, scoring:{momentum:35,fundamental:10,technical:35,quality:20}},
+  general:  {label:'Best Opportunity',  icon:'🎯', minScore:68, scoring:{momentum:25,fundamental:25,technical:25,quality:25}},
+};
 
-// Macro indicators to fetch once
-async function getMacroContext() {
+async function sf(url, t=6000) {
   try {
-    const [spy, qqq, vix, tlt, uup] = await Promise.all([
-      fetch(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB_KEY}`).then(r=>r.json()),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=QQQ&token=${FINNHUB_KEY}`).then(r=>r.json()),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB_KEY}`).then(r=>r.json()),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=TLT&token=${FINNHUB_KEY}`).then(r=>r.json()),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=UUP&token=${FINNHUB_KEY}`).then(r=>r.json()),
-    ]);
-    return {
-      spyPct: spy.dp?.toFixed(2) || 0,
-      qqqPct: qqq.dp?.toFixed(2) || 0,
-      vix: vix.c?.toFixed(1) || 'N/A',
-      tltPct: tlt.dp?.toFixed(2) || 0,
-      uupPct: uup.dp?.toFixed(2) || 0,
-      riskOn: (spy.dp || 0) > 0 && (vix.c || 20) < 20,
-    };
-  } catch(e) { return {spyPct:0,qqqPct:0,vix:'N/A',tltPct:0,uupPct:0,riskOn:false}; }
+    const ctrl = new AbortController();
+    const id = setTimeout(()=>ctrl.abort(),t);
+    const r = await fetch(url,{signal:ctrl.signal});
+    clearTimeout(id);
+    if(!r.ok) return null;
+    return await r.json();
+  } catch(e){ return null; }
 }
 
-async function getStockData(sym) {
-  const to = new Date().toISOString().split('T')[0];
-  const from30 = new Date(Date.now()-30*86400000).toISOString().split('T')[0];
-  const from3 = new Date(Date.now()-3*86400000).toISOString().split('T')[0];
+function calcSMA(arr, n) {
+  if(!arr||arr.length<n) return null;
+  return arr.slice(-n).reduce((a,b)=>a+b,0)/n;
+}
 
-  const [quote, candles, news, metrics, analyst] = await Promise.all([
-    fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${FINNHUB_KEY}`).then(r=>r.json()).catch(()=>({})),
-    fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${sym}&resolution=D&from=${Math.floor(Date.now()/1000)-2592000}&to=${Math.floor(Date.now()/1000)}&token=${FINNHUB_KEY}`).then(r=>r.json()).catch(()=>({})),
-    fetch(`https://finnhub.io/api/v1/company-news?symbol=${sym}&from=${from3}&to=${to}&token=${FINNHUB_KEY}`).then(r=>r.json()).catch(()=>[]),
-    fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${sym}&metric=all&token=${FINNHUB_KEY}`).then(r=>r.json()).catch(()=>({})),
-    fetch(`https://finnhub.io/api/v1/stock/recommendation?symbol=${sym}&token=${FINNHUB_KEY}`).then(r=>r.json()).catch(()=>[]),
+function calcRSI(closes) {
+  if(!closes||closes.length<15) return null;
+  const c = closes.slice(-15);
+  let g=0,l=0;
+  for(let i=1;i<c.length;i++){const d=c[i]-c[i-1];d>0?g+=d:l+=Math.abs(d);}
+  const ag=g/14,al=l/14;
+  return al===0?100:100-(100/(1+ag/al));
+}
+
+async function getUniverse() {
+  if(!POLYGON) return [];
+  const d = new Date();
+  if(d.getDay()===0) d.setDate(d.getDate()-2);
+  if(d.getDay()===6) d.setDate(d.getDate()-1);
+  const dt = d.toISOString().split('T')[0];
+  const data = await sf(`https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${dt}?adjusted=true&apiKey=${POLYGON}`,15000);
+  if(!data?.results) return [];
+  return data.results
+    .filter(s=>s.T&&s.T.length<=5&&!/[^A-Z]/.test(s.T)&&s.v>=500000&&s.c>=5&&s.c<=3000&&s.vw>0)
+    .map(s=>({sym:s.T,price:s.c,open:s.o,high:s.h,low:s.l,volume:s.v,vwap:s.vw,pct:((s.c-s.o)/s.o*100)}))
+    .sort((a,b)=>b.volume-a.volume)
+    .slice(0,500);
+}
+
+async function enrich(stock) {
+  const sym = stock.sym;
+  const today = new Date().toISOString().split('T')[0];
+  const past3 = new Date(Date.now()-3*86400000).toISOString().split('T')[0];
+  const past90= new Date(Date.now()-90*86400000).toISOString().split('T')[0];
+
+  const [metrics, candles, news, profile] = await Promise.all([
+    sf(`https://finnhub.io/api/v1/stock/metric?symbol=${sym}&metric=all&token=${FINNHUB}`,5000),
+    sf(`https://api.polygon.io/v2/aggs/ticker/${sym}/range/1/day/${past90}/${today}?adjusted=true&sort=desc&limit=90&apiKey=${POLYGON}`,6000),
+    sf(`https://finnhub.io/api/v1/company-news?symbol=${sym}&from=${past3}&to=${today}&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/stock/profile2?symbol=${sym}&token=${FINNHUB}`,4000),
   ]);
 
-  // Calculate simple technicals from candles
-  const closes = candles.c || [];
-  const sma20 = closes.length >= 20 ? (closes.slice(-20).reduce((a,b)=>a+b,0)/20).toFixed(2) : null;
-  const sma50 = closes.length >= 50 ? (closes.slice(-50).reduce((a,b)=>a+b,0)/50).toFixed(2) : null;
-  const high52 = closes.length ? Math.max(...closes).toFixed(2) : null;
-  const low52 = closes.length ? Math.min(...closes).toFixed(2) : null;
-  const pct52 = high52 && low52 ? (((quote.c - parseFloat(low52))/(parseFloat(high52)-parseFloat(low52)))*100).toFixed(0) : null;
+  const m = metrics?.metric||{};
+  const closes = candles?.results ? [...candles.results].reverse().map(c=>c.c) : [];
+  const vols   = candles?.results ? [...candles.results].reverse().map(c=>c.v) : [];
 
-  // RSI (14-day simplified)
-  let rsi = null;
-  if (closes.length >= 15) {
-    const gains = [], losses = [];
-    for (let i = closes.length-14; i < closes.length; i++) {
-      const diff = closes[i] - closes[i-1];
-      gains.push(diff > 0 ? diff : 0);
-      losses.push(diff < 0 ? Math.abs(diff) : 0);
-    }
-    const avgGain = gains.reduce((a,b)=>a+b,0)/14;
-    const avgLoss = losses.reduce((a,b)=>a+b,0)/14;
-    rsi = avgLoss === 0 ? 100 : (100 - 100/(1+avgGain/avgLoss)).toFixed(1);
-  }
-
-  const m = metrics.metric || {};
-  const latestAnalyst = analyst[0] || {};
-  const headlines = (news||[]).slice(0,6).map(n=>n.headline).join(' | ');
+  const s20=calcSMA(closes,20), s50=calcSMA(closes,50), s200=calcSMA(closes,200);
+  const rsi=calcRSI(closes);
+  const avgVol=calcSMA(vols,20);
+  const volRatio=avgVol&&stock.volume?stock.volume/avgVol:null;
+  const price1M=closes.length>=22?closes[closes.length-22]:null;
+  const pct1M=price1M?((stock.price-price1M)/price1M):null;
+  const recentNews=(news||[]).slice(0,5).map(n=>n.headline);
 
   return {
-    price: quote.c || 0, change: quote.d || 0, pct: quote.dp || 0,
-    high: quote.h, low: quote.l, prevClose: quote.pc,
-    // Technicals
-    sma20, sma50, rsi, high52, low52, pct52,
-    aboveSma20: sma20 && quote.c > parseFloat(sma20),
-    aboveSma50: sma50 && quote.c > parseFloat(sma50),
-    // Fundamentals
-    pe: m['peNormalizedAnnual'] || m['peTTM'],
-    pb: m['pbAnnual'],
-    roe: m['roeTTM'],
-    eps: m['epsTTM'],
-    revenueGrowth: m['revenueGrowthTTMYoy'],
-    grossMargin: m['grossMarginTTM'],
-    debtEquity: m['totalDebt/totalEquityAnnual'],
-    beta: m['beta'],
-    div: m['dividendYieldIndicatedAnnual'],
-    // Analyst
-    analystBuy: (latestAnalyst.strongBuy||0) + (latestAnalyst.buy||0),
-    analystHold: latestAnalyst.hold||0,
-    analystSell: (latestAnalyst.sell||0) + (latestAnalyst.strongSell||0),
-    analystTarget: m['targetMean'],
-    // News
-    headlines,
+    ...stock,
+    name:profile?.name||sym,
+    sector:profile?.finnhubIndustry||'Unknown',
+    marketCap:profile?.marketCapitalization?profile.marketCapitalization*1e6:null,
+    sma20:s20,sma50:s50,sma200:s200,rsi,volRatio,
+    above20MA:s20?stock.price>s20:null,
+    above50MA:s50?stock.price>s50:null,
+    above200MA:s200?stock.price>s200:null,
+    vs20MA:s20?(stock.price-s20)/s20*100:null,
+    vs50MA:s50?(stock.price-s50)/s50*100:null,
+    vs200MA:s200?(stock.price-s200)/s200*100:null,
+    pct1M,
+    revGrowth:m.revenueGrowthTTMYoy, grossMargin:m.grossMarginTTM,
+    netMargin:m.netProfitMarginAnnual, pe:m.peBasicExclExtraTTM,
+    roe:m.roeTTM, beta:m.beta, eps:m.epsBasicExclExtraAnnual,
+    shortRatio:m.shortRatio,
+    hasNews:recentNews.length>0, headlines:recentNews,
   };
 }
 
-async function analyzePick(stock, d, macro) {
-  const technicalSignal = d.rsi
-    ? (parseFloat(d.rsi) < 35 ? 'Oversold (RSI '+d.rsi+')' : parseFloat(d.rsi) > 70 ? 'Overbought (RSI '+d.rsi+')' : 'Neutral (RSI '+d.rsi+')')
-    : 'RSI unavailable';
+function scoreStock(s, ptKey, macro) {
+  const w = PICK_TYPES[ptKey].scoring;
+  const reasons = [];
 
-  const trend = d.aboveSma20 && d.aboveSma50 ? 'Above both 20 & 50-day MA (bullish)' :
-                d.aboveSma20 ? 'Above 20-day but below 50-day MA (mixed)' :
-                d.aboveSma50 ? 'Below 20-day but above 50-day MA (weakening)' : 'Below both MAs (bearish)';
+  // MOMENTUM
+  let mom = 50;
+  if(s.pct>2){mom+=18;reasons.push(`+${s.pct.toFixed(1)}% today`);}
+  else if(s.pct>0){mom+=8;}
+  else if(s.pct<-2){mom-=15;}
+  if(s.pct1M>0.15){mom+=18;reasons.push(`+${(s.pct1M*100).toFixed(0)}% 1-month`);}
+  else if(s.pct1M>0.05){mom+=10;}
+  else if(s.pct1M<-0.05){mom-=12;}
+  if(s.above50MA) mom+=8;
+  if(s.above200MA) mom+=6;
+  if(macro.riskOn&&s.pct>0) mom+=5;
+  mom=Math.max(0,Math.min(100,mom));
 
-  const analystSentiment = d.analystBuy > 0
-    ? `${d.analystBuy} buy / ${d.analystHold} hold / ${d.analystSell} sell`
-    : 'No analyst data';
+  // FUNDAMENTAL
+  let fund = 50;
+  if(s.revGrowth>0.20){fund+=20;reasons.push(`Rev +${(s.revGrowth*100).toFixed(0)}%`);}
+  else if(s.revGrowth>0.10){fund+=12;}
+  else if(s.revGrowth>0.05){fund+=6;}
+  else if(s.revGrowth<0){fund-=10;}
+  if(s.grossMargin>0.50){fund+=12;}
+  else if(s.grossMargin>0.30){fund+=6;}
+  if(s.netMargin>0.15){fund+=10;reasons.push(`${(s.netMargin*100).toFixed(0)}% margin`);}
+  else if(s.netMargin>0.05){fund+=5;}
+  else if(s.netMargin<0){fund-=15;}
+  if(s.roe>0.20){fund+=8;}
+  if(s.pe&&s.pe>0&&s.pe<20){fund+=8;reasons.push(`P/E ${s.pe.toFixed(1)}x`);}
+  else if(s.pe&&s.pe>60){fund-=8;}
+  if(s.eps>0){fund+=5;}
+  fund=Math.max(0,Math.min(100,fund));
 
-  const prompt = `You are PulseStock's chief market analyst. Generate a morning pick rating for ${stock.sym} (${stock.name}, ${stock.sector} sector).
-
-MACRO ENVIRONMENT (pre-market):
-- S&P 500: ${macro.spyPct}% | Nasdaq: ${macro.qqqPct}% | VIX: ${macro.vix} | Bonds (TLT): ${macro.tltPct}% | USD: ${macro.uupPct}%
-- Market sentiment: ${macro.riskOn ? 'Risk-ON (favorable for equities)' : 'Risk-OFF (caution warranted)'}
-
-TECHNICAL ANALYSIS:
-- Price: $${d.price.toFixed(2)} | Change: ${d.pct > 0 ? '+' : ''}${d.pct.toFixed(2)}%
-- Trend: ${trend}
-- Momentum: ${technicalSignal}
-- 52-week position: ${d.pct52 ? d.pct52+'% of 52-week range' : 'N/A'} (${d.low52} - ${d.high52})
-
-FUNDAMENTAL ANALYSIS:
-- P/E: ${d.pe ? d.pe.toFixed(1)+'x' : 'N/A'} | P/B: ${d.pb ? d.pb.toFixed(1)+'x' : 'N/A'} | ROE: ${d.roe ? d.roe.toFixed(1)+'%' : 'N/A'}
-- Revenue Growth YoY: ${d.revenueGrowth ? d.revenueGrowth.toFixed(1)+'%' : 'N/A'} | Gross Margin: ${d.grossMargin ? d.grossMargin.toFixed(1)+'%' : 'N/A'}
-- Beta: ${d.beta ? d.beta.toFixed(2) : 'N/A'} | Debt/Equity: ${d.debtEquity ? d.debtEquity.toFixed(2) : 'N/A'}
-
-ANALYST CONSENSUS:
-- ${analystSentiment}
-- Price target: ${d.analystTarget ? '$'+d.analystTarget.toFixed(2) : 'N/A'}
-
-RECENT NEWS (last 3 days):
-${d.headlines || 'No recent news'}
-
-Based on ALL factors above — macro environment, technical setup, fundamentals, analyst consensus, and news — provide your morning pick rating.
-
-Respond in this EXACT JSON format only, no other text:
-{"rating":"BUY","confidence":78,"reason":"Strong technical breakout above key MAs with bullish macro backdrop and positive earnings revision","target":${(d.price * 1.05).toFixed(2)},"technicalSignal":"${technicalSignal.split(' ')[0]}","fundamentalScore":"Strong","macroAlignment":"Favorable"}`;
-
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','x-api-key':process.env.ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:200,messages:[{role:'user',content:prompt}]})
-    });
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error('[analyzePick] Claude error:', resp.status, errText.slice(0,200));
-      return {rating:'WATCH',confidence:50,reason:'API error - retrying tomorrow',target:d.price,technicalSignal:'N/A',fundamentalScore:'N/A',macroAlignment:'N/A'};
-    }
-    const data = await resp.json();
-    const text = (data?.content?.[0]?.text||'').trim();
-    // Extract JSON even if Claude adds extra text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON in response: ' + text.slice(0,100));
-    const parsed = JSON.parse(jsonMatch[0]);
-    // Validate required fields
-    if (!parsed.rating || !['BUY','WATCH','AVOID'].includes(parsed.rating)) parsed.rating = 'WATCH';
-    if (!parsed.confidence) parsed.confidence = 50;
-    if (!parsed.reason) parsed.reason = 'Analysis complete';
-    if (!parsed.target) parsed.target = d.price;
-    return parsed;
-  } catch(e) {
-    console.error('[analyzePick] Parse error:', e.message);
-    return {rating:'WATCH',confidence:50,reason:'Analysis unavailable',target:d.price,technicalSignal:'N/A',fundamentalScore:'N/A',macroAlignment:'N/A'};
+  // TECHNICAL
+  let tech = 50;
+  if(s.rsi){
+    const r=parseFloat(s.rsi);
+    if(r<30){tech+=20;reasons.push(`RSI ${r.toFixed(0)} oversold`);}
+    else if(r<45){tech+=10;}
+    else if(r>=45&&r<=60){tech+=15;reasons.push(`RSI ${r.toFixed(0)} healthy`);}
+    else if(r>73){tech-=18;}
+    else if(r>65){tech-=8;}
   }
+  if(s.above20MA&&s.above50MA&&s.above200MA){tech+=20;reasons.push('Above all MAs');}
+  else if(s.above50MA&&s.above200MA){tech+=12;}
+  else if(!s.above50MA&&!s.above200MA){tech-=15;}
+  if(s.volRatio>1.5){tech+=10;reasons.push(`${s.volRatio.toFixed(1)}x vol`);}
+  else if(s.volRatio<0.5){tech-=8;}
+  tech=Math.max(0,Math.min(100,tech));
+
+  // QUALITY
+  let qual = 50;
+  if(s.marketCap>50e9){qual+=15;}
+  else if(s.marketCap>10e9){qual+=8;}
+  else if(s.marketCap<2e9){qual-=10;}
+  if(s.beta&&s.beta<1.2){qual+=8;}
+  else if(s.beta&&s.beta>2.5){qual-=10;}
+  if(s.shortRatio&&s.shortRatio>10){qual-=15;}
+  if(s.hasNews){qual+=8;}
+  qual=Math.max(0,Math.min(100,qual));
+
+  let score=(mom*w.momentum+fund*w.fundamental+tech*w.technical+qual*w.quality)/100;
+
+  // Pick-type specific filters
+  if(ptKey==='growth'){
+    if(!s.above200MA) score*=0.5;
+    if((s.revGrowth||0)<0.08) score*=0.75;
+    if((s.grossMargin||0)<0.30) score*=0.8;
+    if((s.marketCap||0)<5e9) score*=0.7;
+  }
+  if(ptKey==='momentum'){
+    if(!s.above50MA) score*=0.6;
+    if(!s.above20MA) score*=0.7;
+    if((s.pct1M||0)<0.03) score*=0.7;
+  }
+  if(ptKey==='intraday'){
+    if(s.volume<2e6) score*=0.5;
+    if(!s.hasNews) score*=0.75;
+    if(s.rsi){const r=parseFloat(s.rsi);if(r<25||r>75)score*=0.6;}
+  }
+  if(ptKey==='general'){
+    if(!s.above50MA) score*=0.65;
+    if((s.marketCap||0)<2e9) score*=0.7;
+  }
+
+  // Macro alignment bonus
+  const growthSectors=['Technology','Consumer Cyclical','Communication Services'];
+  const defensiveSectors=['Healthcare','Consumer Defensive','Utilities'];
+  if(macro.riskOn&&growthSectors.includes(s.sector)) score*=1.05;
+  if(!macro.riskOn&&defensiveSectors.includes(s.sector)) score*=1.05;
+
+  return {score:Math.min(100,Math.round(score*10)/10), reasons:reasons.slice(0,3)};
 }
 
-async function saveGist(picks, performance) {
-  const today = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  await fetch(`https://api.github.com/gists/${PICKS_GIST}`,{
-    method:'PATCH',
-    headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
-    body:JSON.stringify({files:{'picks_cache.json':{content:JSON.stringify({date:today,generated:new Date().toISOString(),picks})}, 'picks_performance.json':{content:JSON.stringify(performance)}}}),
-  });
+async function generateThesis(pick, ptKey, macro) {
+  if(!ANTHROPIC) return pick.reasons.join('. ')+'.';
+  const cfg = PICK_TYPES[ptKey];
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001', max_tokens:150,
+        messages:[{role:'user',content:
+          `You are PulseStock's chief analyst. Write a 2-sentence ${cfg.label} thesis for ${pick.sym} (${pick.name}, ${pick.sector}).
+Market: SPY ${macro.spyPct}%, VIX ${macro.vix}, ${macro.riskOn?'risk-on':'risk-off'} environment.
+Stock: $${pick.price.toFixed(2)}, ${pick.pct.toFixed(2)}% today, RSI ${pick.rsi||'N/A'}, score ${pick.score}/100.
+Key signals: ${pick.reasons.join(', ')}.${pick.headlines[0]?' News: '+pick.headlines[0]:''}
+Sentence 1: the core opportunity. Sentence 2: specific catalyst or setup with a price target. No questions. No disclaimers.`
+        }]
+      })
+    });
+    if(!r.ok) return pick.reasons.join('. ')+'.';
+    const d = await r.json();
+    return d.content?.[0]?.text?.trim()||pick.reasons.join('. ')+'.';
+  } catch(e){ return pick.reasons.join('. ')+'.'; }
+}
+
+async function getMacro() {
+  const [spy,vix,tlt] = await Promise.all([
+    sf(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/quote?symbol=TLT&token=${FINNHUB}`,4000),
+  ]);
+  const spyPct=spy?.dp||0, vixVal=vix?.c||20;
+  return {spyPct:spyPct.toFixed(2),vix:vixVal.toFixed(1),tltPct:(tlt?.dp||0).toFixed(2),riskOn:spyPct>0&&vixVal<22};
 }
 
 export default async function handler(req) {
-  const url = new URL(req.url);
-  const authHeader = req.headers.get('authorization') || '';
-  const authQuery = url.searchParams.get('secret') || '';
-  const provided = authHeader.replace('Bearer ', '') || authQuery;
-  // Accept either the env CRON_SECRET or the simple manual key
-  const valid = (CRON_SECRET && provided === CRON_SECRET) || provided === 'pulsestock2026';
-  if (!valid) return new Response(JSON.stringify({error:'Invalid secret. Use your CRON_SECRET or contact admin.'}), {status:401, headers:{'Content-Type':'application/json'}});
+  if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
+  const url=new URL(req.url);
+  const provided=(req.headers.get('authorization')||'').replace('Bearer ','')||url.searchParams.get('secret')||'';
+  const valid=(CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
+  if(!valid) return new Response(JSON.stringify({error:'Unauthorized'}),{status:401,headers:CORS});
+
+  const runType=url.searchParams.get('run')||'full';
 
   try {
-    console.log('[cron-picks] Starting deep analysis...');
+    console.log('[picks] Run:',runType);
+    const [universe,macro] = await Promise.all([getUniverse(),getMacro()]);
+    console.log(`[picks] Universe: ${universe.length} | SPY: ${macro.spyPct}%`);
+    if(!universe.length) return new Response(JSON.stringify({error:'No universe data'}),{status:500,headers:CORS});
 
-    // Get macro context once
-    const macro = await getMacroContext();
-    console.log('[cron-picks] Macro:', JSON.stringify(macro));
+    // Enrich top 150 by volume in batches of 10
+    const candidates = universe.slice(0,150);
+    const enriched = [];
+    for(let i=0;i<candidates.length;i+=10){
+      const batch = candidates.slice(i,i+10);
+      const results = await Promise.all(batch.map(s=>enrich(s).catch(()=>null)));
+      enriched.push(...results.filter(Boolean));
+      if(i+10<candidates.length) await new Promise(r=>setTimeout(r,600));
+    }
+    console.log(`[picks] Enriched: ${enriched.length}`);
 
-    const picks = [];
-    // Process in batches of 5 to avoid rate limits
-        for (const stock of stocksToday) {
-      try {
-        console.log('[cron-picks] Analyzing', stock.sym);
-        const d = await getStockData(stock.sym);
-        if (!d.price) { console.log('[cron-picks] No price for', stock.sym); continue; }
-        const analysis = await analyzePick(stock, d, macro);
-        picks.push({
-          sym: stock.sym, name: stock.name, sector: stock.sector,
-          price: d.price, change: d.change, pct: d.pct,
-          rsi: d.rsi, sma20: d.sma20, aboveSma20: d.aboveSma20, aboveSma50: d.aboveSma50,
-          pe: d.pe, beta: d.beta,
-          analystBuy: d.analystBuy, analystSell: d.analystSell,
-          rating: analysis.rating, confidence: analysis.confidence,
-          reason: analysis.reason, target: analysis.target,
-          technicalSignal: analysis.technicalSignal,
-          fundamentalScore: analysis.fundamentalScore,
-          macroAlignment: analysis.macroAlignment,
-          date: new Date().toISOString().split('T')[0],
-          timestamp: Date.now(),
-          priceAtPick: d.price,
-        });
-      } catch(e) { console.error('[cron-picks] Error on', stock.sym, e.message); }
+    const output = {generated:new Date().toISOString(),runType,macro,pickTypes:{}};
+
+    for(const [ptKey,ptCfg] of Object.entries(PICK_TYPES)){
+      const scored = enriched
+        .map(s=>{const{score,reasons}=scoreStock(s,ptKey,macro);return{...s,score,reasons};})
+        .filter(s=>s.score>=ptCfg.minScore)
+        .sort((a,b)=>b.score-a.score);
+
+      // Top 5 per sector
+      const bySector={};
+      for(const s of scored){
+        const sec=s.sector||'Unknown';
+        if(!bySector[sec]) bySector[sec]=[];
+        if(bySector[sec].length<5) bySector[sec].push(s);
+      }
+
+      // Overall top 5
+      const overall=scored.slice(0,5);
+
+      // AI thesis for #1 pick only
+      if(overall[0]){
+        overall[0].thesis = await generateThesis(overall[0],ptKey,macro);
+      }
+
+      output.pickTypes[ptKey]={
+        label:ptCfg.label, icon:ptCfg.icon,
+        overall:overall.map(s=>({
+          sym:s.sym,name:s.name,sector:s.sector,
+          price:s.price,pct:s.pct,score:s.score,
+          rsi:s.rsi?parseFloat(s.rsi).toFixed(0):null,
+          above50MA:s.above50MA,above200MA:s.above200MA,
+          sma50:s.sma50?s.sma50.toFixed(2):null,
+          sma200:s.sma200?s.sma200.toFixed(2):null,
+          reasons:s.reasons,thesis:s.thesis||null,
+          headlines:(s.headlines||[]).slice(0,2),
+        })),
+        bySector:Object.fromEntries(Object.entries(bySector).map(([sec,stocks])=>[sec,
+          stocks.map(s=>({sym:s.sym,name:s.name,price:s.price,pct:s.pct,score:s.score,reasons:s.reasons}))
+        ])),
+        totalQualified:scored.length,
+      };
     }
 
-    // Load + update performance log
-    let performance = {picks:[]};
-    try {
-      const gr = await fetch(`https://api.github.com/gists/${PICKS_GIST}`,
-        {headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'User-Agent':'PulseStock'}});
-      const gd = await gr.json();
-      performance = JSON.parse(gd?.files?.['picks_performance.json']?.content||'{}') || {picks:[]};
-    } catch(e) {}
+    // Save to Gist
+    await fetch(`https://api.github.com/gists/${PICKS_GIST}`,{
+      method:'PATCH',
+      headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
+      body:JSON.stringify({files:{'enhanced_picks.json':{content:JSON.stringify(output)}}})
+    });
 
-    const today = new Date().toISOString().split('T')[0];
-    performance.picks = (performance.picks||[]).filter(p => p.date !== today);
-    performance.picks.push(...picks.map(p => ({...p, priceAtPick: p.price})));
-    // Keep 90 days
-    const cutoff = Date.now() - 90*86400000;
-    performance.picks = performance.picks.filter(p => new Date(p.date).getTime() > cutoff);
+    console.log('[picks] Done');
+    return new Response(JSON.stringify({
+      success:true,runType,macro,
+      summary:{enriched:enriched.length,
+        counts:Object.fromEntries(Object.entries(output.pickTypes).map(([k,v])=>[k,v.overall.length]))}
+    }),{headers:CORS});
 
-    // Summary stats
-    const total = performance.picks.length;
-    const buys = performance.picks.filter(p=>p.rating==='BUY').length;
-    performance.summary = {total, buys, watches: performance.picks.filter(p=>p.rating==='WATCH').length, avoids: performance.picks.filter(p=>p.rating==='AVOID').length, buyPct: total ? ((buys/total)*100).toFixed(1) : 0};
-
-    await saveGist(picks, performance);
-    console.log(`[cron-picks] Complete — ${picks.length} picks`);
-    return new Response(JSON.stringify({success:true,count:picks.length,macro,picks}), {headers:{'Content-Type':'application/json'}});
-  } catch(e) {
-    console.error('[cron-picks] Fatal:', e.message);
-    return new Response(JSON.stringify({error:e.message}), {status:500});
+  } catch(e){
+    console.error('[picks] Fatal:',e.message);
+    return new Response(JSON.stringify({error:e.message}),{status:500,headers:CORS});
   }
 }
