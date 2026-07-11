@@ -40,7 +40,7 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 .market-status{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
 
 /* Pick type tabs */
-.pick-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;}
+.pick-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px;}
 .pick-tab{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;cursor:pointer;transition:all .15s;text-align:left;}
 .pick-tab:hover{border-color:var(--accent);box-shadow:var(--shadow);}
 .pick-tab.active{border-color:var(--accent);background:var(--accent-light);}
@@ -119,7 +119,7 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 .dots span:nth-child(3){animation-delay:.3s;}
 @keyframes dot{0%,80%,100%{transform:scale(.6);}40%{transform:scale(1);}}
 
-@media(max-width:600px){.pick-tabs{grid-template-columns:repeat(2,1fr);}.top-grid{grid-template-columns:1fr;}}
+@media(max-width:700px){.pick-tabs{grid-template-columns:repeat(3,1fr);}.top-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -186,6 +186,11 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
       <div class="pick-tab-top"><span class="pick-tab-icon">⚡</span><span class="pick-tab-count" id="count-intraday">—</span></div>
       <div class="pick-tab-label">Intraday</div>
       <div class="pick-tab-desc">Same-day catalyst plays</div>
+    </div>
+    <div class="pick-tab" onclick="setTab('shorts',this)" id="tab-shorts">
+      <div class="pick-tab-top"><span class="pick-tab-icon">🐻</span><span class="pick-tab-count" id="count-shorts" style="background:var(--red);">—</span></div>
+      <div class="pick-tab-label">Short Watch</div>
+      <div class="pick-tab-desc">Stocks to avoid or short</div>
     </div>
   </div>
 
@@ -316,7 +321,13 @@ function renderContent(type) {
   var content = document.getElementById('picks-content');
   var pickTypes = _data && _data.pickTypes;
   var pt = pickTypes && pickTypes[type];
-  var overall = pt && pt.overall || [];
+  var isShorts = type==='shorts';
+  var rawOverall = pt && pt.overall || [];
+  // Only show BUY picks in top picks (except shorts tab shows AVOID)
+  var overall = isShorts
+    ? rawOverall.filter(function(p){return p.rating==='AVOID';})
+    : rawOverall.filter(function(p){return p.rating==='BUY';});
+  if(!overall.length && !isShorts) overall = rawOverall.slice(0,5); // fallback if no BUYs
   var bySector = pt && pt.bySector || {};
 
   var ALL_SECTORS = ['Technology','Financial Services','Healthcare','Energy','Industrials',
@@ -325,7 +336,7 @@ function renderContent(type) {
   var html = '';
 
   // Top picks section
-  html += '<div class="section-hdr">🏆 Top '+(overall.length||5)+' Picks <span></span></div>';
+  html += '<div class="section-hdr">'+(isShorts?'🐻 Short Watch List':'🏆 Top BUY Picks')+' <span></span></div>';
 
   if(!overall.length) {
     html += '<div class="empty-card">'
@@ -352,7 +363,11 @@ function renderContent(type) {
   var combinedSectors = ALL_SECTORS.concat(allSectorsWithPicks.filter(function(s){return ALL_SECTORS.indexOf(s)===-1;}));
 
   combinedSectors.forEach(function(sec) {
-    var stocks = bySector[sec] || [];
+    var rawStocks = bySector[sec] || [];
+    var stocks = isShorts
+      ? rawStocks.filter(function(s){return s.rating==='AVOID';})
+      : rawStocks.filter(function(s){return s.rating==='BUY';});
+    if(!stocks.length && !isShorts) stocks = rawStocks.slice(0,3);
     html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
     if(!stocks.length) {
       html += '<div class="sector-empty">'+(_scanning?'<div class="dots"><span></span><span></span><span></span></div>':'No picks today')+'</div>';
