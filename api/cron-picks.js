@@ -1,23 +1,33 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 300 };
 
 const POLYGON    = process.env.POLYGON_API_KEY || '';
 const FINNHUB    = process.env.FINNHUB_KEY || '';
 const GIST_TOKEN = process.env.GITHUB_TOKEN || '';
 const PICKS_GIST = 'd4890f15ec44f0ea94a0916285a488aa';
 const CRON_SECRET = process.env.CRON_SECRET || '';
+const BASE_URL   = 'https://pulsestock-nu.vercel.app';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
 
-// Top S&P 500 tickers for universe
-const TOP_TICKERS = [
-  'AAPL','MSFT','NVDA','GOOGL','META','AMZN','TSLA','JPM','V','UNH',
-  'XOM','CVX','LLY','JNJ','ABBV','HD','PG','MA','MRK','PEP',
-  'COST','KO','BAC','WMT','AVGO','TMO','CSCO','ACN','ABT','CRM',
-  'MCD','ADBE','PFE','DIS','NFLX','AMD','INTC','GS','MS','CAT',
-  'DE','RTX','HON','BA','GE','LMT','UPS','WFC','ISRG','NOW',
-  'PANW','UBER','ABNB','SNOW','PLTR','ARM','SMCI','MSTR','HOOD','RIVN'
+const UNIVERSE = [
+  // Mega cap tech
+  'AAPL','MSFT','NVDA','GOOGL','META','AMZN','TSLA','AVGO','AMD',
+  // Financials
+  'JPM','GS','MS','BAC','V','MA',
+  // Healthcare
+  'LLY','JNJ','UNH','ABBV','MRK',
+  // Energy
+  'XOM','CVX','OXY',
+  // Industrials
+  'CAT','DE','GE','BA','RTX',
+  // Consumer
+  'HD','WMT','MCD','COST','NKE',
+  // Communication
+  'NFLX','DIS','CMCSA',
+  // Other high-volume
+  'CRM','NOW','PANW','PLTR','UBER'
 ];
 
-async function sf(url, t=6000) {
+async function sf(url, t=8000) {
   try {
     const ctrl=new AbortController(), id=setTimeout(()=>ctrl.abort(),t);
     const r=await fetch(url,{signal:ctrl.signal}); clearTimeout(id);
@@ -25,198 +35,172 @@ async function sf(url, t=6000) {
   } catch(e){ return null; }
 }
 
-// Get last trading day (skip weekends)
-function lastTradingDay() {
+function lastTradingDate() {
   const d = new Date();
-  // Use ET time
-  const et = new Date(d.toLocaleString('en-US', {timeZone:'America/New_York'}));
-  const h = et.getHours(), dow = et.getDay();
-  // Before 9:30am ET use previous day
-  const marketOpen = h > 9 || (h === 9 && et.getMinutes() >= 30);
-  if(!marketOpen || dow === 6 || dow === 0) {
-    // Go back to last Friday if weekend, or previous day
-    const back = dow === 0 ? 2 : dow === 6 ? 1 : (!marketOpen ? 1 : 0);
-    if(back > 0) d.setDate(d.getDate() - back);
-  }
-  // Skip back further if still weekend
-  const day = new Date(d.toLocaleString('en-US',{timeZone:'America/New_York'})).getDay();
-  if(day === 0) d.setDate(d.getDate()-2);
-  if(day === 6) d.setDate(d.getDate()-1);
-  return d.toISOString().split('T')[0];
+  const et = new Date(d.toLocaleString('en-US',{timeZone:'America/New_York'}));
+  // Go back until we hit Mon-Fri
+  while(et.getDay()===0||et.getDay()===6) et.setDate(et.getDate()-1);
+  // If before market open go back one more day
+  if(et.getHours()<9||(et.getHours()===9&&et.getMinutes()<30)) et.setDate(et.getDate()-1);
+  while(et.getDay()===0||et.getDay()===6) et.setDate(et.getDate()-1);
+  return et.toISOString().split('T')[0];
 }
 
-// Get snapshot for all tickers — use prev day aggs when market closed
-async function getSnapshot(tickers) {
-  const et = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const h = et.getHours(), m = et.getMinutes(), dow = et.getDay();
-  const isOpen = dow>=1&&dow<=5&&(h>9||(h===9&&m>=30))&&h<16;
-
-  if(isOpen) {
-    // Market open — use live snapshot
-    const snap = await sf(
-      `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers.join(',')}&apiKey=${POLYGON}`,
-      10000
-    );
-    if(snap?.tickers?.length) {
-      return snap.tickers.map(t=>({
-        sym:   t.ticker,
-        price: t.day?.c || t.prevDay?.c || 0,
-        pct:   t.todaysChangePerc || 0,
-        volume:t.day?.v || t.prevDay?.v || 0,
-        vwap:  t.day?.vw || t.prevDay?.vw || 0,
-      })).filter(s=>s.price>1);
-    }
-  }
-
-  // Market closed — use previous trading day grouped aggs
-  const dateStr = lastTradingDay();
-  console.log('[picks] Market closed — using prev day:', dateStr);
+async function getMarketData() {
+  // Get prev day data for all universe stocks in ONE Polygon call
+  const date = lastTradingDate();
+  console.log('[picks] Fetching grouped aggs for', date);
   const grouped = await sf(
-    `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${dateStr}?adjusted=true&apiKey=${POLYGON}`,
-    12000
+    `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${date}?adjusted=true&apiKey=${POLYGON}`,
+    15000
   );
-  if(!grouped?.results?.length) return [];
 
-  // Filter to our tickers
-  const tickerSet = new Set(tickers);
-  return grouped.results
-    .filter(s => tickerSet.has(s.T) && s.c > 1)
-    .map(s => ({
-      sym:   s.T,
-      price: s.c,
-      pct:   s.o ? ((s.c - s.o) / s.o * 100) : 0,
-      volume:s.v || 0,
-      vwap:  s.vw || s.c,
-    }));
+  const tickerSet = new Set(UNIVERSE);
+  const byTicker = {};
+
+  if(grouped?.results) {
+    grouped.results.forEach(s => {
+      if(tickerSet.has(s.T)) {
+        byTicker[s.T] = {
+          sym: s.T,
+          price: s.c,
+          open:  s.o,
+          high:  s.h,
+          low:   s.l,
+          volume:s.v,
+          vwap:  s.vw,
+          pct:   s.o ? ((s.c-s.o)/s.o*100) : 0,
+        };
+      }
+    });
+  }
+
+  // For any missing, fill with 0 so they still get analyzed
+  UNIVERSE.forEach(sym => {
+    if(!byTicker[sym]) byTicker[sym] = {sym, price:0, open:0, high:0, low:0, volume:0, vwap:0, pct:0};
+  });
+
+  return byTicker;
 }
 
-// Quick rank by momentum + volume (no API calls)
-function quickRank(stocks) {
-  return stocks.map(s=>{
-    let score = 50;
-    if(s.pct>3)        score+=20;
-    else if(s.pct>1.5) score+=12;
-    else if(s.pct>0.5) score+=6;
-    else if(s.pct<-2)  score-=8;
-    if(s.volume>50e6)  score+=10;
-    else if(s.volume>10e6) score+=5;
-    return {...s, quickScore:score};
-  }).sort((a,b)=>b.quickScore-a.quickScore);
+async function getMacro() {
+  const [spy,vix,tlt] = await Promise.all([
+    sf(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/quote?symbol=TLT&token=${FINNHUB}`,4000),
+  ]);
+  return {
+    spyPct: (spy?.dp||0).toFixed(2),
+    vix:    (vix?.c||20).toFixed(1),
+    tltPct: (tlt?.dp||0).toFixed(2),
+    riskOn: (spy?.dp||0)>0 && (vix?.c||20)<22,
+  };
 }
 
-// Call our picks-analyze endpoint for each ticker
-async function analyzeTicker(sym, pickType, host) {
-  const url = `https://${host}/api/picks-analyze?ticker=${sym}&type=${pickType}`;
-  return await sf(url, 15000);
+async function analyzeStock(sym, type) {
+  const r = await sf(`${BASE_URL}/api/picks-analyze?ticker=${sym}&type=${type}`, 12000);
+  return r;
+}
+
+async function saveToGist(data) {
+  try {
+    await fetch(`https://api.github.com/gists/${PICKS_GIST}`, {
+      method:'PATCH',
+      headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
+      body: JSON.stringify({files:{'enhanced_picks.json':{content:JSON.stringify(data)}}})
+    });
+  } catch(e) { console.error('[picks] Gist save error:', e.message); }
 }
 
 export default async function handler(req, res) {
-  const send = (status, body) => {
-    res.writeHead(status, CORS);
-    res.end(JSON.stringify(body));
-  };
-
+  const send = (status, body) => { res.writeHead(status,CORS); res.end(JSON.stringify(body)); };
   if(req.method==='OPTIONS') return send(200,{});
 
-  const secret   = req.query?.secret || '';
-  const runType  = req.query?.run || 'full';
+  const secret   = req.query?.secret||'';
+  const runType  = req.query?.run||'full';
   const provided = (req.headers?.authorization||'').replace('Bearer ','')||secret;
   const valid    = (CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
   if(!valid) return send(401,{error:'Unauthorized'});
 
-  const host = req.headers?.host || 'pulsestock-nu.vercel.app';
-
   try {
-    console.log('[picks] Starting', runType, 'on', host);
+    console.log('[picks] Starting run:', runType);
+    const [marketData, macro] = await Promise.all([getMarketData(), getMacro()]);
+    console.log(`[picks] Got data for ${Object.keys(marketData).length} stocks`);
 
-    // Macro
-    const [spyQ, vixQ] = await Promise.all([
-      sf(`https://finnhub.io/api/v1/quote?symbol=SPY&token=${FINNHUB}`,4000),
-      sf(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB}`,4000),
-    ]);
-    const macro = {
-      spyPct: (spyQ?.dp||0).toFixed(2),
-      vix:    (vixQ?.c||20).toFixed(1),
-      tltPct: '0',
-      riskOn: (spyQ?.dp||0)>0 && (vixQ?.c||20)<22,
-    };
-
-    // Get universe snapshot (1 Polygon call)
-    let snapshot = await getSnapshot(TOP_TICKERS);
-    console.log(`[picks] Snapshot: ${snapshot.length} stocks`);
-
-    // If still empty, use fixed list with zero prices (picks-analyze will get live prices)
-    let ranked;
-    if(snapshot.length < 5) {
-      console.log('[picks] Using fixed fallback tickers');
-      ranked = ['NVDA','META','AAPL','MSFT','AMZN','GOOGL','TSLA','JPM','XOM','LLY','AVGO','AMD']
-        .map(sym=>({sym, price:0, pct:0, volume:0, vwap:0, quickScore:50}));
-    } else {
-      ranked = quickRank(snapshot).slice(0, 12);
-      console.log(`[picks] Top: ${ranked.slice(0,5).map(s=>s.sym+'('+s.pct.toFixed(1)+'%)').join(', ')}`);
-    }
-
-    // Run AI deep analysis on top 12, 3 at a time
     const PICK_TYPES = ['general','growth','momentum','intraday'];
-    const allAnalyzed = {};
-
-    // Analyze each ticker once (general type) then rescore for each type
-    const analyzed = [];
-    for(let i=0; i<ranked.length; i+=3) {
-      const batch = ranked.slice(i,i+3);
-      const results = await Promise.all(
-        batch.map(s => analyzeTicker(s.sym, 'general', host).catch(()=>null))
-      );
-      results.forEach((r,idx)=>{ if(r&&r.rating) analyzed.push({...batch[idx],...r}); });
-      if(i+3<ranked.length) await new Promise(r=>setTimeout(r,500));
-    }
-    console.log(`[picks] Analyzed: ${analyzed.length} stocks`);
-
-    // For each pick type, re-rank the analyzed results
-    const pickTypes = {};
     const icons   = {growth:'🌱',momentum:'🚀',intraday:'⚡',general:'🎯'};
     const labels  = {growth:'Long-Term Growth',momentum:'Momentum / Swing',intraday:'Intraday',general:'Best Opportunity'};
+    const descs   = {
+      growth:   'Quality companies with durable competitive advantages and multi-year growth runways',
+      momentum: 'Strong price momentum and technical setups for 5-30 day swing trades',
+      intraday: 'High-liquidity stocks with fresh catalysts for same-day trades',
+      general:  'Best overall risk-adjusted opportunities today across all timeframes',
+    };
+
+    // Analyze all stocks for 'general' type in parallel batches of 5
+    const symbols = UNIVERSE;
+    const generalResults = {};
+
+    console.log(`[picks] Analyzing ${symbols.length} stocks...`);
+    for(let i=0; i<symbols.length; i+=5) {
+      const batch = symbols.slice(i,i+5);
+      const results = await Promise.all(
+        batch.map(sym => analyzeStock(sym, 'general').catch(()=>null))
+      );
+      results.forEach((r,idx) => {
+        if(r&&r.rating) {
+          generalResults[batch[idx]] = {...marketData[batch[idx]], ...r};
+        }
+      });
+      console.log(`[picks] Batch ${Math.floor(i/5)+1}/${Math.ceil(symbols.length/5)} done`);
+      // Small delay between batches
+      if(i+5<symbols.length) await new Promise(r=>setTimeout(r,300));
+    }
+
+    console.log(`[picks] ${Object.keys(generalResults).length} stocks analyzed`);
+
+    // Build pick types from general results, re-ranking by type criteria
+    const pickTypes = {};
+    const allAnalyzed = Object.values(generalResults);
 
     for(const pt of PICK_TYPES) {
-      // Re-run analysis for pick-type specific scoring for top 3
-      const typeAnalyzed = [];
-      const top3 = analyzed.slice(0,3);
-      for(const s of top3) {
-        const r = await analyzeTicker(s.sym, pt, host).catch(()=>null);
-        if(r&&r.rating) typeAnalyzed.push({...s,...r});
-        else typeAnalyzed.push(s);
-      }
-      // Append rest with general scores
-      const rest = analyzed.slice(3).map(s=>({...s}));
-      const allForType = [...typeAnalyzed, ...rest];
+      // Sort based on pick type priorities
+      const sorted = allAnalyzed.slice().sort((a,b) => {
+        const ratingOrder = {BUY:0,WATCH:1,AVOID:2};
+        const ro = (ratingOrder[a.rating]||1) - (ratingOrder[b.rating]||1);
+        if(ro!==0) return ro;
 
-      // Sort: BUY first, then by score
-      const ratingOrder = {BUY:0,WATCH:1,AVOID:2};
-      allForType.sort((a,b)=>(ratingOrder[a.rating]||1)-(ratingOrder[b.rating]||1)||(b.score||50)-(a.score||50));
+        // Type-specific secondary sort
+        if(pt==='momentum') return (b.pct||0)-(a.pct||0);
+        if(pt==='intraday') return (b.volume||0)-(a.volume||0);
+        if(pt==='growth')   return (b.score||50)-(a.score||50);
+        return (b.score||50)-(a.score||50);
+      });
 
-      const overall = allForType.slice(0,5);
+      // Top 5 overall
+      const overall = sorted.slice(0,5);
 
       // Group by sector
       const bySector = {};
-      for(const s of allForType) {
+      sorted.forEach(s => {
         const sec = s.sector||'Unknown';
         if(!bySector[sec]) bySector[sec]=[];
         if(bySector[sec].length<5) bySector[sec].push(s);
-      }
+      });
 
       pickTypes[pt] = {
-        label: labels[pt], icon: icons[pt],
+        label:labels[pt], icon:icons[pt], desc:descs[pt],
         overall: overall.map(s=>({
           sym:       s.sym,
           name:      s.name||s.sym,
           sector:    s.sector||'',
-          price:     s.price,
-          pct:       s.pct,
+          price:     s.price||0,
+          pct:       s.pct||0,
           score:     s.score||50,
           rating:    s.rating||'WATCH',
-          rsi:       s.rsi ? parseFloat(s.rsi).toFixed(0) : null,
-          above50MA: s.sma50  ? s.price > s.sma50  : null,
-          above200MA:s.sma200 ? s.price > s.sma200 : null,
+          rsi:       s.rsi?parseFloat(s.rsi).toFixed(0):null,
+          above50MA: s.sma50  ? (s.price||0)>s.sma50  : null,
+          above200MA:s.sma200 ? (s.price||0)>s.sma200 : null,
           sma50:     s.sma50  ? s.sma50.toFixed(2)  : null,
           sma200:    s.sma200 ? s.sma200.toFixed(2) : null,
           reasons:   s.keySignals||[],
@@ -224,30 +208,37 @@ export default async function handler(req, res) {
           target:    s.target||null,
           stopLoss:  s.stopLoss||null,
           timeframe: s.timeframe||null,
-          headlines: [],
         })),
         bySector: Object.fromEntries(
           Object.entries(bySector).map(([sec,stocks])=>[sec,
-            stocks.map(s=>({sym:s.sym,name:s.name||s.sym,price:s.price,pct:s.pct,score:s.score||50,reasons:s.keySignals||[]}))
+            stocks.map(s=>({
+              sym:s.sym, name:s.name||s.sym,
+              price:s.price||0, pct:s.pct||0,
+              score:s.score||50, rating:s.rating||'WATCH',
+              reasons:s.keySignals||[],
+            }))
           ])
         ),
-        totalQualified: allForType.filter(s=>s.rating==='BUY').length,
+        totalBuy: sorted.filter(s=>s.rating==='BUY').length,
+        totalAnalyzed: sorted.length,
       };
     }
 
-    const output = {generated:new Date().toISOString(), runType, macro, pickTypes};
+    const output = {
+      generated: new Date().toISOString(),
+      runType, macro,
+      universe: symbols.length,
+      analyzed: Object.keys(generalResults).length,
+      pickTypes,
+    };
 
-    // Save to Gist
-    const gr = await fetch(`https://api.github.com/gists/${PICKS_GIST}`,{
-      method:'PATCH',
-      headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
-      body: JSON.stringify({files:{'enhanced_picks.json':{content:JSON.stringify(output)}}})
-    });
-    console.log('[picks] Gist saved:', gr.status);
+    await saveToGist(output);
+    console.log('[picks] Complete — saved to Gist');
 
-    return send(200,{success:true,runType,macro,
-      summary:{snapshot:snapshot.length, analyzed:analyzed.length,
-        counts:Object.fromEntries(PICK_TYPES.map(k=>[k,pickTypes[k].overall.length]))}
+    return send(200,{
+      success:true, runType, macro,
+      analyzed: Object.keys(generalResults).length,
+      counts: Object.fromEntries(PICK_TYPES.map(k=>[k, pickTypes[k].overall.length]))
     });
 
   } catch(e) {
