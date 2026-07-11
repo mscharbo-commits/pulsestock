@@ -9,10 +9,10 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
 
 const PICK_TYPES = {
-  growth:   {label:'Long-Term Growth',  icon:'🌱', minScore:50, scoring:{momentum:15,fundamental:40,technical:20,quality:25}},
-  momentum: {label:'Momentum / Swing',  icon:'🚀', minScore:48, scoring:{momentum:40,fundamental:20,technical:30,quality:10}},
-  intraday: {label:'Intraday',          icon:'⚡', minScore:45, scoring:{momentum:35,fundamental:10,technical:35,quality:20}},
-  general:  {label:'Best Opportunity',  icon:'🎯', minScore:48, scoring:{momentum:25,fundamental:25,technical:25,quality:25}},
+  growth:   {label:'Long-Term Growth',  icon:'🌱', minScore:0, scoring:{momentum:15,fundamental:40,technical:20,quality:25}},
+  momentum: {label:'Momentum / Swing',  icon:'🚀', minScore:0, scoring:{momentum:40,fundamental:20,technical:30,quality:10}},
+  intraday: {label:'Intraday',          icon:'⚡', minScore:0, scoring:{momentum:35,fundamental:10,technical:35,quality:20}},
+  general:  {label:'Best Opportunity',  icon:'🎯', minScore:0, scoring:{momentum:25,fundamental:25,technical:25,quality:25}},
 };
 
 async function sf(url, t=6000) {
@@ -283,10 +283,7 @@ export default async function handler(req, res) {
     for(const [ptKey,ptCfg] of Object.entries(PICK_TYPES)){
       const allScored = enriched
         .map(s=>{const{score,reasons}=scoreStock(s,ptKey,macro);return{...s,score,reasons};});
-    if(ptKey==='general') {
-      console.log('[picks] Score sample:', allScored.slice(0,5).map(s=>s.sym+':'+s.score.toFixed(1)).join(', '));
-      console.log('[picks] MinScore:', ptCfg.minScore);
-    }
+    console.log('[picks] '+ptKey+' scores:', allScored.slice(0,5).map(s=>s.sym+':'+s.score.toFixed(1)).join(', '), '| min:'+ptCfg.minScore+'| total:'+allScored.length);
     const scored = allScored
         .filter(s=>s.score>=ptCfg.minScore)
         .sort((a,b)=>b.score-a.score);
