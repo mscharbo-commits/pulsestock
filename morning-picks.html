@@ -123,241 +123,212 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 <script>
 var _picksData = null;
 var _activeType = 'general';
+var _macro = null;
+
+var PICK_TYPE_DEFS = [
+  {key:'general',  icon:'🎯', label:'Best Opportunity',  desc:'Best overall risk-adjusted picks across all timeframes'},
+  {key:'growth',   icon:'🌱', label:'Long-Term Growth',   desc:'Quality companies with durable multi-year growth runways'},
+  {key:'momentum', icon:'🚀', label:'Momentum / Swing',   desc:'Strong momentum setups for 5-30 day trades'},
+  {key:'intraday', icon:'⚡', label:'Intraday',           desc:'High-liquidity catalyst plays for same-day trades'},
+];
 
 function qs(sym) { window.location = '/stock.html?symbol=' + sym; }
 
-async function loadPicks() {
-  document.getElementById('picks-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">Checking for picks...</div>';
-  document.getElementById('type-tabs').innerHTML = '';
-  document.getElementById('macro-strip').innerHTML = '';
-
-  try {
-    const r = await fetch('/api/morning-picks?t='+Date.now());
-    const text = await r.text();
-    let data;
-    try { data = JSON.parse(text); } catch(e) {
-      showEmpty('Could not load picks. Click ⚡ Run Scan to generate.');
-      return;
-    }
-
-    if(data.pickTypes && Object.keys(data.pickTypes).length) {
-      _picksData = data;
-      renderEnhanced(data);
-    } else if(data.picks && data.picks.length > 0) {
-      renderLegacy(data);
-    } else {
-      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s picks.');
-    }
-  } catch(e) {
-    showEmpty('No picks yet. Click ⚡ Run Scan to generate.');
-  }
-}
-
-function renderMacro(macro) {
-  if(!macro) return;
+// Always render the full page skeleton
+function renderSkeleton(macro) {
+  // Macro strip
   var strip = document.getElementById('macro-strip');
-  var riskColor = macro.riskOn ? 'var(--green)' : 'var(--red)';
-  strip.innerHTML = [
-    '<span class="macro-pill">SPY <b style="color:'+(macro.spyPct>=0?'var(--green)':'var(--red)')+';">'+(macro.spyPct>=0?'+':'')+macro.spyPct+'%</b></span>',
-    '<span class="macro-pill">VIX <b>'+macro.vix+'</b></span>',
-    '<span class="macro-pill">TLT <b style="color:'+(macro.tltPct>=0?'var(--green)':'var(--red)')+';">'+(macro.tltPct>=0?'+':'')+macro.tltPct+'%</b></span>',
-    '<span class="macro-pill" style="border-color:'+riskColor+';color:'+riskColor+';">'+(macro.riskOn?'⬆ Risk-On':'⬇ Risk-Off')+'</span>',
-  ].join('');
-}
+  if(macro && macro.spyPct !== undefined) {
+    var riskColor = macro.riskOn ? 'var(--green)' : 'var(--red)';
+    strip.innerHTML = [
+      '<span class="macro-pill">SPY <b style="color:'+(macro.spyPct>=0?'var(--green)':'var(--red)')+';">'+(macro.spyPct>=0?'+':'')+macro.spyPct+'%</b></span>',
+      '<span class="macro-pill">VIX <b>'+macro.vix+'</b></span>',
+      '<span class="macro-pill">TLT <b style="color:'+(macro.tltPct>=0?'var(--green)':'var(--red)')+';">'+(macro.tltPct>=0?'+':'')+macro.tltPct+'%</b></span>',
+      '<span class="macro-pill" style="border-color:'+riskColor+';color:'+riskColor+';">'+(macro.riskOn?'⬆ Risk-On':'⬇ Risk-Off')+'</span>',
+    ].join('');
+  } else {
+    strip.innerHTML = ['SPY','VIX','TLT','Sentiment'].map(function(l){
+      return '<span class="macro-pill" style="opacity:.4;">'+l+' —</span>';
+    }).join('');
+  }
 
-function renderEnhanced(data) {
-  // Update meta
-  var t = new Date(data.generated);
-  document.getElementById('meta-date').textContent = 'Generated ' + t.toLocaleString();
-  document.getElementById('meta-time').textContent = data.runType === 'midday' ? '📊 Midday Update' : '🌅 Pre-Market Run';
-
-  renderMacro(data.macro);
-
-  // Build tabs
+  // Always render 4 tabs
   var tabs = document.getElementById('type-tabs');
-  tabs.innerHTML = Object.entries(data.pickTypes).map(function(entry) {
-    var key = entry[0], pt = entry[1];
-    var count = pt.overall ? pt.overall.length : 0;
-    return '<div class="type-tab'+(key===_activeType?' active':'')+'" onclick="switchType(\''+key+'\')">'
-      +'<span class="tab-icon">'+pt.icon+'</span>'
-      +pt.label
-      +(count?'<span class="tab-count">'+count+'</span>':'')
+  tabs.innerHTML = PICK_TYPE_DEFS.map(function(t) {
+    var pt = _picksData && _picksData.pickTypes && _picksData.pickTypes[t.key];
+    var count = pt && pt.overall ? pt.overall.length : 0;
+    return '<div class="type-tab'+(t.key===_activeType?' active':'')+'" onclick="switchType(''+t.key+'')">'
+      +'<span class="tab-icon">'+t.icon+'</span>'
+      +t.label
+      +(count ? '<span class="tab-count">'+count+'</span>' : '')
       +'</div>';
   }).join('');
 
-  renderPickType(_activeType);
+  // Render active tab content
+  renderActiveTab();
+}
+
+function renderActiveTab() {
+  var def = PICK_TYPE_DEFS.find(function(t){return t.key===_activeType;});
+  var pt  = _picksData && _picksData.pickTypes && _picksData.pickTypes[_activeType];
+  var content = document.getElementById('picks-content');
+
+  var html = '';
+
+  // Description bar
+  html += '<div style="font-size:13px;color:var(--text3);margin-bottom:16px;padding:10px 14px;'
+    +'background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
+    + def.icon + ' <b>' + def.label + '</b> — ' + def.desc + '</div>';
+
+  if(!pt || !pt.overall || !pt.overall.length) {
+    // No picks — show structured empty state with sector grid placeholders
+    html += '<div class="section-title">🏆 Top 5 — '+def.label+'</div>';
+    html += '<div style="background:var(--surface);border:1px dashed var(--border);border-radius:12px;'
+      +'padding:32px;text-align:center;margin-bottom:24px;">'
+      +'<div style="font-size:32px;margin-bottom:8px;">📊</div>'
+      +'<div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px;">No '+def.label+' picks today</div>'
+      +'<div style="font-size:12px;color:var(--text3);">Market conditions or data not sufficient for this category. Try running a fresh scan.</div>'
+      +'</div>';
+
+    // Show sector grid with empty state
+    html += '<div class="section-title">🏭 By Sector</div>';
+    html += '<div class="sector-grid">';
+    ['Technology','Financials','Healthcare','Energy','Industrials','Consumer Disc.',
+     'Consumer Staples','Communication','Real Estate','Utilities','Materials'].forEach(function(sec){
+      html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>'
+        +'<div class="sector-empty">—</div></div>';
+    });
+    html += '</div>';
+  } else {
+    // Has picks — render normally
+    html += '<div class="section-title">🏆 Top 5 — '+def.label+'</div>';
+    html += '<div class="picks-grid">';
+    pt.overall.forEach(function(p, i) {
+      var up = p.pct >= 0;
+      html += '<div class="pick-card'+(i===0?' rank-1':'')+'" onclick="qs(''+p.sym+'')">'+
+        (i===0?'<div class="rank-badge">#1 Pick</div>':'')+
+        '<div class="pick-card-header">'+
+        '<span class="pick-sym">'+p.sym+'</span>'+
+        '<span class="pick-score">'+p.score+'/100</span>'+
+        '</div>'+
+        '<div class="pick-name">'+(p.name||p.sym)+' · '+(p.sector||'')+'</div>'+
+        '<div class="pick-price-row">'+
+        '<span class="pick-price">$'+p.price.toFixed(2)+'</span>'+
+        '<span class="pick-pct '+(up?'up':'dn')+'">'+(up?'+':'')+p.pct.toFixed(2)+'%</span>'+
+        '</div>'+
+        '<div class="pick-tech">'+
+        (p.rsi?'<span>RSI '+p.rsi+'</span>':'')+
+        (p.above50MA!==null?'<span>'+(p.above50MA?'✅':'❌')+' 50MA</span>':'')+
+        (p.above200MA!==null?'<span>'+(p.above200MA?'✅':'❌')+' 200MA</span>':'')+
+        '</div>'+
+        '<div class="pick-reasons">'+( p.reasons||[]).map(function(r){
+          return '<span class="pick-reason">'+r+'</span>';
+        }).join('')+'</div>'+
+        (p.thesis?'<div class="pick-thesis">'+p.thesis+'</div>':'')+
+        (p.headlines&&p.headlines[0]?'<div class="pick-news">📰 '+p.headlines[0]+'</div>':'')+
+        '</div>';
+    });
+    html += '</div>';
+
+    if(pt.bySector && Object.keys(pt.bySector).length) {
+      html += '<div class="section-title">🏭 By Sector</div>';
+      html += '<div class="sector-grid">';
+      var allSectors = ['Technology','Financial Services','Healthcare','Energy','Industrials',
+        'Consumer Cyclical','Consumer Defensive','Communication Services','Real Estate','Utilities','Basic Materials'];
+      allSectors.forEach(function(sec) {
+        var stocks = pt.bySector[sec] || [];
+        html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
+        if(!stocks.length) {
+          html += '<div class="sector-empty">No qualifying picks</div>';
+        } else {
+          stocks.forEach(function(s) {
+            var up = s.pct >= 0;
+            html += '<div class="sector-pick" onclick="qs(''+s.sym+'')">'+
+              '<div><div class="sp-sym">'+s.sym+'</div><div class="sp-name">'+(s.name||'')+'</div></div>'+
+              '<div class="sp-right">'+
+              '<div class="sp-score">'+s.score+'/100</div>'+
+              '<div class="sp-pct" style="color:'+(up?'var(--green)':'var(--red)')+';">'+(up?'+':'')+s.pct.toFixed(2)+'%</div>'+
+              '</div></div>';
+          });
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div style="font-size:12px;color:var(--text3);margin-top:4px;">'
+      +(pt.totalQualified||0)+' stocks qualified · Click any ticker for full analysis</div>';
+  }
+
+  content.innerHTML = html;
 }
 
 function switchType(key) {
   _activeType = key;
   document.querySelectorAll('.type-tab').forEach(function(t){t.classList.remove('active');});
   event.currentTarget.classList.add('active');
-  renderPickType(key);
+  renderActiveTab();
 }
 
-function renderPickType(key) {
-  if(!_picksData||!_picksData.pickTypes) return;
-  var pt = _picksData.pickTypes[key];
-  if(!pt) return;
+async function loadPicks() {
+  // Always show skeleton immediately
+  renderSkeleton(null);
+  document.getElementById('meta-date').textContent = 'Checking for picks...';
 
-  var content = document.getElementById('picks-content');
+  try {
+    var r = await fetch('/api/morning-picks?t='+Date.now());
+    var text = await r.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) { data = {}; }
 
-  if(!pt.overall||!pt.overall.length) {
-    content.innerHTML = '<div class="empty-state"><div style="font-size:40px;">📊</div><h3>No '+pt.label+' picks today</h3><p>Market conditions don\'t meet the criteria for this pick type today.</p></div>';
-    return;
+    if(data.pickTypes && Object.keys(data.pickTypes).length) {
+      _picksData = data;
+      _macro = data.macro;
+      var t = new Date(data.generated);
+      document.getElementById('meta-date').textContent = 'Generated '+t.toLocaleString();
+      document.getElementById('meta-time').textContent = data.runType==='midday'?'📊 Midday':'🌅 Pre-Market';
+    } else {
+      document.getElementById('meta-date').textContent = 'No scan yet today — hit ⚡ Run Scan';
+    }
+    renderSkeleton(_macro);
+  } catch(e) {
+    document.getElementById('meta-date').textContent = 'Could not load picks';
+    renderSkeleton(null);
   }
-
-  var html = '';
-
-  // Top 5 overall
-  html += '<div class="section-title">🏆 Top 5 — '+pt.label+'</div>';
-  html += '<div class="picks-grid">';
-  pt.overall.forEach(function(p, i) {
-    var up = p.pct >= 0;
-    html += '<div class="pick-card'+(i===0?' rank-1':'')+'" onclick="qs(\''+p.sym+'\')">'
-      +(i===0?'<div class="rank-badge">#1 Pick</div>':'')
-      +'<div class="pick-card-header">'
-      +'<span class="pick-sym">'+p.sym+'</span>'
-      +'<span class="pick-score">'+p.score+'/100</span>'
-      +'</div>'
-      +'<div class="pick-name">'+p.name+' · '+p.sector+'</div>'
-      +'<div class="pick-price-row">'
-      +'<span class="pick-price">$'+p.price.toFixed(2)+'</span>'
-      +'<span class="pick-pct '+(up?'up':'dn')+'">'+(up?'+':'')+p.pct.toFixed(2)+'%</span>'
-      +'</div>'
-      +'<div class="pick-tech">'
-      +(p.rsi?'<span>RSI '+p.rsi+'</span>':'')
-      +(p.above50MA!==null?'<span>'+(p.above50MA?'✅':'❌')+' 50MA</span>':'')
-      +(p.above200MA!==null?'<span>'+(p.above200MA?'✅':'❌')+' 200MA</span>':'')
-      +(p.sma50?'<span>50MA $'+p.sma50+'</span>':'')
-      +'</div>'
-      +'<div class="pick-reasons">'+( p.reasons||[]).map(function(r){return '<span class="pick-reason">'+r+'</span>';}).join('')+'</div>'
-      +(p.thesis?'<div class="pick-thesis">'+p.thesis+'</div>':'')
-      +(p.headlines&&p.headlines[0]?'<div class="pick-news">📰 '+p.headlines[0]+'</div>':'')
-      +'</div>';
-  });
-  html += '</div>';
-
-  // Sector breakdown
-  if(pt.bySector && Object.keys(pt.bySector).length) {
-    html += '<div class="section-title">🏭 By Sector</div>';
-    html += '<div class="sector-grid">';
-    Object.entries(pt.bySector).sort().forEach(function(entry) {
-      var sec = entry[0], stocks = entry[1];
-      html += '<div class="sector-card">'
-        +'<div class="sector-name">'+sec+'</div>';
-      if(!stocks||!stocks.length) {
-        html += '<div class="sector-empty">No qualifying picks</div>';
-      } else {
-        stocks.forEach(function(s) {
-          var up = s.pct >= 0;
-          html += '<div class="sector-pick" onclick="qs(\''+s.sym+'\')">'
-            +'<div><div class="sp-sym">'+s.sym+'</div><div class="sp-name">'+s.name+'</div></div>'
-            +'<div class="sp-right">'
-            +'<div class="sp-score">'+s.score+'/100</div>'
-            +'<div class="sp-pct" style="color:'+(up?'var(--green)':'var(--red)')+'">'+(up?'+':'')+s.pct.toFixed(2)+'%</div>'
-            +'</div>'
-            +'</div>';
-        });
-      }
-      html += '</div>';
-    });
-    html += '</div>';
-  }
-
-  // Stats footer
-  html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">'
-    +pt.totalQualified+' stocks qualified out of universe · Click any pick for full analysis</div>';
-
-  content.innerHTML = html;
-}
-
-function renderLegacy(data) {
-  // Handle old format
-  document.getElementById('meta-date').textContent = data.date || 'Today';
-  var t = data.generated ? new Date(data.generated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
-  document.getElementById('meta-time').textContent = t ? 'Generated ' + t : '';
-
-  var tabs = document.getElementById('type-tabs');
-  tabs.innerHTML = '<div class="type-tab active">🎯 All Picks ('+(data.picks||[]).length+')</div>';
-
-  var content = document.getElementById('picks-content');
-  if(!data.picks||!data.picks.length) {
-    showEmpty('No picks available. Click ⚡ Run Scan to generate.');
-    return;
-  }
-  var html = '<div class="picks-grid">';
-  data.picks.slice(0,10).forEach(function(p) {
-    var up = (p.pct||0) >= 0;
-    html += '<div class="pick-card" onclick="qs(\''+p.sym+'\')">'
-      +'<div class="pick-card-header"><span class="pick-sym">'+p.sym+'</span>'
-      +'<span class="pick-score" style="background:'+(p.rating==='BUY'?'var(--green-bg)':p.rating==='AVOID'?'var(--red-bg)':'var(--amber-bg)');color:'+(p.rating==='BUY'?'var(--green)':p.rating==='AVOID'?'var(--red)':'var(--amber)')+'">'+p.rating+'</span>'
-      +'</div>'
-      +'<div class="pick-name">'+(p.name||p.sym)+' · '+(p.sector||'')+'</div>'
-      +'<div class="pick-price-row"><span class="pick-price">$'+(p.price||0).toFixed(2)+'</span>'
-      +'<span class="pick-pct '+(up?'up':'dn')+'">'+(up?'+':'')+(p.pct||0).toFixed(2)+'%</span></div>'
-      +(p.reason?'<div class="pick-thesis">'+p.reason+'</div>':'')
-      +'</div>';
-  });
-  html += '</div>';
-  content.innerHTML = html;
-}
-
-function showEmpty(msg) {
-  var types = [
-    {key:'general',icon:'🎯',label:'Best Opportunity'},
-    {key:'growth',icon:'🌱',label:'Long-Term Growth'},
-    {key:'momentum',icon:'🚀',label:'Momentum / Swing'},
-    {key:'intraday',icon:'⚡',label:'Intraday'},
-  ];
-  document.getElementById('type-tabs').innerHTML = types.map(function(t){
-    return '<div class="type-tab" style="opacity:.4;cursor:default;">'+t.icon+' '+t.label+'</div>';
-  }).join('');
-  document.getElementById('picks-content').innerHTML =
-    '<div class="empty-state">'
-    +'<div style="font-size:48px;margin-bottom:16px;">📊</div>'
-    +'<h3 style="margin-bottom:8px;">No picks yet for today</h3>'
-    +'<p style="margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;">'+msg+'</p>'
-    +'<button class="run-btn" onclick="runScan()" style="font-size:14px;padding:12px 32px;">⚡ Run Scan Now</button>'
-    +'</div>';
-  document.getElementById('meta-date').textContent = 'Not yet run today';
 }
 
 async function runScan() {
-  var btn = document.querySelector('.run-btn');
-  btn.textContent = '⏳ Scanning...';
-  btn.disabled = true;
-  document.getElementById('meta-date').textContent = 'Scan in progress — takes 2-3 minutes...';
+  var btns = document.querySelectorAll('.run-btn');
+  btns.forEach(function(b){b.textContent='⏳ Scanning...';b.disabled=true;});
+  document.getElementById('meta-date').textContent = 'Scan in progress — ~2 minutes...';
 
-  // Fire and forget — don't await completion
   fetch('/api/cron-picks?secret=pulsestock2026&run=full').catch(function(){});
 
-  // Poll for results every 15 seconds
   var attempts = 0;
-  var maxAttempts = 20; // 5 minutes max
   var poll = setInterval(async function() {
     attempts++;
     try {
       var r = await fetch('/api/morning-picks?t='+Date.now());
-      var text = await r.text();
-      var d = JSON.parse(text);
-      if(d.pickTypes && Object.keys(d.pickTypes).length > 0) {
+      var d = JSON.parse(await r.text());
+      if(d.pickTypes && Object.keys(d.pickTypes).length) {
         clearInterval(poll);
-        btn.textContent = '✅ Done!';
         _picksData = d;
-        renderEnhanced(d);
-        setTimeout(function(){ btn.textContent='⚡ Run Scan'; btn.disabled=false; }, 2000);
+        _macro = d.macro;
+        var t = new Date(d.generated);
+        document.getElementById('meta-date').textContent = 'Generated '+t.toLocaleString();
+        document.getElementById('meta-time').textContent = '🌅 Pre-Market';
+        renderSkeleton(_macro);
+        btns.forEach(function(b){b.textContent='✅ Done!';b.disabled=false;});
+        setTimeout(function(){btns.forEach(function(b){b.textContent='⚡ Run Scan';});},2000);
         return;
       }
     } catch(e) {}
-    if(attempts >= maxAttempts) {
+    if(attempts >= 16) {
       clearInterval(poll);
-      btn.textContent = '⚡ Run Scan';
-      btn.disabled = false;
-      document.getElementById('meta-date').textContent = 'Scan may have timed out — try again';
+      btns.forEach(function(b){b.textContent='⚡ Run Scan';b.disabled=false;});
+      document.getElementById('meta-date').textContent = 'Scan timed out — try again';
     } else {
-      var remaining = Math.max(0, maxAttempts - attempts) * 15;
-      btn.textContent = '⏳ ~' + Math.ceil(remaining/60) + 'm left...';
+      btns.forEach(function(b){b.textContent='⏳ ~'+Math.ceil((16-attempts)*15/60)+'m...';});
     }
   }, 15000);
 }
