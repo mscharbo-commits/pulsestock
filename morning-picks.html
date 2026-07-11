@@ -121,219 +121,207 @@ header{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;heig
 </div>
 
 <script>
-var _picksData = null;
+var _picks = {};   // sym -> analysis result
 var _activeType = 'general';
-var _macro = null;
+var _macro = {spyPct:'0',vix:'—',tltPct:'0',riskOn:true};
+var _scanning = false;
 
-var PICK_TYPE_DEFS = [
-  {key:'general',  icon:'🎯', label:'Best Opportunity',  desc:'Best overall risk-adjusted picks across all timeframes'},
-  {key:'growth',   icon:'🌱', label:'Long-Term Growth',   desc:'Quality companies with durable multi-year growth runways'},
-  {key:'momentum', icon:'🚀', label:'Momentum / Swing',   desc:'Strong momentum setups for 5-30 day trades'},
-  {key:'intraday', icon:'⚡', label:'Intraday',           desc:'High-liquidity catalyst plays for same-day trades'},
+var TICKERS = ['NVDA','META','AAPL','MSFT','AMZN','GOOGL','TSLA','JPM','XOM','LLY','AVGO','AMD'];
+
+var PICK_TYPES = [
+  {key:'general',  icon:'🎯', label:'Best Opportunity',   desc:'Best overall risk-adjusted picks today'},
+  {key:'growth',   icon:'🌱', label:'Long-Term Growth',    desc:'Quality companies with durable multi-year growth runways'},
+  {key:'momentum', icon:'🚀', label:'Momentum / Swing',    desc:'Strong momentum setups for 5-30 day trades'},
+  {key:'intraday', icon:'⚡', label:'Intraday',            desc:'High-liquidity catalyst plays for same-day trades'},
 ];
 
-function qs(sym) { window.location = '/stock.html?symbol=' + sym; }
+function qs(sym) { window.location = '/stock.html?symbol='+sym; }
 
-// Always render the full page skeleton
-function renderSkeleton(macro) {
+function render() {
   // Macro strip
   var strip = document.getElementById('macro-strip');
-  if(macro && macro.spyPct !== undefined) {
-    var riskColor = macro.riskOn ? 'var(--green)' : 'var(--red)';
-    strip.innerHTML = [
-      '<span class="macro-pill">SPY <b style="color:'+(macro.spyPct>=0?'var(--green)':'var(--red)')+';">'+(macro.spyPct>=0?'+':'')+macro.spyPct+'%</b></span>',
-      '<span class="macro-pill">VIX <b>'+macro.vix+'</b></span>',
-      '<span class="macro-pill">TLT <b style="color:'+(macro.tltPct>=0?'var(--green)':'var(--red)')+';">'+(macro.tltPct>=0?'+':'')+macro.tltPct+'%</b></span>',
-      '<span class="macro-pill" style="border-color:'+riskColor+';color:'+riskColor+';">'+(macro.riskOn?'⬆ Risk-On':'⬇ Risk-Off')+'</span>',
-    ].join('');
-  } else {
-    strip.innerHTML = ['SPY','VIX','TLT','Sentiment'].map(function(l){
-      return '<span class="macro-pill" style="opacity:.4;">'+l+' —</span>';
-    }).join('');
-  }
+  var rc = _macro.riskOn?'var(--green)':'var(--red)';
+  strip.innerHTML = [
+    '<span class="macro-pill">SPY <b style="color:'+(_macro.spyPct>=0?'var(--green)':'var(--red)')+';">'+(+_macro.spyPct>=0?'+':'')+_macro.spyPct+'%</b></span>',
+    '<span class="macro-pill">VIX <b>'+_macro.vix+'</b></span>',
+    '<span class="macro-pill" style="border-color:'+rc+';color:'+rc+';">'+(_macro.riskOn?'⬆ Risk-On':'⬇ Risk-Off')+'</span>',
+  ].join('');
 
-  // Always render 4 tabs
+  // Tabs
+  var results = Object.values(_picks);
   var tabs = document.getElementById('type-tabs');
-  tabs.innerHTML = PICK_TYPE_DEFS.map(function(t) {
-    var pt = _picksData && _picksData.pickTypes && _picksData.pickTypes[t.key];
-    var count = pt && pt.overall ? pt.overall.length : 0;
-    return '<div class="type-tab'+(t.key===_activeType?' active':'')+'" onclick="switchType(''+t.key+'')">'
-      +'<span class="tab-icon">'+t.icon+'</span>'
-      +t.label
-      +(count ? '<span class="tab-count">'+count+'</span>' : '')
+  tabs.innerHTML = PICK_TYPES.map(function(t) {
+    var buys = results.filter(function(p){return p.rating==='BUY';}).length;
+    return '<div class="type-tab'+(t.key===_activeType?' active':'')+'" onclick="setTab(''+t.key+'')">'
+      +t.icon+' '+t.label
+      +(buys&&t.key===_activeType?'<span class="tab-count">'+buys+'</span>':'')
       +'</div>';
   }).join('');
 
-  // Render active tab content
-  renderActiveTab();
+  // Content
+  renderTab(_activeType);
 }
 
-function renderActiveTab() {
-  var def = PICK_TYPE_DEFS.find(function(t){return t.key===_activeType;});
-  var pt  = _picksData && _picksData.pickTypes && _picksData.pickTypes[_activeType];
+function setTab(key) {
+  _activeType = key;
+  document.querySelectorAll('.type-tab').forEach(function(t){t.classList.remove('active');});
+  event.currentTarget.classList.add('active');
+  renderTab(key);
+}
+
+function sortForType(picks, type) {
+  return picks.slice().sort(function(a,b){
+    var order={BUY:0,WATCH:1,AVOID:2};
+    var ao=order[a.rating]||1, bo=order[b.rating]||1;
+    if(ao!==bo) return ao-bo;
+    return (b.score||50)-(a.score||50);
+  });
+}
+
+function renderTab(type) {
   var content = document.getElementById('picks-content');
+  var def = PICK_TYPES.find(function(t){return t.key===type;});
+  var allPicks = Object.values(_picks);
+  var sorted = sortForType(allPicks, type);
+  var top5 = sorted.slice(0,5);
 
-  var html = '';
-
-  // Description bar
-  html += '<div style="font-size:13px;color:var(--text3);margin-bottom:16px;padding:10px 14px;'
+  var html = '<div style="font-size:13px;color:var(--text3);margin-bottom:16px;padding:10px 14px;'
     +'background:var(--surface);border:1px solid var(--border);border-radius:8px;">'
-    + def.icon + ' <b>' + def.label + '</b> — ' + def.desc + '</div>';
+    +def.icon+' <b>'+def.label+'</b> — '+def.desc+'</div>';
 
-  if(!pt || !pt.overall || !pt.overall.length) {
-    // No picks — show structured empty state with sector grid placeholders
-    html += '<div class="section-title">🏆 Top 5 — '+def.label+'</div>';
-    html += '<div style="background:var(--surface);border:1px dashed var(--border);border-radius:12px;'
-      +'padding:32px;text-align:center;margin-bottom:24px;">'
-      +'<div style="font-size:32px;margin-bottom:8px;">📊</div>'
-      +'<div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px;">No '+def.label+' picks today</div>'
-      +'<div style="font-size:12px;color:var(--text3);">Market conditions or data not sufficient for this category. Try running a fresh scan.</div>'
+  // Top picks
+  html += '<div class="section-title">🏆 Top Picks</div>';
+
+  if(!top5.length) {
+    html += '<div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:12px;'
+      +'padding:40px;text-align:center;margin-bottom:24px;">'
+      +(_scanning
+        ? '<div style="font-size:14px;color:var(--text2);">⏳ Analyzing stocks... '+(Object.keys(_picks).length)+'/'+TICKERS.length+' complete</div>'
+        : '<div style="font-size:32px;margin-bottom:8px;">📊</div>'
+          +'<div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">No picks yet</div>'
+          +'<div style="font-size:13px;color:var(--text3);">Click ⚡ Run Scan to generate today's picks</div>')
       +'</div>';
-
-    // Show sector grid with empty state
-    html += '<div class="section-title">🏭 By Sector</div>';
-    html += '<div class="sector-grid">';
-    ['Technology','Financials','Healthcare','Energy','Industrials','Consumer Disc.',
-     'Consumer Staples','Communication','Real Estate','Utilities','Materials'].forEach(function(sec){
-      html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>'
-        +'<div class="sector-empty">—</div></div>';
-    });
-    html += '</div>';
   } else {
-    // Has picks — render normally
-    html += '<div class="section-title">🏆 Top 5 — '+def.label+'</div>';
     html += '<div class="picks-grid">';
-    pt.overall.forEach(function(p, i) {
-      var up = p.pct >= 0;
+    top5.forEach(function(p, i) {
+      var up = (p.pct||0)>=0;
+      var rColor = p.rating==='BUY'?'var(--green)':p.rating==='AVOID'?'var(--red)':'var(--amber)';
+      var rBg    = p.rating==='BUY'?'var(--green-bg)':p.rating==='AVOID'?'var(--red-bg)':'var(--amber-bg)';
       html += '<div class="pick-card'+(i===0?' rank-1':'')+'" onclick="qs(''+p.sym+'')">'+
         (i===0?'<div class="rank-badge">#1 Pick</div>':'')+
         '<div class="pick-card-header">'+
-        '<span class="pick-sym">'+p.sym+'</span>'+
-        '<span class="pick-score">'+p.score+'/100</span>'+
+          '<span class="pick-sym">'+p.sym+'</span>'+
+          '<div style="display:flex;gap:6px;align-items:center;">'+
+            '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+rBg+';color:'+rColor+';">'+p.rating+'</span>'+
+            '<span class="pick-score">'+p.score+'/100</span>'+
+          '</div>'+
         '</div>'+
         '<div class="pick-name">'+(p.name||p.sym)+' · '+(p.sector||'')+'</div>'+
         '<div class="pick-price-row">'+
-        '<span class="pick-price">$'+p.price.toFixed(2)+'</span>'+
-        '<span class="pick-pct '+(up?'up':'dn')+'">'+(up?'+':'')+p.pct.toFixed(2)+'%</span>'+
+          '<span class="pick-price">$'+(p.price||0).toFixed(2)+'</span>'+
+          '<span class="pick-pct '+(up?'up':'dn')+'">'+(up?'+':'')+(p.pct||0).toFixed(2)+'%</span>'+
         '</div>'+
         '<div class="pick-tech">'+
-        (p.rsi?'<span>RSI '+p.rsi+'</span>':'')+
-        (p.above50MA!==null?'<span>'+(p.above50MA?'✅':'❌')+' 50MA</span>':'')+
-        (p.above200MA!==null?'<span>'+(p.above200MA?'✅':'❌')+' 200MA</span>':'')+
+          (p.rsi?'<span>RSI '+p.rsi+'</span>':'')+
+          (p.above50MA!==null&&p.above50MA!==undefined?'<span>'+(p.above50MA?'✅':'❌')+' 50MA</span>':'')+
+          (p.above200MA!==null&&p.above200MA!==undefined?'<span>'+(p.above200MA?'✅':'❌')+' 200MA</span>':'')+
         '</div>'+
-        '<div class="pick-reasons">'+( p.reasons||[]).map(function(r){
-          return '<span class="pick-reason">'+r+'</span>';
-        }).join('')+'</div>'+
+        '<div class="pick-reasons">'+( p.keySignals||[]).map(function(r){return '<span class="pick-reason">'+r+'</span>';}).join('')+'</div>'+
         (p.thesis?'<div class="pick-thesis">'+p.thesis+'</div>':'')+
-        (p.headlines&&p.headlines[0]?'<div class="pick-news">📰 '+p.headlines[0]+'</div>':'')+
+        (p.target?'<div style="font-size:11px;color:var(--green);margin-top:6px;">🎯 Target: '+p.target+' · Stop: '+(p.stopLoss||'—')+'</div>':'')+
         '</div>';
     });
     html += '</div>';
-
-    if(pt.bySector && Object.keys(pt.bySector).length) {
-      html += '<div class="section-title">🏭 By Sector</div>';
-      html += '<div class="sector-grid">';
-      var allSectors = ['Technology','Financial Services','Healthcare','Energy','Industrials',
-        'Consumer Cyclical','Consumer Defensive','Communication Services','Real Estate','Utilities','Basic Materials'];
-      allSectors.forEach(function(sec) {
-        var stocks = pt.bySector[sec] || [];
-        html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
-        if(!stocks.length) {
-          html += '<div class="sector-empty">No qualifying picks</div>';
-        } else {
-          stocks.forEach(function(s) {
-            var up = s.pct >= 0;
-            html += '<div class="sector-pick" onclick="qs(''+s.sym+'')">'+
-              '<div><div class="sp-sym">'+s.sym+'</div><div class="sp-name">'+(s.name||'')+'</div></div>'+
-              '<div class="sp-right">'+
-              '<div class="sp-score">'+s.score+'/100</div>'+
-              '<div class="sp-pct" style="color:'+(up?'var(--green)':'var(--red)')+';">'+(up?'+':'')+s.pct.toFixed(2)+'%</div>'+
-              '</div></div>';
-          });
-        }
-        html += '</div>';
-      });
-      html += '</div>';
-    }
-
-    html += '<div style="font-size:12px;color:var(--text3);margin-top:4px;">'
-      +(pt.totalQualified||0)+' stocks qualified · Click any ticker for full analysis</div>';
   }
+
+  // Sector grid — always show all sectors
+  html += '<div class="section-title">🏭 All Picks by Rating</div>';
+  html += '<div class="sector-grid">';
+
+  // Group all picks by sector
+  var bySector = {};
+  sorted.forEach(function(p) {
+    var sec = p.sector||'Unknown';
+    if(!bySector[sec]) bySector[sec]=[];
+    bySector[sec].push(p);
+  });
+
+  var allSectors = ['Technology','Financial Services','Healthcare','Energy','Industrials',
+    'Consumer Cyclical','Consumer Defensive','Communication Services','Real Estate','Utilities','Basic Materials'];
+
+  allSectors.forEach(function(sec) {
+    var stocks = bySector[sec]||[];
+    html += '<div class="sector-card"><div class="sector-name">'+sec+'</div>';
+    if(!stocks.length) {
+      html += '<div class="sector-empty">'+(_scanning?'Scanning...':'—')+'</div>';
+    } else {
+      stocks.slice(0,5).forEach(function(s) {
+        var up=(s.pct||0)>=0;
+        var rColor=s.rating==='BUY'?'var(--green)':s.rating==='AVOID'?'var(--red)':'var(--amber)';
+        html += '<div class="sector-pick" onclick="qs(''+s.sym+'')">'+
+          '<div><div class="sp-sym">'+s.sym+'</div><div class="sp-name">'+(s.name||'')+'</div></div>'+
+          '<div class="sp-right">'+
+            '<div class="sp-score" style="color:'+rColor+';">'+s.rating+'</div>'+
+            '<div class="sp-pct" style="color:'+(up?'var(--green)':'var(--red)')+';">'+(up?'+':'')+(s.pct||0).toFixed(2)+'%</div>'+
+          '</div>'+
+          '</div>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '</div>';
 
   content.innerHTML = html;
 }
 
-function switchType(key) {
-  _activeType = key;
-  document.querySelectorAll('.type-tab').forEach(function(t){t.classList.remove('active');});
-  event.currentTarget.classList.add('active');
-  renderActiveTab();
-}
-
-async function loadPicks() {
-  // Always show skeleton immediately
-  renderSkeleton(null);
-  document.getElementById('meta-date').textContent = 'Checking for picks...';
-
+async function loadMacro() {
   try {
-    var r = await fetch('/api/morning-picks?t='+Date.now());
-    var text = await r.text();
-    var data;
-    try { data = JSON.parse(text); } catch(e) { data = {}; }
-
-    if(data.pickTypes && Object.keys(data.pickTypes).length) {
-      _picksData = data;
-      _macro = data.macro;
-      var t = new Date(data.generated);
-      document.getElementById('meta-date').textContent = 'Generated '+t.toLocaleString();
-      document.getElementById('meta-time').textContent = data.runType==='midday'?'📊 Midday':'🌅 Pre-Market';
-    } else {
-      document.getElementById('meta-date').textContent = 'No scan yet today — hit ⚡ Run Scan';
-    }
-    renderSkeleton(_macro);
-  } catch(e) {
-    document.getElementById('meta-date').textContent = 'Could not load picks';
-    renderSkeleton(null);
-  }
+    var r = await fetch('/api/ticker-bar?syms=SPY,VIX');
+    if(!r.ok) return;
+    var d = await r.json();
+    if(d.SPY) { _macro.spyPct = d.SPY.pct.toFixed(2); _macro.riskOn = d.SPY.pct>0; }
+    if(d.VIX) { _macro.vix = d.VIX.price.toFixed(1); }
+  } catch(e) {}
 }
 
 async function runScan() {
+  if(_scanning) return;
+  _scanning = true;
+  _picks = {};
+
   var btns = document.querySelectorAll('.run-btn');
-  btns.forEach(function(b){b.textContent='⏳ Scanning...';b.disabled=true;});
-  document.getElementById('meta-date').textContent = 'Scan in progress — ~2 minutes...';
+  btns.forEach(function(b){b.disabled=true;b.textContent='⏳ Scanning...';});
+  document.getElementById('meta-date').textContent = 'Analyzing '+TICKERS.length+' stocks...';
 
-  fetch('/api/cron-picks?secret=pulsestock2026&run=full').catch(function(){});
+  await loadMacro();
+  render();
 
-  var attempts = 0;
-  var poll = setInterval(async function() {
-    attempts++;
+  // Analyze each ticker one at a time, render after each
+  for(var i=0; i<TICKERS.length; i++) {
+    var sym = TICKERS[i];
     try {
-      var r = await fetch('/api/morning-picks?t='+Date.now());
-      var d = JSON.parse(await r.text());
-      if(d.pickTypes && Object.keys(d.pickTypes).length) {
-        clearInterval(poll);
-        _picksData = d;
-        _macro = d.macro;
-        var t = new Date(d.generated);
-        document.getElementById('meta-date').textContent = 'Generated '+t.toLocaleString();
-        document.getElementById('meta-time').textContent = '🌅 Pre-Market';
-        renderSkeleton(_macro);
-        btns.forEach(function(b){b.textContent='✅ Done!';b.disabled=false;});
-        setTimeout(function(){btns.forEach(function(b){b.textContent='⚡ Run Scan';});},2000);
-        return;
+      btns.forEach(function(b){b.textContent='⏳ '+sym+' ('+(i+1)+'/'+TICKERS.length+')';});
+      var r = await fetch('/api/picks-analyze?ticker='+sym+'&type=general');
+      if(r.ok) {
+        var d = await r.json();
+        if(d.rating) {
+          _picks[sym] = d;
+          render(); // re-render after each stock comes in
+        }
       }
     } catch(e) {}
-    if(attempts >= 16) {
-      clearInterval(poll);
-      btns.forEach(function(b){b.textContent='⚡ Run Scan';b.disabled=false;});
-      document.getElementById('meta-date').textContent = 'Scan timed out — try again';
-    } else {
-      btns.forEach(function(b){b.textContent='⏳ ~'+Math.ceil((16-attempts)*15/60)+'m...';});
-    }
-  }, 15000);
+  }
+
+  _scanning = false;
+  var t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('meta-date').textContent = 'Generated '+new Date().toLocaleDateString()+' '+t;
+  document.getElementById('meta-time').textContent = '🌅 Scan Complete';
+  btns.forEach(function(b){b.disabled=false;b.textContent='⚡ Refresh';});
+  render();
 }
 
-loadPicks();
+// On load — just render empty skeleton, no auto-scan
+loadMacro().then(render);
 </script>
 </body>
 </html>
