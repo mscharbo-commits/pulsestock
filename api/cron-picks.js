@@ -231,40 +231,41 @@ async function getMacro() {
 }
 
 export default async function handler(req, res) {
-  // Support both Node.js serverless (req/res) and edge (Request) patterns
-  const isEdge = typeof res === 'undefined';
+  const send = (status, body) => {
+    res.writeHead(status, CORS);
+    res.end(typeof body === 'string' ? body : JSON.stringify(body));
+  };
 
-  // Get method
-  const method = isEdge ? req.method : req.method;
-  if(method==='OPTIONS') {
-    if(isEdge) return new Response(null,{headers:CORS});
-    res.writeHead(200, CORS); return res.end();
-  }
+  if(req.method==='OPTIONS') return send(200, '');
 
-  // Get query params - Node.js serverless uses req.query
-  const secret = isEdge
-    ? new URL(req.url,'https://x.com').searchParams.get('secret')
-    : (req.query?.secret || '');
-  const runType = isEdge
-    ? (new URL(req.url,'https://x.com').searchParams.get('run')||'full')
-    : (req.query?.run || 'full');
-
-  // Auth
-  const authHeader = isEdge
-    ? (req.headers.get?.('authorization') || '')
-    : (req.headers?.authorization || '');
-  const provided = authHeader.replace('Bearer ','') || secret;
-  const valid=(CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
-  if(!valid) {
-    if(isEdge) return new Response(JSON.stringify({error:'Unauthorized'}),{status:401,headers:CORS});
-    res.writeHead(401,CORS); return res.end(JSON.stringify({error:'Unauthorized'}));
-  }
+  const secret  = req.query?.secret || '';
+  const runType = req.query?.run || 'full';
+  const provided = (req.headers?.authorization||'').replace('Bearer ','') || secret;
+  const valid = (CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
+  if(!valid) return send(401, {error:'Unauthorized'});
 
   try {
     console.log('[picks] Run:',runType);
-    const [universe,macro] = await Promise.all([getUniverse(),getMacro()]);
+    let [universe,macro] = await Promise.all([getUniverse(),getMacro()]);
     console.log(`[picks] Universe: ${universe.length} | SPY: ${macro.spyPct}%`);
-    if(!universe.length) return new Response(JSON.stringify({error:'No universe data'}),{status:500,headers:CORS});
+    // Fallback universe for weekends/holidays when Polygon has no data
+    let finalUniverse = universe;
+    if(!universe.length) {
+      console.log('[picks] Polygon empty — using fallback universe');
+      const FALLBACK = ['AAPL','MSFT','NVDA','GOOGL','META','AMZN','TSLA','JPM','V','UNH',
+        'XOM','CVX','LLY','JNJ','ABBV','HD','PG','MA','MRK','PEP','COST','KO','BAC','WMT',
+        'AVGO','TMO','CSCO','ACN','ABT','CRM','MCD','ADBE','PFE','DIS','NFLX','AMD','INTC',
+        'GS','MS','CAT','DE','RTX','HON','BA','GE','LMT','UPS','FDX','WFC','C'];
+      // Fetch quotes for fallback
+      const fq = await Promise.all(FALLBACK.map(s=>sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
+      finalUniverse = FALLBACK.map((s,i)=>{
+        const d=fq[i]; if(!d||!d.c) return null;
+        return {sym:s,price:d.c,open:d.o||d.c,high:d.h||d.c,low:d.l||d.c,volume:d.v||1e6,vwap:d.c,pct:d.dp||0};
+      }).filter(Boolean);
+      console.log(`[picks] Fallback universe: ${finalUniverse.length} stocks`);
+    }
+    universe = finalUniverse;
+    if(!universe.length) return send(500, {error:'No universe data'});
 
     // Enrich top 150 by volume in batches of 10
     const candidates = universe.slice(0,60);
@@ -328,18 +329,14 @@ export default async function handler(req, res) {
     });
 
     console.log('[picks] Done');
-    const successBody = JSON.stringify({
+    return send(200, {
       success:true,runType,macro,
       summary:{enriched:enriched.length,
         counts:Object.fromEntries(Object.entries(output.pickTypes).map(([k,v])=>[k,v.overall.length]))}
     });
-    if(isEdge) return new Response(successBody,{headers:CORS});
-    res.writeHead(200,CORS); return res.end(successBody);
 
   } catch(e){
     console.error('[picks] Fatal:',e.message);
-    const errBody = JSON.stringify({error:e.message});
-    if(isEdge) return new Response(errBody,{status:500,headers:CORS});
-    res.writeHead(500,CORS); return res.end(errBody);
+    return send(500, {error:e.message});
   }
 }
