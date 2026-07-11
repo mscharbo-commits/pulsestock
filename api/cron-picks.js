@@ -25,20 +25,69 @@ async function sf(url, t=6000) {
   } catch(e){ return null; }
 }
 
-// Get snapshot for all tickers in one Polygon call
+// Get last trading day (skip weekends)
+function lastTradingDay() {
+  const d = new Date();
+  // Use ET time
+  const et = new Date(d.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  const h = et.getHours(), dow = et.getDay();
+  // Before 9:30am ET use previous day
+  const marketOpen = h > 9 || (h === 9 && et.getMinutes() >= 30);
+  if(!marketOpen || dow === 6 || dow === 0) {
+    // Go back to last Friday if weekend, or previous day
+    const back = dow === 0 ? 2 : dow === 6 ? 1 : (!marketOpen ? 1 : 0);
+    if(back > 0) d.setDate(d.getDate() - back);
+  }
+  // Skip back further if still weekend
+  const day = new Date(d.toLocaleString('en-US',{timeZone:'America/New_York'})).getDay();
+  if(day === 0) d.setDate(d.getDate()-2);
+  if(day === 6) d.setDate(d.getDate()-1);
+  return d.toISOString().split('T')[0];
+}
+
+// Get snapshot for all tickers — use prev day aggs when market closed
 async function getSnapshot(tickers) {
-  const snap = await sf(
-    `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers.join(',')}&apiKey=${POLYGON}`,
-    10000
+  const et = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const h = et.getHours(), m = et.getMinutes(), dow = et.getDay();
+  const isOpen = dow>=1&&dow<=5&&(h>9||(h===9&&m>=30))&&h<16;
+
+  if(isOpen) {
+    // Market open — use live snapshot
+    const snap = await sf(
+      `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers.join(',')}&apiKey=${POLYGON}`,
+      10000
+    );
+    if(snap?.tickers?.length) {
+      return snap.tickers.map(t=>({
+        sym:   t.ticker,
+        price: t.day?.c || t.prevDay?.c || 0,
+        pct:   t.todaysChangePerc || 0,
+        volume:t.day?.v || t.prevDay?.v || 0,
+        vwap:  t.day?.vw || t.prevDay?.vw || 0,
+      })).filter(s=>s.price>1);
+    }
+  }
+
+  // Market closed — use previous trading day grouped aggs
+  const dateStr = lastTradingDay();
+  console.log('[picks] Market closed — using prev day:', dateStr);
+  const grouped = await sf(
+    `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${dateStr}?adjusted=true&apiKey=${POLYGON}`,
+    12000
   );
-  if(!snap?.tickers) return [];
-  return snap.tickers.map(t=>({
-    sym:   t.ticker,
-    price: t.day?.c || t.prevDay?.c || 0,
-    pct:   t.todaysChangePerc || 0,
-    volume:t.day?.v || t.prevDay?.v || 0,
-    vwap:  t.day?.vw || t.prevDay?.vw || 0,
-  })).filter(s=>s.price>1);
+  if(!grouped?.results?.length) return [];
+
+  // Filter to our tickers
+  const tickerSet = new Set(tickers);
+  return grouped.results
+    .filter(s => tickerSet.has(s.T) && s.c > 1)
+    .map(s => ({
+      sym:   s.T,
+      price: s.c,
+      pct:   s.o ? ((s.c - s.o) / s.o * 100) : 0,
+      volume:s.v || 0,
+      vwap:  s.vw || s.c,
+    }));
 }
 
 // Quick rank by momentum + volume (no API calls)
@@ -96,15 +145,15 @@ export default async function handler(req, res) {
     let snapshot = await getSnapshot(TOP_TICKERS);
     console.log(`[picks] Snapshot: ${snapshot.length} stocks`);
 
-    // Weekend/holiday fallback: use top 12 tickers directly
+    // If still empty, use fixed list with zero prices (picks-analyze will get live prices)
     let ranked;
     if(snapshot.length < 5) {
-      console.log('[picks] Snapshot empty — using fixed top 12');
+      console.log('[picks] Using fixed fallback tickers');
       ranked = ['NVDA','META','AAPL','MSFT','AMZN','GOOGL','TSLA','JPM','XOM','LLY','AVGO','AMD']
-        .map(sym => ({sym, price:0, pct:0, volume:0, vwap:0, quickScore:50}));
+        .map(sym=>({sym, price:0, pct:0, volume:0, vwap:0, quickScore:50}));
     } else {
       ranked = quickRank(snapshot).slice(0, 12);
-      console.log(`[picks] Top candidates: ${ranked.slice(0,5).map(s=>s.sym+'('+s.pct.toFixed(1)+'%)').join(', ')}`);
+      console.log(`[picks] Top: ${ranked.slice(0,5).map(s=>s.sym+'('+s.pct.toFixed(1)+'%)').join(', ')}`);
     }
 
     // Run AI deep analysis on top 12, 3 at a time
