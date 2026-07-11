@@ -383,11 +383,10 @@ function setTab(type, el) {
 }
 
 async function loadPicks() {
+  // Try to load cached picks from Gist first
   try {
     var r = await fetch('/api/morning-picks?t='+Date.now());
-    var text = await r.text();
-    var d; try{d=JSON.parse(text);}catch(e){d={};}
-
+    var d = JSON.parse(await r.text());
     if(d.pickTypes && Object.keys(d.pickTypes).length) {
       _data = d;
       if(d.macro) renderMacro(d.macro);
@@ -395,68 +394,111 @@ async function loadPicks() {
       var gen=document.getElementById('meta-generated');
       if(gen&&d.generated) gen.textContent='Last updated: '+new Date(d.generated).toLocaleString();
       renderContent(_activeType);
-    } else {
-      renderMacro({spyPct:'0',vix:'—',tltPct:'0',riskOn:true});
-      renderContent(_activeType);
+      return;
     }
-  } catch(e) {
-    renderMacro({spyPct:'0',vix:'—',tltPct:'0',riskOn:true});
-    renderContent(_activeType);
-  }
+  } catch(e){}
+  // No cached data — show empty framework, user hits Run Scan
+  renderMacro({spyPct:'0',vix:'—',tltPct:'0',riskOn:true});
+  renderContent(_activeType);
 }
+
+var TICKERS = ['NVDA','META','AAPL','MSFT','AMZN','GOOGL','TSLA','JPM','XOM','LLY','AVGO','AMD','GS','UNH','ABBV','HD','CAT','NOW','PANW','NFLX'];
 
 async function runScan() {
   if(_scanning) return;
   _scanning = true;
-  var btn=document.getElementById('scan-btn');
-  var status=document.getElementById('scan-status');
-  var bar=document.getElementById('scanning-bar');
-  var fill=document.getElementById('scanning-fill');
+
+  var btn    = document.getElementById('scan-btn');
+  var status = document.getElementById('scan-status');
+  var bar    = document.getElementById('scanning-bar');
+  var fill   = document.getElementById('scanning-fill');
 
   btn.disabled=true; btn.textContent='⏳ Scanning...'; btn.className='scan-btn scanning';
   if(bar) bar.style.display='block';
-  renderContent(_activeType); // show scanning state
+  if(fill) fill.style.width='0%';
 
-  // Fire scan
+  // Build picks data structure
+  _data = {
+    generated: new Date().toISOString(),
+    macro: {spyPct:'0',vix:'—',tltPct:'0',riskOn:true},
+    pickTypes: {
+      general:  {label:'Best Opportunity',  icon:'🎯', overall:[], bySector:{}, totalAnalyzed:0},
+      growth:   {label:'Long-Term Growth',  icon:'🌱', overall:[], bySector:{}, totalAnalyzed:0},
+      momentum: {label:'Momentum / Swing',  icon:'🚀', overall:[], bySector:{}, totalAnalyzed:0},
+      intraday: {label:'Intraday',          icon:'⚡', overall:[], bySector:{}, totalAnalyzed:0},
+    }
+  };
+
+  var allResults = [];
+
+  // Fetch macro
   try {
-    fetch('/api/cron-picks?secret=pulsestock2026&run=full').catch(function(){});
+    var mr = await fetch('/api/ticker-bar?syms=SPY,VIX,TLT');
+    if(mr.ok) {
+      var md = await mr.json();
+      if(md.SPY) _data.macro.spyPct = md.SPY.pct.toFixed(2);
+      if(md.VIX) _data.macro.vix = md.VIX.price.toFixed(1);
+      if(md.TLT) _data.macro.tltPct = md.TLT.pct.toFixed(2);
+      _data.macro.riskOn = (md.SPY?.pct||0)>0 && (md.VIX?.price||20)<22;
+      renderMacro(_data.macro);
+    }
   } catch(e){}
 
-  // Poll every 15s for up to 5 min
-  var attempts=0, maxAttempts=20;
-  var poll=setInterval(async function(){
-    attempts++;
-    if(fill) fill.style.width=Math.min(95,attempts/maxAttempts*100)+'%';
-    if(status) status.textContent='Analyzing... '+Math.round(attempts/maxAttempts*100)+'%';
+  // Analyze each ticker in browser — one at a time, render after each
+  for(var i=0; i<TICKERS.length; i++) {
+    var sym = TICKERS[i];
+    var pct = Math.round((i+1)/TICKERS.length*100);
+    if(fill) fill.style.width=pct+'%';
+    if(status) status.textContent = sym+' ('+( i+1)+'/'+TICKERS.length+')';
+    btn.textContent = '⏳ '+(i+1)+'/'+TICKERS.length;
 
     try {
-      var r=await fetch('/api/morning-picks?t='+Date.now());
-      var d=JSON.parse(await r.text());
-      if(d.pickTypes&&Object.keys(d.pickTypes).length) {
-        clearInterval(poll);
-        _scanning=false;
-        _data=d;
-        if(d.macro) renderMacro(d.macro);
-        renderTabs(d.pickTypes);
-        if(fill) fill.style.width='100%';
-        if(status) status.textContent='✅ Complete!';
-        var gen=document.getElementById('meta-generated');
-        if(gen&&d.generated) gen.textContent='Last updated: '+new Date(d.generated).toLocaleString();
-        renderContent(_activeType);
-        btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn';
-        setTimeout(function(){if(bar)bar.style.display='none';if(status)status.textContent='';},3000);
-        return;
-      }
-    } catch(e){}
+      var r = await fetch('/api/picks-analyze?ticker='+sym+'&type=general&t='+Date.now());
+      if(r.ok) {
+        var d = await r.json();
+        if(d && d.rating) {
+          allResults.push(d);
 
-    if(attempts>=maxAttempts){
-      clearInterval(poll); _scanning=false;
-      btn.disabled=false; btn.textContent='⚡ Run Scan'; btn.className='scan-btn';
-      if(bar) bar.style.display='none';
-      if(status) status.textContent='Scan timed out — try again';
-      renderContent(_activeType);
-    }
-  }, 15000);
+          // Add to sector breakdown
+          var sec = d.sector||'Unknown';
+          var pt;
+          for(var ptk in _data.pickTypes) {
+            pt = _data.pickTypes[ptk];
+            if(!pt.bySector[sec]) pt.bySector[sec]=[];
+            if(pt.bySector[sec].length<5) pt.bySector[sec].push(d);
+            pt.totalAnalyzed++;
+          }
+
+          // Re-rank overall top 5 for each pick type
+          var ratingOrder={BUY:0,WATCH:1,AVOID:2};
+          var byScore=[...allResults].sort(function(a,b){
+            var ro=(ratingOrder[a.rating]||1)-(ratingOrder[b.rating]||1);
+            return ro!==0?ro:(b.score||50)-(a.score||50);
+          });
+          var byMom=[...allResults].sort(function(a,b){return (b.pct||0)-(a.pct||0);});
+          var byVol=[...allResults].sort(function(a,b){return (b.volume||0)-(a.volume||0);});
+
+          _data.pickTypes.general.overall  = byScore.slice(0,5);
+          _data.pickTypes.growth.overall   = byScore.filter(function(s){return s.rating==='BUY';}).slice(0,5);
+          _data.pickTypes.momentum.overall = byMom.slice(0,5);
+          _data.pickTypes.intraday.overall = byVol.slice(0,5);
+
+          renderTabs(_data.pickTypes);
+          renderContent(_activeType);
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Done
+  _scanning = false;
+  _data.generated = new Date().toISOString();
+  if(fill) fill.style.width='100%';
+  if(status) status.textContent='✅ Done — '+allResults.length+' stocks analyzed';
+  btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn';
+  document.getElementById('meta-generated').textContent='Last updated: '+new Date().toLocaleString();
+  setTimeout(function(){if(bar)bar.style.display='none'; if(status)status.textContent='';},4000);
+  renderContent(_activeType);
 }
 
 // Init
