@@ -61,12 +61,15 @@ async function enrich(stock) {
   const past3 = new Date(Date.now()-3*86400000).toISOString().split('T')[0];
   const past90= new Date(Date.now()-90*86400000).toISOString().split('T')[0];
 
-  const [metrics, candles, news, profile] = await Promise.all([
-    sf(`https://finnhub.io/api/v1/stock/metric?symbol=${sym}&metric=all&token=${FINNHUB}`,5000),
+  // Use Polygon for candles (unlimited), stagger Finnhub calls
+  const [candles, metrics, profile] = await Promise.all([
     sf(`https://api.polygon.io/v2/aggs/ticker/${sym}/range/1/day/${past90}/${today}?adjusted=true&sort=desc&limit=90&apiKey=${POLYGON}`,6000),
-    sf(`https://finnhub.io/api/v1/company-news?symbol=${sym}&from=${past3}&to=${today}&token=${FINNHUB}`,4000),
+    sf(`https://finnhub.io/api/v1/stock/metric?symbol=${sym}&metric=all&token=${FINNHUB}`,5000),
     sf(`https://finnhub.io/api/v1/stock/profile2?symbol=${sym}&token=${FINNHUB}`,4000),
   ]);
+  // Separate news call with small delay to avoid rate limit
+  await new Promise(r=>setTimeout(r,100));
+  const news = await sf(`https://finnhub.io/api/v1/company-news?symbol=${sym}&from=${past3}&to=${today}&token=${FINNHUB}`,4000);
 
   const m = metrics?.metric||{};
   const closes = candles?.results ? [...candles.results].reverse().map(c=>c.c) : [];
@@ -248,24 +251,26 @@ export default async function handler(req, res) {
     console.log('[picks] Run:',runType);
     let [universe,macro] = await Promise.all([getUniverse(),getMacro()]);
     console.log(`[picks] Universe: ${universe.length} | SPY: ${macro.spyPct}%`);
-    // Fallback universe for weekends/holidays when Polygon has no data
-    let finalUniverse = universe;
+    // Fallback: use Polygon snapshot for top S&P 500 stocks
     if(!universe.length) {
-      console.log('[picks] Polygon empty — using fallback universe');
-      const FALLBACK = ['AAPL','MSFT','NVDA','GOOGL','META','AMZN','TSLA','JPM','V','UNH',
-        'XOM','CVX','LLY','JNJ','ABBV','HD','PG','MA','MRK','PEP','COST','KO','BAC','WMT',
-        'AVGO','TMO','CSCO','ACN','ABT','CRM','MCD','ADBE','PFE','DIS','NFLX','AMD','INTC',
-        'GS','MS','CAT','DE','RTX','HON','BA','GE','LMT','UPS','FDX','WFC','C'];
-      // Fetch quotes for fallback
-      const fq = await Promise.all(FALLBACK.map(s=>sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
-      finalUniverse = FALLBACK.map((s,i)=>{
-        const d=fq[i]; if(!d||!d.c) return null;
-        return {sym:s,price:d.c,open:d.o||d.c,high:d.h||d.c,low:d.l||d.c,volume:d.v||1e6,vwap:d.c,pct:d.dp||0};
-      }).filter(Boolean);
-      console.log(`[picks] Fallback universe: ${finalUniverse.length} stocks`);
+      console.log('[picks] Polygon grouped empty — using snapshot fallback');
+      const FALLBACK = 'AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,JPM,V,UNH,XOM,CVX,LLY,JNJ,ABBV,HD,PG,MA,MRK,PEP,COST,KO,BAC,WMT,AVGO,TMO,CSCO,ACN,ABT,CRM,MCD,ADBE,PFE,DIS,NFLX,AMD,INTC,GS,MS,CAT,DE,RTX,HON,BA,GE,LMT,UPS,WFC,C,ISRG';
+      const snap = await sf(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${FALLBACK}&apiKey=${POLYGON}`,10000);
+      if(snap?.tickers?.length) {
+        universe = snap.tickers.map(t=>({
+          sym:t.ticker,
+          price:t.day?.c||t.prevDay?.c||0,
+          open:t.day?.o||t.prevDay?.o||0,
+          high:t.day?.h||t.prevDay?.h||0,
+          low:t.day?.l||t.prevDay?.l||0,
+          volume:t.day?.v||t.prevDay?.v||1e6,
+          vwap:t.day?.vw||t.prevDay?.vw||0,
+          pct:t.todaysChangePerc||0,
+        })).filter(s=>s.price>0);
+        console.log(`[picks] Snapshot fallback: ${universe.length} stocks`);
+      }
     }
-    universe = finalUniverse;
-    if(!universe.length) return send(500, {error:'No universe data'});
+    if(!universe.length) return send(500, {error:'No universe data — markets may be closed'});
 
     // Enrich top 150 by volume in batches of 10
     const candidates = universe.slice(0,60);
