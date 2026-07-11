@@ -322,14 +322,26 @@ export default async function handler(req, res) {
 
     const output = buildOutput(results, macro, runType);
 
-    // Save to Gist
+    // Save to repo file (picks-data.json)
     const saveStart = Date.now();
-    const gr = await fetch(`https://api.github.com/gists/${PICKS_GIST}`, {
-      method:'PATCH',
-      headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
-      body: JSON.stringify({files:{'enhanced_picks.json':{content:JSON.stringify(output)}}})
-    });
-    console.log(`[picks] Gist save: ${gr.status} | ${((Date.now()-saveStart)/1000).toFixed(1)}s`);
+    let saved = false;
+    try {
+      const encoded = Buffer.from(JSON.stringify(output)).toString('base64');
+      // Get current sha
+      let fileSha = '';
+      const gfr = await fetch('https://api.github.com/repos/mscharbo-commits/pulsestock/contents/picks-data.json',
+        {headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'User-Agent':'PulseStock'}});
+      if(gfr.ok) { const gfd = await gfr.json(); fileSha = gfd.sha||''; }
+      const body = {message:'Update picks-data.json', content:encoded};
+      if(fileSha) body.sha = fileSha;
+      const gr = await fetch('https://api.github.com/repos/mscharbo-commits/pulsestock/contents/picks-data.json', {
+        method:'PUT',
+        headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'Content-Type':'application/json','User-Agent':'PulseStock'},
+        body: JSON.stringify(body)
+      });
+      saved = gr.ok;
+      console.log(`[picks] Repo save: ${gr.status} | ${((Date.now()-saveStart)/1000).toFixed(1)}s`);
+    } catch(e) { console.error('[picks] Save error:', e.message); }
 
     const totalTime = ((Date.now()-startTime)/1000).toFixed(0);
     console.log(`[picks] ===== Complete in ${totalTime}s =====`);
