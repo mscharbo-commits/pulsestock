@@ -167,13 +167,86 @@ function filterCandidates(universe, runType) {
 }
 
 // STAGE 3: AI analysis on candidates
-async function analyzeCandidate(sym, host) {
-  const url = `https://${host}/api/picks-analyze?ticker=${sym}&type=general`;
+async function analyzeCandidate(sym, host, type='general') {
+  const url = `https://${host}/api/picks-analyze?ticker=${sym}&type=${type}`;
   const r = await sf(url, 15000);
   return (r && r.rating) ? r : null;
 }
 
 // Build structured pick types from analyzed results
+function buildOutputTyped(typeResults, allResults, macro, runType) {
+  // Build each pick type from its specific analysis results
+  const TYPES = {
+    general:  {label:'Best Opportunity', icon:'🎯'},
+    growth:   {label:'Long-Term Growth', icon:'🌱'},
+    momentum: {label:'Momentum / Swing', icon:'🚀'},
+    intraday: {label:'Intraday',         icon:'⚡'},
+    shorts:   {label:'Short Watch',      icon:'🐻'},
+  };
+
+  const ratingOrder = {BUY:0,AVOID:2};
+
+  function sortFn(type) {
+    return (a,b) => {
+      const ro = (ratingOrder[a.rating]||1)-(ratingOrder[b.rating]||1);
+      if(ro!==0) return ro;
+      if(type==='momentum') return (b.pct||0)-(a.pct||0);
+      if(type==='intraday') return (b.volume||0)-(a.volume||0);
+      return (b.score||50)-(a.score||50);
+    };
+  }
+
+  function toCard(s) {
+    return {
+      sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker, sector:s.sector||'',
+      price:s.price||0, pct:s.pct||0, score:s.score||50,
+      rating:s.rating||'AVOID',
+      rsi:s.rsi?parseFloat(s.rsi).toFixed(0):null,
+      above50MA:null, above200MA:null, sma50:null, sma200:null,
+      reasons:s.keySignals||[], thesis:s.thesis||null,
+      target:s.target||null, stopLoss:s.stopLoss||null, timeframe:s.timeframe||null,
+    };
+  }
+
+  function bySectorMap(arr) {
+    const g = {};
+    arr.filter(s=>s.rating==='BUY').forEach(s => {
+      const sec = s.sector||'Unknown';
+      if(!g[sec]) g[sec]=[];
+      if(g[sec].length<5) g[sec].push({
+        sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker,
+        price:s.price||0, pct:s.pct||0, score:s.score||50,
+        rating:s.rating, reasons:s.keySignals||[],
+      });
+    });
+    return g;
+  }
+
+  const pickTypes = {};
+  for(const [type,meta] of Object.entries(TYPES)) {
+    const pool = type==='shorts' ? allResults : (typeResults[type]||allResults);
+    const buys = pool.filter(s=>s.rating==='BUY').sort(sortFn(type)).slice(0,5);
+    const avoids = pool.filter(s=>s.rating==='AVOID').sort((a,b)=>(a.score||50)-(b.score||50)).slice(0,5);
+    const overall = type==='shorts' ? avoids : buys;
+
+    pickTypes[type] = {
+      ...meta,
+      overall: overall.map(toCard),
+      bySector: bySectorMap(pool),
+      totalAnalyzed: pool.length,
+      totalBuy: pool.filter(s=>s.rating==='BUY').length,
+    };
+  }
+
+  return {
+    generated: new Date().toISOString(),
+    runType, macro,
+    universeSize: allResults.length,
+    analyzed: allResults.length,
+    pickTypes,
+  };
+}
+
 function buildOutput(results, macro, runType) {
   if(!results.length) return null;
 
@@ -320,7 +393,36 @@ export default async function handler(req, res) {
 
     if(!results.length) return send(500,{error:'No analysis results'});
 
-    const output = buildOutput(results, macro, runType);
+    // Re-analyze top candidates for each specific pick type
+    // This gives Claude different lens per type — growth looks for compounders,
+    // momentum looks for technical breakouts, intraday looks for catalysts
+    const topCandidates = results
+      .filter(s=>s.rating==='BUY')
+      .sort((a,b)=>(b.score||50)-(a.score||50))
+      .slice(0,8)
+      .map(s=>s.sym||s.ticker);
+
+    console.log('[picks] Running type-specific analysis for top:', topCandidates.join(','));
+
+    const typeResults = {general: results};
+
+    for(const pickType of ['growth','momentum','intraday']) {
+      if(Date.now()-startTime > 180000) {
+        console.log('[picks] Time limit — skipping', pickType);
+        typeResults[pickType] = results;
+        continue;
+      }
+      const typeAnalyzed = await Promise.all(
+        topCandidates.map(sym => analyzeCandidate(sym, host, pickType).catch(()=>null))
+      );
+      // Merge type-specific results with general results
+      const typeMap = {};
+      typeAnalyzed.filter(Boolean).forEach(r=>{ typeMap[r.sym||r.ticker]=r; });
+      typeResults[pickType] = results.map(r => typeMap[r.sym||r.ticker] || r);
+      console.log('[picks]', pickType, 'done:', typeAnalyzed.filter(r=>r?.rating==='BUY').length, 'BUYs');
+    }
+
+    const output = buildOutputTyped(typeResults, results, macro, runType);
 
     // Save to repo file (picks-data.json)
     const saveStart = Date.now();
@@ -353,9 +455,9 @@ export default async function handler(req, res) {
       analyzed:     results.length,
       repoSaved: saved,
       elapsedSeconds: totalTime,
-      counts: Object.fromEntries(
+      counts: output ? Object.fromEntries(
         Object.entries(output.pickTypes).map(([k,v])=>[k,v.overall.length])
-      )
+      ) : {}
     });
 
   } catch(e) {
