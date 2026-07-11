@@ -158,7 +158,7 @@ Respond ONLY with valid JSON, no other text:
     }
 
     return new Response(JSON.stringify({
-      ticker, sector, price, pct:quote?.dp||0,
+      ticker, sym:ticker, sector, price, pct:quote?.dp||0,
       sma20, sma50, sma200, rsi, volRatio, pct1M,
       name: profile?.name||ticker,
       rating:   parsed.rating||'WATCH',
