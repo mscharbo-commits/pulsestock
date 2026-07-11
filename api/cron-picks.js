@@ -303,7 +303,7 @@ export default async function handler(req, res) {
         batch.map(s => analyzeCandidate(s.sym, host).catch(()=>null))
       );
       // Filter out SKIP (no price data) and nulls
-      const valid = batchResults.filter(r => r && r.rating && r.rating !== 'SKIP' && r.price > 0);
+      const valid = batchResults.filter(r => r && r.rating && r.rating !== 'SKIP');
       results.push(...valid);
 
       // Small delay between batches to avoid Finnhub rate limits
