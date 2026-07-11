@@ -230,14 +230,35 @@ async function getMacro() {
   return {spyPct:spyPct.toFixed(2),vix:vixVal.toFixed(1),tltPct:(tlt?.dp||0).toFixed(2),riskOn:spyPct>0&&vixVal<22};
 }
 
-export default async function handler(req) {
-  if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
-  const url=new URL(req.url, 'https://pulsestock-nu.vercel.app');
-  const provided=(req.headers.get('authorization')||'').replace('Bearer ','')||url.searchParams.get('secret')||'';
-  const valid=(CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
-  if(!valid) return new Response(JSON.stringify({error:'Unauthorized'}),{status:401,headers:CORS});
+export default async function handler(req, res) {
+  // Support both Node.js serverless (req/res) and edge (Request) patterns
+  const isEdge = typeof res === 'undefined';
 
-  const runType=url.searchParams.get('run')||'full';
+  // Get method
+  const method = isEdge ? req.method : req.method;
+  if(method==='OPTIONS') {
+    if(isEdge) return new Response(null,{headers:CORS});
+    res.writeHead(200, CORS); return res.end();
+  }
+
+  // Get query params - Node.js serverless uses req.query
+  const secret = isEdge
+    ? new URL(req.url,'https://x.com').searchParams.get('secret')
+    : (req.query?.secret || '');
+  const runType = isEdge
+    ? (new URL(req.url,'https://x.com').searchParams.get('run')||'full')
+    : (req.query?.run || 'full');
+
+  // Auth
+  const authHeader = isEdge
+    ? (req.headers.get?.('authorization') || '')
+    : (req.headers?.authorization || '');
+  const provided = authHeader.replace('Bearer ','') || secret;
+  const valid=(CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
+  if(!valid) {
+    if(isEdge) return new Response(JSON.stringify({error:'Unauthorized'}),{status:401,headers:CORS});
+    res.writeHead(401,CORS); return res.end(JSON.stringify({error:'Unauthorized'}));
+  }
 
   try {
     console.log('[picks] Run:',runType);
@@ -307,14 +328,18 @@ export default async function handler(req) {
     });
 
     console.log('[picks] Done');
-    return new Response(JSON.stringify({
+    const successBody = JSON.stringify({
       success:true,runType,macro,
       summary:{enriched:enriched.length,
         counts:Object.fromEntries(Object.entries(output.pickTypes).map(([k,v])=>[k,v.overall.length]))}
-    }),{headers:CORS});
+    });
+    if(isEdge) return new Response(successBody,{headers:CORS});
+    res.writeHead(200,CORS); return res.end(successBody);
 
   } catch(e){
     console.error('[picks] Fatal:',e.message);
-    return new Response(JSON.stringify({error:e.message}),{status:500,headers:CORS});
+    const errBody = JSON.stringify({error:e.message});
+    if(isEdge) return new Response(errBody,{status:500,headers:CORS});
+    res.writeHead(500,CORS); return res.end(errBody);
   }
 }
