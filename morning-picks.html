@@ -325,22 +325,41 @@ function showEmpty(msg) {
 
 async function runScan() {
   var btn = document.querySelector('.run-btn');
-  btn.textContent = '⏳ Running...';
+  btn.textContent = '⏳ Scanning...';
   btn.disabled = true;
-  try {
-    var r = await fetch('/api/cron-picks?secret=pulsestock2026&run=full');
-    var d = await r.json();
-    if(d.success) {
-      btn.textContent = '✅ Done!';
-      setTimeout(function(){ btn.textContent='⚡ Run Scan'; btn.disabled=false; loadPicks(); }, 1500);
+  document.getElementById('meta-date').textContent = 'Scan in progress — takes 2-3 minutes...';
+
+  // Fire and forget — don't await completion
+  fetch('/api/cron-picks?secret=pulsestock2026&run=full').catch(function(){});
+
+  // Poll for results every 15 seconds
+  var attempts = 0;
+  var maxAttempts = 20; // 5 minutes max
+  var poll = setInterval(async function() {
+    attempts++;
+    try {
+      var r = await fetch('/api/morning-picks?t='+Date.now());
+      var text = await r.text();
+      var d = JSON.parse(text);
+      if(d.pickTypes && Object.keys(d.pickTypes).length > 0) {
+        clearInterval(poll);
+        btn.textContent = '✅ Done!';
+        _picksData = d;
+        renderEnhanced(d);
+        setTimeout(function(){ btn.textContent='⚡ Run Scan'; btn.disabled=false; }, 2000);
+        return;
+      }
+    } catch(e) {}
+    if(attempts >= maxAttempts) {
+      clearInterval(poll);
+      btn.textContent = '⚡ Run Scan';
+      btn.disabled = false;
+      document.getElementById('meta-date').textContent = 'Scan may have timed out — try again';
     } else {
-      btn.textContent = '❌ ' + (d.error||'Failed');
-      setTimeout(function(){ btn.textContent='⚡ Run Scan'; btn.disabled=false; }, 3000);
+      var remaining = Math.max(0, maxAttempts - attempts) * 15;
+      btn.textContent = '⏳ ~' + Math.ceil(remaining/60) + 'm left...';
     }
-  } catch(e) {
-    btn.textContent = '❌ Error';
-    setTimeout(function(){ btn.textContent='⚡ Run Scan'; btn.disabled=false; }, 3000);
-  }
+  }, 15000);
 }
 
 loadPicks();
