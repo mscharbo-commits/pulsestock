@@ -6,8 +6,12 @@
       "schedule": "0 10 * * 1-5"
     },
     {
-      "path": "/api/cron-picks",
-      "schedule": "30 13 * * 1-5"
+      "path": "/api/cron-picks?run=full&secret=pulsestock2026",
+      "schedule": "0 9 * * 1-5"
+    },
+    {
+      "path": "/api/cron-picks?run=midday&secret=pulsestock2026",
+      "schedule": "0 13 * * 1-5"
     },
     {
       "path": "/api/cron-research-scan",
@@ -15,36 +19,16 @@
     }
   ],
   "routes": [
-    {
-      "src": "/signin",
-      "dest": "/signin.html"
-    },
-    {
-      "src": "/desktop",
-      "dest": "/desktop.html"
-    },
-    {
-      "src": "/morning-picks",
-      "dest": "/morning-picks.html"
-    },
-    {
-      "src": "/support-manual",
-      "dest": "/support-manual.html"
-    },
-    {
-      "src": "/gate",
-      "dest": "/gate.html"
-    }
+    {"src": "/signin",        "dest": "/signin.html"},
+    {"src": "/desktop",       "dest": "/desktop.html"},
+    {"src": "/morning-picks", "dest": "/morning-picks.html"},
+    {"src": "/support-manual","dest": "/support-manual.html"},
+    {"src": "/gate",          "dest": "/gate.html"}
   ],
   "functions": {
-    "api/analyze-cached.js": {
-      "maxDuration": 60
-    },
-    "api/chat.js": {
-      "maxDuration": 60
-    },
-    "api/cron-research-scan.js": {
-      "maxDuration": 300
-    }
+    "api/analyze-cached.js":     {"maxDuration": 60},
+    "api/chat.js":               {"maxDuration": 60},
+    "api/cron-picks.js":         {"maxDuration": 300},
+    "api/cron-research-scan.js": {"maxDuration": 300}
   }
 }
