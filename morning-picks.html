@@ -280,12 +280,13 @@ function renderTabs(pickTypes) {
 }
 
 function renderPickCard(p, rank) {
+  var sym = p.sym || p.ticker || '';
   var up=(p.pct||0)>=0;
   var isTop = rank===0;
-  return '<div class="pick-card'+(isTop?' top-pick':'')+' '+(p.rating==='BUY'?'buy-card':p.rating==='AVOID'?'avoid-card':'')+'" onclick="qs(\''+p.sym+'\')">'
+  return '<div class="pick-card'+(isTop?' top-pick':'')+' '+(p.rating==='BUY'?'buy-card':p.rating==='AVOID'?'avoid-card':'')+'" onclick="qs(\''+sym+'\')">'
     +(isTop?'<div class="rank-badge">#1 Pick</div>':'')
     +'<div class="card-top">'
-      +'<span class="card-sym">'+p.sym+'</span>'
+      +'<span class="card-sym">'+sym+'</span>'
       +'<div class="card-badges">'
         +'<span class="rating-badge '+p.rating+'">'+p.rating+'</span>'
         +'<span class="score-badge">'+p.score+'/100</span>'
