@@ -3,6 +3,7 @@ export const config = { maxDuration: 300 };
 const POLYGON    = process.env.POLYGON_API_KEY || '';
 const FINNHUB    = process.env.FINNHUB_KEY || '';
 const GIST_TOKEN = process.env.GITHUB_TOKEN || process.env.GIST_TOKEN || '';
+const REPO = 'mscharbo-commits/pulsestock';
 const PICKS_GIST = 'd4890f15ec44f0ea94a0916285a488aa';
 const CRON_SECRET = process.env.CRON_SECRET || '';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
@@ -338,7 +339,7 @@ export default async function handler(req, res) {
       universeSize: universe.length,
       candidates:   candidates.length,
       analyzed:     results.length,
-      gistSaved:    gr.ok,
+      repoSaved: saved,
       elapsedSeconds: totalTime,
       counts: Object.fromEntries(
         Object.entries(output.pickTypes).map(([k,v])=>[k,v.overall.length])
