@@ -129,23 +129,31 @@ var _activeType = 'general';
 function qs(sym) { window.location = '/stock.html?symbol=' + sym; }
 
 async function loadPicks() {
+  // Show loading state in content only, not tabs
+  document.getElementById('picks-content').innerHTML = '<div class="loading"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Loading picks...</div>';
+  document.getElementById('type-tabs').innerHTML = '';
+  document.getElementById('macro-strip').innerHTML = '';
+  document.getElementById('meta-date').textContent = 'Checking for today\'s picks...';
+
   try {
     const r = await fetch('/api/morning-picks');
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
 
-    // Handle enhanced format
+    if(data.error) {
+      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s analysis.');
+      return;
+    }
     if(data.pickTypes) {
       _picksData = data;
       renderEnhanced(data);
-    } else if(data.picks) {
-      // Legacy format
+    } else if(data.picks && data.picks.length) {
       renderLegacy(data);
     } else {
-      showEmpty('No picks available yet. Click ⚡ Run Scan to generate.');
+      showEmpty('No picks generated yet today. Click ⚡ Run Scan to generate this morning\'s analysis.');
     }
   } catch(e) {
-    showEmpty('Failed to load picks: ' + e.message);
+    showEmpty('Could not load picks. Click ⚡ Run Scan to generate.');
   }
 }
 
@@ -300,8 +308,22 @@ function renderLegacy(data) {
 }
 
 function showEmpty(msg) {
-  document.getElementById('type-tabs').innerHTML = '';
-  document.getElementById('picks-content').innerHTML = '<div class="empty-state"><div style="font-size:40px;">📊</div><h3>'+msg+'</h3></div>';
+  var types = [
+    {key:'general',icon:'🎯',label:'Best Opportunity'},
+    {key:'growth',icon:'🌱',label:'Long-Term Growth'},
+    {key:'momentum',icon:'🚀',label:'Momentum / Swing'},
+    {key:'intraday',icon:'⚡',label:'Intraday'},
+  ];
+  document.getElementById('type-tabs').innerHTML = types.map(function(t){
+    return '<div class="type-tab" style="opacity:.4;cursor:default;">'+t.icon+' '+t.label+'</div>';
+  }).join('');
+  document.getElementById('picks-content').innerHTML =
+    '<div class="empty-state">'
+    +'<div style="font-size:48px;margin-bottom:16px;">📊</div>'
+    +'<h3 style="margin-bottom:8px;">No picks yet for today</h3>'
+    +'<p style="margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;">'+msg+'</p>'
+    +'<button class="run-btn" onclick="runScan()" style="font-size:14px;padding:12px 32px;">⚡ Run Scan Now</button>'
+    +'</div>';
   document.getElementById('meta-date').textContent = 'Not yet run today';
 }
 
