@@ -232,7 +232,7 @@ async function getMacro() {
 
 export default async function handler(req) {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
-  const url=new URL(req.url);
+  const url=new URL(req.url, 'https://pulsestock-nu.vercel.app');
   const provided=(req.headers.get('authorization')||'').replace('Bearer ','')||url.searchParams.get('secret')||'';
   const valid=(CRON_SECRET&&provided===CRON_SECRET)||provided==='pulsestock2026';
   if(!valid) return new Response(JSON.stringify({error:'Unauthorized'}),{status:401,headers:CORS});
