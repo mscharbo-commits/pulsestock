@@ -246,13 +246,13 @@ export default async function handler(req) {
     if(!universe.length) return new Response(JSON.stringify({error:'No universe data'}),{status:500,headers:CORS});
 
     // Enrich top 150 by volume in batches of 10
-    const candidates = universe.slice(0,150);
+    const candidates = universe.slice(0,60);
     const enriched = [];
-    for(let i=0;i<candidates.length;i+=10){
-      const batch = candidates.slice(i,i+10);
+    for(let i=0;i<candidates.length;i+=5){
+      const batch = candidates.slice(i,i+5);
       const results = await Promise.all(batch.map(s=>enrich(s).catch(()=>null)));
       enriched.push(...results.filter(Boolean));
-      if(i+10<candidates.length) await new Promise(r=>setTimeout(r,600));
+      if(i+5<candidates.length) await new Promise(r=>setTimeout(r,300));
     }
     console.log(`[picks] Enriched: ${enriched.length}`);
 
@@ -275,9 +275,9 @@ export default async function handler(req) {
       // Overall top 5
       const overall=scored.slice(0,5);
 
-      // AI thesis for #1 pick only
-      if(overall[0]){
-        overall[0].thesis = await generateThesis(overall[0],ptKey,macro);
+      // AI thesis for top 2 picks
+      for(let pi=0;pi<Math.min(2,overall.length);pi++){
+        overall[pi].thesis = await generateThesis(overall[pi],ptKey,macro);
       }
 
       output.pickTypes[ptKey]={
