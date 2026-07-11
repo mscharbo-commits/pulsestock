@@ -2,7 +2,7 @@ export const config = { maxDuration: 300 };
 
 const POLYGON    = process.env.POLYGON_API_KEY || '';
 const FINNHUB    = process.env.FINNHUB_KEY || '';
-const GIST_TOKEN = process.env.GITHUB_TOKEN || '';
+const GIST_TOKEN = process.env.GITHUB_TOKEN || process.env.GIST_TOKEN || '';
 const PICKS_GIST = 'd4890f15ec44f0ea94a0916285a488aa';
 const CRON_SECRET = process.env.CRON_SECRET || '';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json'};
@@ -132,25 +132,35 @@ function filterCandidates(universe, runType) {
     else if(s.volume < 500000 && s.volume > 0) score -= 10; // illiquid
 
     // Price filter
-    if(s.price < 5 && s.price > 0) score -= 20;
+    if(s.price > 0 && s.price < 5) score -= 20;
 
     return {...s, filterScore: score};
   });
 
-  // Always include top movers (+ and -)
-  const topMovers = scored
-    .filter(s => Math.abs(s.pct) >= 1.5 || s.volume > 10e6)
-    .sort((a,b) => b.filterScore - a.filterScore)
-    .slice(0, 35);
+  // Check if we have real price data
+  const hasRealData = universe.some(s => s.price > 0 && s.pct !== 0);
 
-  // Add high-quality blue chips if we have room
-  const blueChips = ['AAPL','MSFT','NVDA','META','GOOGL','AMZN','JPM','LLY','XOM','TSLA'];
-  const topSyms = new Set(topMovers.map(s=>s.sym));
-  const extras = universe
-    .filter(s => blueChips.includes(s.sym) && !topSyms.has(s.sym))
-    .slice(0, 10);
+  let candidates;
+  if(!hasRealData) {
+    // Weekend/no-data fallback: use blue chips in order, picks-analyze gets live prices
+    console.log('[picks] No price data — using ordered blue chip list');
+    candidates = universe.slice(0, 40);
+  } else {
+    // We have real data — filter by momentum and volume
+    const topMovers = scored
+      .filter(s => Math.abs(s.pct) >= 1.0 || s.volume > 5e6)
+      .sort((a,b) => b.filterScore - a.filterScore)
+      .slice(0, 35);
 
-  const candidates = [...topMovers, ...extras];
+    // Add high-quality blue chips if we have room
+    const blueChips = ['AAPL','MSFT','NVDA','META','GOOGL','AMZN','JPM','LLY','XOM','TSLA'];
+    const topSyms = new Set(topMovers.map(s=>s.sym));
+    const extras = universe
+      .filter(s => blueChips.includes(s.sym) && !topSyms.has(s.sym))
+      .slice(0, 10);
+
+    candidates = [...topMovers, ...extras];
+  }
   console.log(`[picks] Filtered to ${candidates.length} candidates from ${universe.length} universe`);
   return candidates;
 }
