@@ -193,7 +193,7 @@ function buildOutput(results, macro, runType) {
       ? arr.filter(s=>s.rating==='BUY')
       : arr;
     return [...filtered].sort(sortFn(type)).slice(0,5).map(s=>({
-      sym:s.sym, name:s.name||s.sym, sector:s.sector||'',
+      sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker, sector:s.sector||'',
       price:s.price||0, pct:s.pct||0, score:s.score||50,
       rating:s.rating||'WATCH',
       rsi:s.rsi?parseFloat(s.rsi).toFixed(0):null,
@@ -212,7 +212,7 @@ function buildOutput(results, macro, runType) {
       const sec = s.sector||'Unknown';
       if(!g[sec]) g[sec]=[];
       if(g[sec].length<5) g[sec].push({
-        sym:s.sym, name:s.name||s.sym,
+        sym:s.sym||s.ticker, name:s.name||s.sym||s.ticker,
         price:s.price||0, pct:s.pct||0,
         score:s.score||50, rating:s.rating||'WATCH',
         reasons:s.keySignals||[],
