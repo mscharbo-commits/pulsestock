@@ -419,24 +419,32 @@ async function runScan() {
   if(status) status.textContent='Requesting server scan...';
   renderContent(_activeType);
 
-  var serverDone = false;
+  // Try server scan with a 90 second timeout
+  // Server scan caches results for ALL users — worth waiting for
+  if(status) status.textContent='Running server scan (caches for all users)...';
 
-  // Try server scan first — completes in ~60s and caches for ALL users
+  var serverSuccess = false;
   try {
-    var serverResp = await fetch('/api/cron-picks?secret=pulsestock2026&run=full');
+    var ctrl = new AbortController();
+    var timeoutId = setTimeout(function(){ ctrl.abort(); }, 90000);
+    var serverResp = await fetch('/api/cron-picks?secret=pulsestock2026&run=full', {signal: ctrl.signal});
+    clearTimeout(timeoutId);
+
     if(serverResp.ok) {
       var sd = await serverResp.json();
+      console.log('[picks] Server result:', sd);
       if(sd.success && sd.analyzed > 0) {
-        serverDone = true;
         // Load from Gist
+        await new Promise(function(r){setTimeout(r,1000);}); // brief wait for Gist to update
         var gr = await fetch('/api/morning-picks?t='+Date.now());
         var gd = JSON.parse(await gr.text());
         if(gd.pickTypes && Object.keys(gd.pickTypes).length) {
+          serverSuccess = true;
           _scanning=false; _data=gd;
           if(gd.macro) renderMacro(gd.macro);
           renderTabs(gd.pickTypes);
           if(fill) fill.style.width='100%';
-          if(status) status.textContent='✅ Done — '+sd.analyzed+' stocks analyzed';
+          if(status) status.textContent='✅ Done — '+sd.analyzed+' stocks analyzed, results cached';
           document.getElementById('meta-generated').textContent='Last updated: '+new Date().toLocaleString();
           renderContent(_activeType);
           btn.disabled=false; btn.textContent='⚡ Refresh'; btn.className='scan-btn';
@@ -445,12 +453,14 @@ async function runScan() {
         }
       }
     }
-  } catch(e) { console.log('Server scan failed:', e.message); }
+  } catch(e) {
+    console.log('[picks] Server scan failed/timeout:', e.message);
+  }
 
-  // Server failed or timed out — run browser scan (visible progress, no caching)
-  if(!serverDone) {
-    console.log('[picks] Falling back to browser scan');
-    if(status) status.textContent='Running browser analysis...';
+  // Server failed — fall back to browser scan
+  if(!serverSuccess) {
+    console.log('[picks] Server failed — running browser scan');
+    if(status) status.textContent='Server unavailable — running browser scan...';
     await doBrowserScan();
   }
 }
