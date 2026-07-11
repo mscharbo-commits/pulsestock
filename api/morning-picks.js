@@ -1,26 +1,24 @@
 export const config = { runtime: 'edge' };
-const GIST_TOKEN = process.env.GITHUB_TOKEN;
-const PICKS_GIST = 'd4890f15ec44f0ea94a0916285a488aa';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+const REPO = 'mscharbo-commits/pulsestock';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'no-store'};
 
 export default async function handler(req) {
   if(req.method==='OPTIONS') return new Response(null,{headers:CORS});
   try {
-    const r = await fetch(`https://api.github.com/gists/${PICKS_GIST}`,
-      {headers:{'Authorization':`Bearer ${GIST_TOKEN}`,'User-Agent':'PulseStock'}});
-    if(!r.ok) throw new Error('Gist fetch failed: '+r.status);
-    const gist = await r.json();
-
-    // Try enhanced_picks first, fall back to picks_cache
-    const enhanced = gist.files?.['enhanced_picks.json']?.content;
-    if(enhanced) {
-      return new Response(enhanced, {headers:CORS});
+    // Read picks-data.json from repo
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/picks-data.json`,
+      {headers:{'Authorization':`Bearer ${GITHUB_TOKEN}`,'User-Agent':'PulseStock'}});
+    if(!r.ok) throw new Error('Repo fetch failed: '+r.status);
+    const file = await r.json();
+    // Content is base64 encoded
+    const content = atob(file.content.replace(/\n/g,''));
+    const data = JSON.parse(content);
+    if(data.pickTypes && Object.keys(data.pickTypes).length) {
+      return new Response(JSON.stringify(data), {headers:CORS});
     }
-    // Legacy fallback
-    const legacy = gist.files?.['picks_cache.json']?.content;
-    if(legacy) return new Response(legacy, {headers:{...CORS,'X-Format':'legacy'}});
-    return new Response(JSON.stringify({error:'No picks available yet'}),{status:404,headers:CORS});
+    return new Response(JSON.stringify({error:'No picks data yet'}), {status:404,headers:CORS});
   } catch(e) {
-    return new Response(JSON.stringify({error:e.message}),{status:500,headers:CORS});
+    return new Response(JSON.stringify({error:e.message}), {status:500,headers:CORS});
   }
 }
