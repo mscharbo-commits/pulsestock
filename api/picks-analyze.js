@@ -73,13 +73,7 @@ export default async function handler(req) {
     }
 
     const price = quote?.c||0;
-
-    // If we have no price data, skip — don't waste AI call on bad data
-    if(!price || price <= 0) {
-      return new Response(JSON.stringify({
-        ticker, sym:ticker, error:'no_price_data', rating:'SKIP', score:0
-      }), {headers:CORS});
-    }
+    // Note: price may be 0 on weekends/after hours — analysis still runs
 
     // Build context for Claude
     const context = [
