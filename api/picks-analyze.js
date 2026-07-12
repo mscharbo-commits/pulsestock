@@ -117,10 +117,10 @@ export default async function handler(req) {
     }
 
     const PICK_TYPE_CONTEXT = {
-      growth:   'Focus on: long-term competitive advantage, revenue growth trajectory, margin expansion, market leadership. 12-month horizon.',
-      momentum: 'Focus on: price momentum, technical breakout, relative strength vs sector and SPY. 5-30 day horizon.',
-      intraday: 'Focus on: today\'s catalyst, volume vs average, key intraday levels, immediate risk/reward. Same-day horizon.',
-      general:  'Focus on: best overall risk-adjusted opportunity today across any timeframe.',
+      growth: `LONG-TERM GROWTH pick (12-month horizon). BUY only if: revenue growth >10% YoY, expanding margins, durable moat, trading below analyst target. AVOID if: revenue declining, margins compressing, or no growth justification. Target = 12-month price target. Stop = key support.`,
+      momentum: `MOMENTUM/SWING TRADE (5-30 day). BUY only if: strong relative strength vs SPY, constructive RSI (45-65), above key moving averages, clear technical catalyst. AVOID if: broken trend, below MAs, overbought >75 RSI. Target = next resistance. Stop = recent swing low.`,
+      intraday: `INTRADAY TRADE (same day only). BUY only if: clear news catalyst TODAY, elevated volume vs average, holding above VWAP. AVOID if: no same-day catalyst, low volume, or pre-market move already faded. Target = 2-3% above price. Stop = VWAP or morning low.`,
+      general: `BEST OVERALL OPPORTUNITY today (any timeframe). BUY if strong risk/reward with at least one clear edge — fundamental, technical, or catalyst. AVOID if no clear edge or risk outweighs reward.`,
     };
 
     const aiResp = await fetch('https://api.anthropic.com/v1/messages',{
