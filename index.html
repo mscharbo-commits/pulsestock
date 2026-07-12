@@ -1871,6 +1871,9 @@ async function runAIAnalysis(ticker, name, sector){
   const output = document.getElementById('ai-analysis-output');
 
   if(btn){ btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
+  // Hide market overview — user focused on stock analysis
+  var moEl = document.getElementById('market-overview');
+  if(moEl) moEl.style.display = 'none';
 
   // Fetch fresh quote AND edgar data in parallel at analysis time
   var [liveQuote, freshEdgar] = await Promise.all([
@@ -2123,6 +2126,15 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     if(streamEl) streamEl.innerHTML += boxHtml;
 
     if(btn){ btn.textContent = '↑ Refresh Analysis'; btn.disabled = false; }
+    // Show generated timestamp
+    var tsEl = document.getElementById('ai-analysis-timestamp');
+    if(!tsEl){
+      tsEl = document.createElement('div');
+      tsEl.id = 'ai-analysis-timestamp';
+      output.parentNode.insertBefore(tsEl, output);
+    }
+    tsEl.style.cssText = 'font-size:11px;color:var(--text3);margin-bottom:8px;padding:4px 0;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);';
+    tsEl.innerHTML = '<span style="color:var(--green);font-size:8px;">●</span> Analysis generated ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' · ' + new Date().toLocaleDateString();
     output.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch(err) {
