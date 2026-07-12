@@ -1339,7 +1339,12 @@ async function doAnalyze(){
   const ticker=rawInput.toUpperCase().split(' ')[0].replace(/[^A-Z0-9.\-]/g,'');
   if(!ticker) return;
   const el=document.getElementById('analyze-result');
-  el.innerHTML=`<div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
+  el.innerHTML=`<div style="margin-bottom:12px;">
+    <button onclick="var mo=document.getElementById('market-overview');if(mo){mo.style.display='';this.closest('[style]').style.display='none';}" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px;">
+      ← Market Overview
+    </button>
+  </div>
+  <div class="card"><div class="loading-pulse"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><span>Fetching live data for <strong>${ticker}</strong>…</span></div></div>`;
 
   const[quote,profile,analyst,newsData,edgarData]=await Promise.all([fetchQuote(ticker),fetchProfile(ticker),fetchAnalyst(ticker),fetchNews(ticker, 90),fetchEdgar(ticker)]);
   fetchCompany(ticker).then(function(d){ renderCompanyProfile(ticker, d); });
