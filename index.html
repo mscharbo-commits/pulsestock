@@ -1443,32 +1443,35 @@ async function doAnalyze(){
       <div class="tradingview-widget-container" id="tv-widget-${ticker}" style="height:100%;width:100%;"></div>
     </div>
 
-    <!-- TIME PERIOD SELECTOR synced with indicator panel -->
-    <div style="display:flex;gap:4px;margin-bottom:10px;margin-top:-6px;align-items:center;">
-      <span style="font-size:11px;color:var(--text3);font-weight:500;margin-right:4px;">Indicators:</span>
-      <button class="ind-period-btn" onclick="setIndPeriod(1,this)">1D</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(5,this)">5D</button>
-      <button class="ind-period-btn active" onclick="setIndPeriod(30,this)">1M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(90,this)">3M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(180,this)">6M</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(252,this)">YTD</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(365,this)">1Y</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(1825,this)">5Y</button>
-      <button class="ind-period-btn" onclick="setIndPeriod(3650,this)">All</button>
-    </div>
-
     </div><!-- end chart section -->
 
     <div id="indicators-${ticker}">
     <div class="indicator-panel" id="ind-panel">
-      <div class="indicator-tabs">
-        <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
-        <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
-        <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger Bands</button>
-        <button class="ind-tab" onclick="showIndicator('ema',this)">EMA Crossover</button>
-        <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
-        <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+      <!-- UNIFIED CONTROL BAR: timeframe left, indicator selector right -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:3px;align-items:center;">
+          <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;">Period</span>
+          <button class="ind-period-btn" onclick="setIndPeriod(1,this)">1D</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(5,this)">5D</button>
+          <button class="ind-period-btn active" onclick="setIndPeriod(30,this)">1M</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(90,this)">3M</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(180,this)">6M</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(252,this)">YTD</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(365,this)">1Y</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(1825,this)">5Y</button>
+          <button class="ind-period-btn" onclick="setIndPeriod(3650,this)">All</button>
+        </div>
+        <div style="display:flex;gap:3px;align-items:center;">
+          <span style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-right:6px;">Indicator</span>
+          <button class="ind-tab active" onclick="showIndicator('rsi',this)">RSI</button>
+          <button class="ind-tab" onclick="showIndicator('macd',this)">MACD</button>
+          <button class="ind-tab" onclick="showIndicator('bb',this)">Bollinger</button>
+          <button class="ind-tab" onclick="showIndicator('ema',this)">EMA</button>
+          <button class="ind-tab" onclick="showIndicator('volume',this)">Volume</button>
+          <button class="ind-tab" onclick="showIndicator('stoch',this)">Stochastic</button>
+        </div>
       </div>
+      <div class="indicator-tabs" style="display:none;"><!-- hidden original tabs --></div>
       <div class="indicator-chart-wrap">
         <canvas id="ind-chart"></canvas>
       </div>
