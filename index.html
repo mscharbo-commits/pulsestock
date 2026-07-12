@@ -918,10 +918,10 @@ function initTVChart(ticker){
       locale: 'en',
       toolbar_bg: '#F4F7FD',
       enable_publishing: false,
-      hide_top_toolbar: false,
+      hide_top_toolbar: true,
       hide_legend: false,
       save_image: false,
-      withdateranges: true,
+      withdateranges: false,
       allow_symbol_change: false,
       studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
       width: '100%',
@@ -3374,10 +3374,39 @@ function renderIndicator() {
 
 var indPeriod = 30;
 
+// Map days to TradingView interval
+function daysToTVInterval(days) {
+  if(days <= 1)    return 'D';
+  if(days <= 5)    return 'D';
+  if(days <= 30)   return 'D';
+  if(days <= 90)   return 'W';
+  if(days <= 365)  return 'W';
+  return 'M';
+}
+// Map days to TradingView range string
+function daysToTVRange(days) {
+  if(days <= 1)    return '1D';
+  if(days <= 5)    return '5D';
+  if(days <= 30)   return '1M';
+  if(days <= 90)   return '3M';
+  if(days <= 180)  return '6M';
+  if(days <= 252)  return 'YTD';
+  if(days <= 365)  return '12M';
+  if(days <= 1825) return '60M';
+  return 'ALL';
+}
+
 function setIndPeriod(days, btn) {
   indPeriod = days;
   document.querySelectorAll('.ind-period-btn').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
+  // Sync TradingView chart to same timeframe
+  try {
+    var tvFrame = document.querySelector('.tradingview-widget-container iframe');
+    if(tvFrame && tvFrame.contentWindow) {
+      tvFrame.contentWindow.postMessage({name:'set-date-range', data:{range:daysToTVRange(days)}}, '*');
+    }
+  } catch(e){}
   if(indTicker && indCurrentPrice) {
     indPriceData = generatePriceHistory(indCurrentPrice, indCurrentPct, days);
     renderIndicator();
