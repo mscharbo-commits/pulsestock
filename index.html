@@ -1331,6 +1331,9 @@ async function fetchAnalyst(ticker){
 var stockMetrics = null; // declared at module scope
 async function doAnalyze(){
   stockMetrics = null; // reset on each analyze
+  // Hide market overview — user is viewing a stock
+  var moEl = document.getElementById('market-overview');
+  if(moEl) { moEl.style.display = 'none'; }
   var rawInput=document.getElementById('ticker-input').value.trim();
   // If user typed a full name, try to extract just the ticker symbol
   const ticker=rawInput.toUpperCase().split(' ')[0].replace(/[^A-Z0-9.\-]/g,'');
@@ -1876,9 +1879,7 @@ async function runAIAnalysis(ticker, name, sector){
   const output = document.getElementById('ai-analysis-output');
 
   if(btn){ btn.textContent = '⏳ Analyzing...'; btn.disabled = true; }
-  // Hide market overview — user focused on stock analysis
-  var moEl = document.getElementById('market-overview');
-  if(moEl) moEl.style.display = 'none';
+
 
   // Fetch fresh quote AND edgar data in parallel at analysis time
   var [liveQuote, freshEdgar] = await Promise.all([
