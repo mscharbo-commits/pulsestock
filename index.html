@@ -78,6 +78,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);position:
 .ml{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500;}
 .mv{font-size:15px;font-weight:500;font-family:'DM Mono',monospace;}
 
+.lang-selector{position:relative;display:inline-block;}
+.lang-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px;transition:all .15s;}
+.lang-btn:hover{border-color:var(--accent);color:var(--accent);}
+.lang-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);min-width:160px;z-index:999;display:none;overflow:hidden;}
+.lang-dropdown.open{display:block;}
+.lang-option{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text2);transition:background .1s;}
+.lang-option:hover{background:var(--accent-light);color:var(--accent);}
+.lang-option.active{background:var(--accent-light);color:var(--accent);font-weight:600;}
 /* TradingView chart */
 .tv-chart-wrap{width:100%;height:520px;margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);}
 
@@ -438,6 +446,20 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       <a href="/briefing.html" class="nav-tab-link">📰 Briefing</a>
       <a href="/alerts.html" class="nav-tab-link">🔔 Alerts</a>
       <button class="nav-tab" onclick="showPage('watchlist',this);renderWatchlist();">⭐ Watchlist</button>
+      <div class="lang-selector" id="lang-selector">
+        <button class="lang-btn" onclick="toggleLangMenu()" id="lang-btn">🌐 EN</button>
+        <div class="lang-dropdown" id="lang-dropdown">
+          <div class="lang-option active" onclick="setLang('en','EN')">🇺🇸 English</div>
+          <div class="lang-option" onclick="setLang('es','ES')">🇪🇸 Español</div>
+          <div class="lang-option" onclick="setLang('pt','PT')">🇧🇷 Português</div>
+          <div class="lang-option" onclick="setLang('zh','中文')">🇨🇳 中文</div>
+          <div class="lang-option" onclick="setLang('ja','日本語')">🇯🇵 日本語</div>
+          <div class="lang-option" onclick="setLang('ko','한국어')">🇰🇷 한국어</div>
+          <div class="lang-option" onclick="setLang('ar','AR')">🇸🇦 العربية</div>
+          <div class="lang-option" onclick="setLang('fr','FR')">🇫🇷 Français</div>
+          <div class="lang-option" onclick="setLang('de','DE')">🇩🇪 Deutsch</div>
+        </div>
+      </div>
       <a href="/desktop.html" class="nav-tab-link">🖥️ Desktop App</a>
     </nav>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px;">
@@ -822,6 +844,30 @@ function qs(t){
 }
 
 // ── TICKER AUTOCOMPLETE ──
+// ── LANGUAGE SELECTOR ──
+var _lang = 'en';
+var _langLabels = {en:'Respond in English.',es:'Respond entirely in Spanish (Español).',pt:'Respond entirely in Portuguese (Português).',zh:'Respond entirely in Simplified Chinese (中文).',ja:'Respond entirely in Japanese (日本語).',ko:'Respond entirely in Korean (한국어).',ar:'Respond entirely in Arabic (العربية).',fr:'Respond entirely in French (Français).',de:'Respond entirely in German (Deutsch).'};
+
+function toggleLangMenu() {
+  var dd = document.getElementById('lang-dropdown');
+  dd.classList.toggle('open');
+}
+function setLang(code, label) {
+  _lang = code;
+  document.getElementById('lang-btn').textContent = '🌐 ' + label;
+  document.querySelectorAll('.lang-option').forEach(function(o){ o.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+  document.getElementById('lang-dropdown').classList.remove('open');
+}
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e){
+  var sel = document.getElementById('lang-selector');
+  if(sel && !sel.contains(e.target)) document.getElementById('lang-dropdown').classList.remove('open');
+});
+function getLangInstruction() {
+  return _lang === 'en' ? '' : '\n\n' + (_langLabels[_lang]||'');
+}
+
 var searchTimer=null;
 var selectedIndex=-1;
 var searchResults=[];
@@ -2050,7 +2096,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ticker, tier: 'free',
-        system: systemMsg,
+        system: systemMsg + getLangInstruction(),
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -5134,7 +5180,7 @@ async function loadLiveTab() {
   if(!grid) return;
   grid.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:20px 0;color:var(--text3);font-size:13px;"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Generating AI market pulse...</div>';
   try {
-    var r = await fetch('/api/market-pulse?t='+Date.now());
+    var r = await fetch('/api/market-pulse?t='+Date.now()+'&lang='+_lang);
     if(!r.ok) throw new Error('HTTP '+r.status);
     var d = await r.json();
     _moData['live'] = d;
