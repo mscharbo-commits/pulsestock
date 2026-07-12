@@ -154,9 +154,14 @@ function calcSentiment(data,spyT){
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────
+const LANG_INSTRUCTIONS = {es:'Respond entirely in Spanish.',pt:'Respond entirely in Portuguese.',zh:'Respond entirely in Simplified Chinese.',ja:'Respond entirely in Japanese.',ko:'Respond entirely in Korean.',ar:'Respond entirely in Arabic.',fr:'Respond entirely in French.',de:'Respond entirely in German.'};
+
 export default async function handler(req) {
   if(req.method==='OPTIONS')return new Response(null,{headers:CORS});
-  if(_cache&&Date.now()-_cacheTime<CACHE_TTL)return new Response(JSON.stringify({..._cache,cached:true}),{headers:CORS});
+  const _url = new URL(req.url, 'https://pulsestock-nu.vercel.app');
+  const lang = _url.searchParams.get('lang')||'en';
+  const langInstruction = lang!=='en' ? '\n\n'+(LANG_INSTRUCTIONS[lang]||'') : '';
+  if(lang==='en'&&_cache&&Date.now()-_cacheTime<CACHE_TTL)return new Response(JSON.stringify({..._cache,cached:true}),{headers:CORS});
 
   const now=new Date();
   const et=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
