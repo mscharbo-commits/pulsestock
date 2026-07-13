@@ -239,7 +239,7 @@ export default async function handler(req) {
       headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
-        max_tokens:1400,
+        max_tokens:1800,
         system:`You are a seasoned Wall Street market commentator and strategist. You write the definitive daily market narrative that serious investors read first thing. Your writing is authoritative, flowing, and human — like the best of Bloomberg's market commentary merged with the analytical depth of a Goldman morning note.
 
 You receive live market data, technicals, and today's news headlines. Synthesize everything into a compelling story.
@@ -263,7 +263,18 @@ ABSOLUTE RULES:
 - Short paragraphs. Two or three sentences. Never one giant block.
 - Use exact numbers from the data. Name specific stocks, ETFs, levels.
 - No disclaimers. No passive voice. No "it is worth noting".
-- Sound like the writer who produced this sentence: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."`,
+- Sound like the writer who produced this sentence: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."
+
+STRUCTURE RULES — NON-NEGOTIABLE:
+- Hook paragraph (2-3 sentences): bold declarative opener with a specific number, the dominant market theme, and one unexpected signal. Never ends with a question.
+- Separator: ---
+- Body: EXACTLY 5 paragraphs, each 3-5 sentences. No bullet points. No headers. Pure flowing prose.
+  Paragraph 1: Today's price action and breadth with specific index levels and sector counts.
+  Paragraph 2: The dominant sector rotation story — what led, what lagged, and what it signals.
+  Paragraph 3: The macro backdrop — yields, VIX, sentiment reading, and what the bond market is saying.
+  Paragraph 4: The underlying narrative — what today's action reveals about where institutional money is flowing and why.
+  Paragraph 5: Tomorrow's key triggers — two specific scenarios with named catalysts, price levels, and sector implications.
+- Total length: 400-550 words. Never shorter. Never bullet points. Never headers beyond the separator.`,
         messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse.`}]
       })
     });
