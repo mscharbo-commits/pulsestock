@@ -275,7 +275,7 @@ WRITING RULES:
 - No hedging language: no "it remains to be seen", no "investors will be watching"
 - Use specific numbers from the data — never vague ranges
 - Total length: 450-600 words
-- Sound like the writer who produced: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."\``,
+- Sound like the writer who produced: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."`,
         messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse.`}]
       })
     });
