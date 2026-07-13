@@ -858,6 +858,19 @@ function setLang(code, label) {
   document.querySelectorAll('.lang-option').forEach(function(o){ o.classList.remove('active'); });
   event.currentTarget.classList.add('active');
   document.getElementById('lang-dropdown').classList.remove('open');
+
+  // Force market pulse reload in new language
+  if(_moData) _moData['live'] = null;
+  if(_moLoaded) _moLoaded['live'] = false;
+  if(typeof loadLiveTab === 'function' && _moTab === 'live') loadLiveTab();
+
+  // Re-run stock analysis if one is currently showing
+  var ticker = (document.getElementById('ticker-input')||{}).value||'';
+  ticker = ticker.trim().toUpperCase();
+  var output = document.getElementById('ai-analysis-output');
+  if(ticker && output && output.innerText && output.innerText.length > 50) {
+    runAIAnalysis(ticker, '', '');
+  }
 }
 // Close dropdown when clicking outside
 document.addEventListener('click', function(e){
