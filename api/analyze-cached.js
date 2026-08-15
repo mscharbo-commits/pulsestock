@@ -43,8 +43,59 @@ export default async function handler(req) {
     const body = await req.json();
     const messages = body.messages || [];
     const ticker = body.ticker || '';
+    const forceRefresh = body.forceRefresh || false;
     if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     if (!process.env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+    // ── SMART CACHE CHECK ──
+    // Before fetching data or calling Claude, check if we have a valid cached analysis
+    if (ticker && !forceRefresh) {
+      try {
+        const host = req.headers.get('host') || 'pulsestock-nu.vercel.app';
+        const cacheResp = await fetch(`https://${host}/api/analysis-cache?ticker=${ticker}&action=check`, {
+          signal: AbortSignal.timeout(4000)
+        });
+        if (cacheResp.ok) {
+          const cacheData = await cacheResp.json();
+          if (cacheData.hit && cacheData.analysis) {
+            // Serve from cache — stream the stored analysis as SSE
+            console.log(`[cache] HIT ${ticker} — ${cacheData.reason}`);
+            const encoder = new TextEncoder();
+            const stream = new ReadableStream({
+              start(controller) {
+                // Emit cache metadata event first
+                controller.enqueue(encoder.encode(
+                  `data: ${JSON.stringify({ type: 'cache_hit', generated: cacheData.generated, priceAtGeneration: cacheData.priceAtGeneration })}
+
+`
+                ));
+                // Stream the cached text as SSE chunks
+                const chunks = cacheData.analysis.match(/.{1,100}/g) || [];
+                for (const chunk of chunks) {
+                  controller.enqueue(encoder.encode(
+                    `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: chunk } })}
+
+`
+                  ));
+                }
+                controller.enqueue(encoder.encode('data: {"type":"message_stop"}
+
+'));
+                controller.close();
+              }
+            });
+            return new Response(stream, {
+              headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'X-Cache': 'HIT' }
+            });
+          } else {
+            console.log(`[cache] MISS ${ticker} — ${cacheData.reason}`);
+          }
+        }
+      } catch(e) {
+        console.log(`[cache] Check failed for ${ticker}:`, e.message);
+        // Continue to fresh analysis on cache check failure
+      }
+    }
 
     let contextData = '';
 
@@ -156,6 +207,53 @@ export default async function handler(req) {
     if (!resp.ok) {
       const err = await resp.text();
       return new Response(JSON.stringify({ error: err.slice(0,300) }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
+    // ── BACKGROUND CACHE SAVE ──
+    // Tee the response stream: one branch goes to client, other we collect to save
+    if (ticker && resp.ok) {
+      const [clientStream, cacheStream] = resp.body.tee();
+
+      // Collect cache stream in background — don't await, don't block client
+      (async () => {
+        try {
+          const reader = cacheStream.getReader();
+          const decoder = new TextDecoder();
+          let fullText = '';
+          while(true) {
+            const { done, value } = await reader.read();
+            if(done) break;
+            const chunk = decoder.decode(value);
+            // Parse SSE events to extract text
+            const lines = chunk.split('\n');
+            for(const line of lines) {
+              if(!line.startsWith('data:')) continue;
+              try {
+                const evt = JSON.parse(line.slice(5));
+                if(evt.delta?.text) fullText += evt.delta.text;
+              } catch(e) {}
+            }
+          }
+          if(fullText.length > 100) {
+            // Extract price and headlines from contextData
+            const priceMatch = contextData.match(/Price: \$([\d.]+)/);
+            const price = priceMatch ? parseFloat(priceMatch[1]) : null;
+            const hlMatches = [...contextData.matchAll(/• (.+?)(?:\n|$)/g)].slice(0,10).map(m=>m[1]);
+            // Save to cache
+            const host = 'pulsestock-nu.vercel.app';
+            await fetch(`https://${host}/api/analysis-cache?ticker=${ticker}&action=store`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ analysis: fullText, price, headlines: hlMatches })
+            });
+            console.log(`[cache] SAVED ${ticker} (${fullText.length} chars)`);
+          }
+        } catch(e) { console.log(`[cache] Save failed for ${ticker}:`, e.message); }
+      })();
+
+      return new Response(clientStream, {
+        headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', 'X-Cache': 'MISS' }
+      });
     }
 
     return new Response(resp.body, {
