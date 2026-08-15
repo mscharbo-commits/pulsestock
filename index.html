@@ -1880,7 +1880,7 @@ function openCommunityRoom(ticker){
   window.open('/community.html?room='+ticker.toLowerCase(),'_blank');
 }
 
-async function runAIAnalysis(ticker, name, sector){
+async function runAIAnalysis(ticker, name, sector, forceRefresh){
   const f = FUNDAMENTALS[ticker] || {};
   const btn = document.getElementById('ai-analyze-btn');
   const ctaCard = document.getElementById('ai-cta-card');
@@ -2050,6 +2050,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ticker, tier: 'free',
+        forceRefresh: !!forceRefresh,
         system: systemMsg,
         messages: [{ role: 'user', content: prompt }]
       })
