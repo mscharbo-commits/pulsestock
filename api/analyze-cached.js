@@ -110,9 +110,7 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
                 });
                 if (eeResp.ok) {
                   const eeData = await eeResp.json();
-                  entryExit = '
-
-' + (eeData.content?.[0]?.text?.trim() || '');
+                  entryExit = '\n\n' + (eeData.content?.[0]?.text?.trim() || '');
                 }
               } catch(e) { console.log('[cache] Entry/exit generation failed:', e.message); }
             }
