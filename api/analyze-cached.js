@@ -58,19 +58,76 @@ export default async function handler(req) {
         if (cacheResp.ok) {
           const cacheData = await cacheResp.json();
           if (cacheData.hit && cacheData.analysis) {
-            // Serve from cache — stream the stored analysis as SSE
             console.log(`[cache] HIT ${ticker} — ${cacheData.reason}`);
+
+            // Fetch live quote for fresh entry/exit section — always current
+            const liveQuote = await safeFetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+            const livePrice = liveQuote?.c || cacheData.priceAtGeneration || 0;
+            const livePct   = liveQuote?.dp || 0;
+
+            // Generate fresh Entry/Exit section using Haiku (cheap, fast)
+            let entryExit = '';
+            if (process.env.ANTHROPIC_API_KEY && livePrice > 0) {
+              try {
+                const eeResp = await fetch('https://api.anthropic.com/v1/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+                  body: JSON.stringify({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens: 400,
+                    messages: [{
+                      role: 'user',
+                      content: `Generate the Entry/Exit Strategy section for ${ticker} based on this context:
+
+Current price: $${livePrice.toFixed(2)} (${livePct >= 0 ? '+' : ''}${livePct.toFixed(2)}% today)
+
+Prior analysis context:
+${cacheData.analysis.slice(0, 800)}
+
+Write ONLY the entry/exit section in this exact format — nothing else:
+
+🎯 ENTRY / EXIT STRATEGY
+
+🟢 ENTRY ZONE
+$[range] — reason: [specific reason using current price $${livePrice.toFixed(2)} and key levels]
+
+🔴 STOP LOSS
+$[price] — reason: [level that invalidates thesis, % downside from $${livePrice.toFixed(2)}]
+
+📍 TARGET 1
+$[price] — reason: [resistance level, % upside from $${livePrice.toFixed(2)}, timeframe]
+
+🎯 TARGET 2
+$[price] — reason: [aggressive target, % upside, catalyst required]
+
+📐 POSITION SIZE
+[%] — reason: [rationale]
+
+⏱ TIME HORIZON
+[timeframe] — reason: [specific catalysts to watch]`
+                    }]
+                  })
+                });
+                if (eeResp.ok) {
+                  const eeData = await eeResp.json();
+                  entryExit = '
+
+' + (eeData.content?.[0]?.text?.trim() || '');
+                }
+              } catch(e) { console.log('[cache] Entry/exit generation failed:', e.message); }
+            }
+
+            // Stream cached analysis + fresh entry/exit
+            const fullAnalysis = cacheData.analysis + entryExit;
             const encoder = new TextEncoder();
             const stream = new ReadableStream({
               start(controller) {
-                // Emit cache metadata event first
                 controller.enqueue(encoder.encode(
-                  `data: ${JSON.stringify({ type: 'cache_hit', generated: cacheData.generated, priceAtGeneration: cacheData.priceAtGeneration })}
+                  `data: ${JSON.stringify({ type: 'cache_hit', generated: cacheData.generated })}
 
 `
                 ));
-                // Stream the cached text as SSE chunks
-                const chunks = cacheData.analysis.match(/.{1,100}/g) || [];
+                const chunks = fullAnalysis.match(/.{1,100}/g) || [];
                 for (const chunk of chunks) {
                   controller.enqueue(encoder.encode(
                     `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: chunk } })}
@@ -185,7 +242,7 @@ export default async function handler(req) {
     }
 
     const system = contextData
-      ? `You are a senior institutional stock analyst delivering a deep-dive analysis. Today\'s live market data:\n\n${contextData}\n\nUsing ONLY this data, write a comprehensive analysis in exactly 5 sections with headers:\n\n1. **Market Context** — How is the broad market and sector performing today? Is this a headwind or tailwind for ${ticker}?\n2. **Technical Picture** — Price action, momentum, key levels based on today\'s data.\n3. **Fundamental Snapshot** — Key metrics, valuation, growth profile.\n4. **News & Catalysts** — What news is driving the stock? Any sector-level catalysts?\n5. **🎯 ENTRY / EXIT STRATEGY** — You MUST include all three of the following subsections with this exact format:\n\n🟢 ENTRY ZONE\n$[price range] — reason: [specific reason anchored to current price and technicals]\n\n🔴 STOP LOSS\n$[price] — reason: [specific level that invalidates the thesis with % downside]\n\n📍 TARGET 1\n$[price] — reason: [specific resistance or valuation level with % upside and timeframe]\n\nAll prices must be anchored to the actual current price in the data. No vague ranges. No disclaimers.\n\nBe specific with actual numbers from the data. Write for a sophisticated institutional investor.`
+      ? `You are a senior institutional stock analyst delivering a deep-dive analysis. Today\'s live market data:\n\n${contextData}\n\nUsing ONLY this data, write a comprehensive analysis in exactly 4 sections with headers:\n\n1. **Market Context** — How is the broad market and sector performing today? Is this a headwind or tailwind for ${ticker}? Use index percentages and sector ETF moves.\n2. **Technical Picture** — Momentum, trend, and key levels. Reference moving averages, RSI, and volume ratios using the data provided. Do NOT mention the current price — describe price behavior relative to MAs (e.g. \'trading above 50MA\', \'testing 200MA support\') rather than quoting the exact current price.\n3. **Fundamental Snapshot** — Key metrics, valuation multiples, growth profile, margins. Use the actual numbers from the data.\n4. **News & Catalysts** — What specific news is driving this stock? Name the actual headlines and their market implications. What sector-level catalysts are in play?\n\nCRITICAL: Do NOT quote the exact current stock price anywhere in sections 1-4. Reference price behavior, trend direction, and levels relative to moving averages only. The current price is handled separately.\n\nBe specific with actual numbers from the data (P/E, margins, RSI, MA levels, sector %). Write for a sophisticated institutional investor. No disclaimers.`
       : 'You are an institutional stock analyst. Provide a deep-dive analysis in 5 sections: Market Context, Technical Picture, Fundamentals, News & Catalysts, Outlook & Strategy.';
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
