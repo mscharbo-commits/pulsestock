@@ -120,22 +120,12 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
             const encoder = new TextEncoder();
             const stream = new ReadableStream({
               start(controller) {
-                controller.enqueue(encoder.encode(
-                  `data: ${JSON.stringify({ type: 'cache_hit', generated: cacheData.generated })}
-
-`
-                ));
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "cache_hit", generated: cacheData.generated })}\n\n`));
                 const chunks = fullAnalysis.match(/.{1,100}/g) || [];
                 for (const chunk of chunks) {
-                  controller.enqueue(encoder.encode(
-                    `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text: chunk } })}
-
-`
-                  ));
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "content_block_delta", delta: { type: "text_delta", text: chunk } })}\n\n`));
                 }
-                controller.enqueue(encoder.encode('data: {"type":"message_stop"}
-
-'));
+                controller.enqueue(encoder.encode("data: {\"type\":\"message_stop\"}\n\n"));
                 controller.close();
               }
             });
