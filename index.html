@@ -2086,16 +2086,9 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
           try{
             const parsed = JSON.parse(data);
             // Handle cache_hit event — update timestamp to show cache info
-            if(parsed.type === 'cache_hit' && parsed.generated){
+            if(parsed.type === 'cache_hit'){
               var tsNow = document.getElementById('ai-analysis-timestamp');
-              if(tsNow){
-                tsNow.style.display='flex';
-                tsNow.innerHTML = '<span style="color:var(--accent);font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--accent-light);margin-right:8px;">CACHED</span>' +
-                  '<span style="color:var(--green);font-size:8px;">●</span> Analysis from ' +
-                  new Date(parsed.generated).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) + ' · ' +
-                  new Date(parsed.generated).toLocaleDateString() +
-                  '<button onclick="runAIAnalysis(\'' + ticker + '\',\'\',\'\',true)" style="margin-left:12px;background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;color:var(--text3);" title="Force refresh">🔄 Refresh</button>';
-              }
+              if(tsNow){ tsNow.style.display='flex'; tsNow.innerHTML='<span style="color:var(--green);font-size:8px;">●</span> Live AI Analysis'; }
             }
             // Handle text deltas
             if(parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text){
