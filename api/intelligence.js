@@ -78,7 +78,7 @@ async function getBorrowRate(ticker) {
     const monthAgo = new Date(Date.now()-45*86400000).toISOString().split('T')[0];
 
     // FINRA requires POST with JSON body
-    const finraResp = await fetch('https://api.finra.org/data/group/otcMarket/name/equityShortInterest', {
+    const finraResp = await fetch('https://api.finra.org/data/group/otcMarket/name/EquityShortInterest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
@@ -86,7 +86,7 @@ async function getBorrowRate(ticker) {
           { compareType: 'EQUAL', fieldName: 'issueSymbolIdentifier', fieldValue: ticker },
           { compareType: 'GREATER_THAN_OR_EQUAL', fieldName: 'settlementDate', fieldValue: monthAgo }
         ],
-        fields: ['issueSymbolIdentifier','settlementDate','currentShortShareNumber','averageShortShareNumber','daysToCoverShortInterest'],
+        
         limit: 1,
         sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
       }),
