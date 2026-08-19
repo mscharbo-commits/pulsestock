@@ -72,20 +72,31 @@ async function getDarkPool(ticker) {
 
 // ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
 async function getBorrowRate(ticker) {
-  const d = await safeFetch(`https://iborrowdesk.com/api/ticker/${ticker}`);
-  if (!d || !d.daily) return null;
+  // Use Finnhub stock metrics for short interest data — replaces iborrowdesk (unreliable hidden API)
+  const d = await safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`);
+  if (!d || !d.metric) return null;
 
-  const history = (d.daily || []).slice(0, 30).map(row => ({
-    date:      row.date,
-    fee:       row.fee,
-    available: row.available,
-  }));
-  const latest  = history[0];
-  const avg30   = parseFloat((history.reduce((s,h)=>s+(h.fee||0),0)/history.length).toFixed(2));
-  const trend   = history.length >= 2 ? (history[0].fee > history[history.length-1].fee ? 'Rising' : 'Falling') : 'Stable';
-  const level   = latest?.fee > 50 ? 'Extremely Hard to Borrow' : latest?.fee > 10 ? 'Hard to Borrow' : latest?.fee > 1 ? 'Moderate' : 'Easy to Borrow';
+  const m = d.metric;
+  // Finnhub provides short interest ratio and days to cover
+  const shortRatio     = m.shortRatioQ || m.shortRatio || null;
+  const shortInterest  = m.shortInterestQ || null;
+  const sharesOut      = m.sharesOutstandingQ || null;
+  const shortPct       = (shortInterest && sharesOut) ? parseFloat(((shortInterest/sharesOut)*100).toFixed(2)) : null;
 
-  return { latest, history: history.slice(0, 10), avg30Day: avg30, trend, level, source: 'iborrowdesk' };
+  if (!shortRatio && !shortPct) return null;
+
+  // Derive borrow difficulty from short ratio (days to cover)
+  const level = shortRatio > 10 ? 'Hard to Borrow' : shortRatio > 5 ? 'Moderate' : shortRatio > 2 ? 'Easy to Borrow' : 'Very Easy';
+  const trend = 'N/A'; // Finnhub doesn't provide borrow rate trend
+
+  return {
+    latest: { fee: null, shortRatio, shortPct },
+    shortRatio,
+    shortPct,
+    level,
+    trend,
+    source: 'Finnhub'
+  };
 }
 
 // ── 3. INSTITUTIONAL 13F (SEC EDGAR) ──────────────────────────────────────
