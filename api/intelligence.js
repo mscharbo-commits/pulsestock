@@ -100,7 +100,7 @@ async function getBorrowRate(ticker) {
       if (Array.isArray(finraData) && finraData.length > 0) {
         const row = finraData[0];
         shortInterest  = row.currentShortShareNumber || null;
-        shortRatio     = row.daysToCoverShortInterest ? parseFloat(row.daysToCoverShortInterest).toFixed(1) : null;
+        shortRatio     = row.daysToCoverNumber ? parseFloat(row.daysToCoverNumber).toFixed(1) : null;
         settlementDate = row.settlementDate || null;
       }
     }
