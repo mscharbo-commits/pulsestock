@@ -72,31 +72,48 @@ async function getDarkPool(ticker) {
 
 // ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
 async function getBorrowRate(ticker) {
-  // Use Finnhub stock metrics for short interest data — replaces iborrowdesk (unreliable hidden API)
-  const d = await safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`);
-  if (!d || !d.metric) return null;
+  // FINRA short interest — free, covers all US stocks, published twice monthly
+  // Also try Finnhub as fallback for ratio data
+  try {
+    const [finraData, finnhubData] = await Promise.all([
+      safeFetch(`https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest?limit=1&offset=0&fields=issueSymbolIdentifier,shortInterestQty,averageDailyVolume,daysToCover,settlementDate&compareFilters=[{"fieldName":"issueSymbolIdentifier","compareType":"equal","fieldValue":"${ticker}"}]`, 6000),
+      safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`, 5000),
+    ]);
 
-  const m = d.metric;
-  // Finnhub provides short interest ratio and days to cover
-  const shortRatio     = m.shortRatioQ || m.shortRatio || null;
-  const shortInterest  = m.shortInterestQ || null;
-  const sharesOut      = m.sharesOutstandingQ || null;
-  const shortPct       = (shortInterest && sharesOut) ? parseFloat(((shortInterest/sharesOut)*100).toFixed(2)) : null;
+    let shortPct = null, shortRatio = null, shortInterest = null, settlementDate = null;
 
-  if (!shortRatio && !shortPct) return null;
+    // FINRA data — most reliable source
+    if (finraData && Array.isArray(finraData) && finraData.length > 0) {
+      const row = finraData[0];
+      shortInterest = row.shortInterestQty || null;
+      shortRatio    = row.daysToCover ? parseFloat(row.daysToCover).toFixed(1) : null;
+      settlementDate = row.settlementDate || null;
+    }
 
-  // Derive borrow difficulty from short ratio (days to cover)
-  const level = shortRatio > 10 ? 'Hard to Borrow' : shortRatio > 5 ? 'Moderate' : shortRatio > 2 ? 'Easy to Borrow' : 'Very Easy';
-  const trend = 'N/A'; // Finnhub doesn't provide borrow rate trend
+    // Finnhub fallback for shares outstanding to calculate %
+    if (finnhubData && finnhubData.metric) {
+      const m = finnhubData.metric;
+      const sharesOut = m.sharesOutstandingTTM || m.sharesOutstandingQ || null;
+      if (shortInterest && sharesOut) {
+        shortPct = parseFloat(((shortInterest / (sharesOut * 1e6)) * 100).toFixed(2));
+      }
+      // Use Finnhub ratio as fallback if FINRA didn't return days to cover
+      if (!shortRatio) {
+        shortRatio = m.shortRatioQ || m.shortRatio || null;
+        if (shortRatio) shortRatio = parseFloat(shortRatio).toFixed(1);
+      }
+    }
 
-  return {
-    latest: { fee: null, shortRatio, shortPct },
-    shortRatio,
-    shortPct,
-    level,
-    trend,
-    source: 'Finnhub'
-  };
+    if (!shortRatio && !shortPct) return null;
+
+    const ratio = parseFloat(shortRatio) || 0;
+    const level = ratio > 10 ? 'Hard to Borrow' : ratio > 5 ? 'Moderate' : ratio > 2 ? 'Easy to Borrow' : 'Very Easy';
+
+    return { shortRatio, shortPct, level, settlementDate, source: 'FINRA' };
+
+  } catch(e) {
+    return null;
+  }
 }
 
 // ── 3. INSTITUTIONAL 13F (SEC EDGAR) ──────────────────────────────────────
