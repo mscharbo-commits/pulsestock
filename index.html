@@ -4100,35 +4100,21 @@ function renderIntelligence(ticker, data) {
   html += '</div>';
 
   // ── BORROW RATE ──
-  // Short data card — Finnhub short interest + borrow rate placeholder
-  var br = data.borrowRate;
-  var shortRatio = br && br.shortRatio ? parseFloat(br.shortRatio).toFixed(1) : null;
-  var shortPct   = br && br.shortPct   ? parseFloat(br.shortPct).toFixed(2)   : null;
-  var dtcColor   = shortRatio > 10 ? 'var(--red)' : shortRatio > 5 ? 'var(--amber)' : 'var(--green)';
+  // Short data card — coming soon placeholder
   html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
     + '<div style="padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
     + '<span style="font-size:12px;font-weight:700;">💸 Short Data</span>'
-    + '<span style="font-size:10px;color:var(--text3);">FINRA short interest</span>'
+    + '<span style="font-size:10px;color:var(--text3);">Coming soon</span>'
     + '</div>'
-    + '<div style="padding:12px;">'
-    // Borrow rate coming soon
-    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;border:1px dashed var(--border);">'
+    + '<div style="padding:20px 12px;display:flex;flex-direction:column;gap:10px;">'
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px dashed var(--border);">'
     + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Borrow Rate (APR)</div>'
     + '<div style="font-size:13px;color:var(--text3);">Coming soon</div>'
     + '</div>'
-    // Short interest from Finnhub
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
-    + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
-    + '<div style="font-size:10px;color:var(--text3);">Short % Float</div>'
-    + '<div style="font-size:18px;font-weight:700;color:var(--text);">'+(shortPct ? shortPct+'%' : '—')+'</div>'
-    + (br && br.settlementDate ? '<div style="font-size:9px;color:var(--text3);margin-top:2px;">as of '+br.settlementDate+'</div>' : '')
+    + '<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;border:1px dashed var(--border);">'
+    + '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Short Interest & Days to Cover</div>'
+    + '<div style="font-size:13px;color:var(--text3);">Coming soon</div>'
     + '</div>'
-    + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
-    + '<div style="font-size:10px;color:var(--text3);">Days to Cover</div>'
-    + '<div style="font-size:18px;font-weight:700;color:'+(shortRatio ? dtcColor : 'var(--text3)') + ';">'+(shortRatio ? shortRatio+'d' : '—')+'</div>'
-    + '</div>'
-    + '</div>'
-    + (br && br.level ? '<div style="margin-top:8px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;display:inline-block;background:'+(br.level.includes('Easy')?'rgba(13,155,107,.1)':'rgba(209,63,48,.08)')+';color:'+(br.level.includes('Easy')?'var(--green)':'var(--red)')+';">'+br.level+'</div>' : '')
     + '</div>'
     + '</div>';
 
