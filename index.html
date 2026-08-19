@@ -1968,10 +1968,13 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
         parts.push('Short Sale Vol: ' + dp.shortSalePct + '% of total volume is short selling (' + netDir + ' flow)');
       }
       // Borrow rate
-      if (intel.borrowRate && intel.borrowRate.rate !== undefined) {
+      if (intel.borrowRate && (intel.borrowRate.shortRatio || intel.borrowRate.shortPct)) {
         var br = intel.borrowRate;
-        var ease = br.availability || '';
-        parts.push('Short Borrow Rate: ' + br.rate + '% annual (' + ease + ' to borrow, ' + (br.trend||'') + ' trend)');
+        var brParts = [];
+        if (br.shortPct) brParts.push('Short Float: ' + br.shortPct + '%');
+        if (br.shortRatio) brParts.push('Days to Cover: ' + parseFloat(br.shortRatio).toFixed(1));
+        if (br.level) brParts.push(br.level);
+        if (brParts.length) parts.push('Short Interest: ' + brParts.join(' | '));
       }
       // Institutional ownership
       if (intel.institutional && intel.institutional.count) {
@@ -1990,7 +1993,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     if(!intel) return '';
     var bits = [];
     if(intel.darkPool && intel.darkPool.latest) bits.push('Short vol: ' + intel.darkPool.latest.shortSalePct + '%');
-    if(intel.borrowRate && intel.borrowRate.rate !== undefined) bits.push('Borrow: ' + intel.borrowRate.rate + '%');
+    if(intel.borrowRate && intel.borrowRate.shortRatio) bits.push('Days to Cover: ' + parseFloat(intel.borrowRate.shortRatio).toFixed(1) + 'd');
     if(intel.darkPool && intel.darkPool.netFlowTrend) bits.push(intel.darkPool.netFlowTrend);
     if(!bits.length) return '';
     return '<div style="font-size:11px;color:var(--accent);background:var(--accent-light,#EBF1FE);padding:4px 10px;border-radius:4px;margin-top:4px;display:inline-block;">📊 Includes: ' + bits.join(' · ') + '</div>';
