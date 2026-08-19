@@ -4100,44 +4100,63 @@ function renderIntelligence(ticker, data) {
   html += '</div>';
 
   // ── BORROW RATE ──
-  var br = data.borrow;
-  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">'
+  // Borrow rate card — populated client-side from iborrowdesk (browser fetch bypasses server IP blocks)
+  html += '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;" id="borrow-card-'+ticker+'">'
     + '<div style="padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">'
     + '<span style="font-size:12px;font-weight:700;">💸 Short Borrow Rate</span>'
     + '<span style="font-size:10px;color:var(--text3);">iborrowdesk</span>'
+    + '</div>'
+    + '<div id="borrow-data-'+ticker+'" style="padding:16px;font-size:12px;color:var(--text3);">Loading borrow rate...</div>'
     + '</div>';
-  if(br && br.latest) {
-    var rateColor = br.latest.fee > 50 ? 'var(--red)' : br.latest.fee > 10 ? 'var(--amber)' : 'var(--green)';
-    html += '<div style="padding:12px;">'
-      + '<div style="font-size:28px;font-weight:700;color:'+rateColor+';margin-bottom:2px;">'+(br.latest.fee||0).toFixed(2)+'%</div>'
-      + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">annual borrow fee · '+br.latest.date+'</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
-      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
-      + '<div style="font-size:10px;color:var(--text3);">Available</div>'
-      + '<div style="font-size:12px;font-weight:600;">'+(br.latest.available||0).toLocaleString()+'</div>'
-      + '</div>'
-      + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
-      + '<div style="font-size:10px;color:var(--text3);">30d Avg</div>'
-      + '<div style="font-size:12px;font-weight:600;">'+(br.avg30Day||0).toFixed(2)+'%</div>'
-      + '</div>'
-      + '</div>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;">'
-      + sentBadge(br.level,'Easy','Hard')
-      + '<span style="font-size:11px;color:var(--text3);"><span style="color:'+(br.trend==='Rising'?'var(--red)':'var(--green)')+';">'+br.trend+'</span> 30d</span>'
-      + '</div>'
-      + '<div style="display:flex;gap:2px;margin-top:10px;align-items:flex-end;height:28px;">'
-      + (br.history||[]).slice(0,10).reverse().map(function(h) {
-          var maxFee = Math.max.apply(null, (br.history||[]).map(function(x){return x.fee||0;})) || 1;
-          var ht = Math.max(2, Math.round((h.fee||0) / maxFee * 28));
-          var c = h.fee > 50 ? 'var(--red)' : h.fee > 10 ? 'var(--amber)' : 'var(--green)';
+
+  // Client-side fetch of iborrowdesk — runs after card is in DOM
+  setTimeout(function() {
+    fetch('https://iborrowdesk.com/api/ticker/' + ticker)
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d) {
+        var el = document.getElementById('borrow-data-' + ticker);
+        if(!el) return;
+        if(!d || !d.daily || !d.daily.length) {
+          el.innerHTML = '<div style="padding:4px 0;color:var(--text3);">No borrow data available</div>';
+          return;
+        }
+        var history = d.daily.slice(0,30);
+        var latest = history[0];
+        var avg30 = parseFloat((history.reduce(function(s,h){return s+(h.fee||0);},0)/history.length).toFixed(2));
+        var trend = history.length>=2 ? (history[0].fee>history[history.length-1].fee?'Rising':'Falling') : 'Stable';
+        var rateColor = latest.fee>50?'var(--red)':latest.fee>10?'var(--amber)':'var(--green)';
+        var level = latest.fee>50?'Hard to Borrow':latest.fee>10?'Moderate':'Easy to Borrow';
+        var bars = history.slice(0,10).reverse().map(function(h) {
+          var maxFee = Math.max.apply(null,history.slice(0,10).map(function(x){return x.fee||0;}))||1;
+          var ht = Math.max(2,Math.round((h.fee||0)/maxFee*28));
+          var c = h.fee>50?'var(--red)':h.fee>10?'var(--amber)':'var(--green)';
           return '<div title="'+h.date+': '+h.fee+'%" style="flex:1;height:'+ht+'px;background:'+c+';border-radius:2px 2px 0 0;opacity:.7;"></div>';
-        }).join('')
-      + '</div>'
-      + '</div>';
-  } else {
-    html += '<div style="padding:16px;font-size:12px;color:var(--text3);">No data available</div>';
-  }
-  html += '</div>';
+        }).join('');
+        el.innerHTML = '<div style="padding:0 0 4px 0;">'
+          + '<div style="font-size:28px;font-weight:700;color:'+rateColor+';margin-bottom:2px;">'+latest.fee.toFixed(2)+'%</div>'
+          + '<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">annual borrow fee · '+latest.date+'</div>'
+          + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">'
+          + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+          + '<div style="font-size:10px;color:var(--text3);">Available</div>'
+          + '<div style="font-size:12px;font-weight:600;">'+(latest.available||0).toLocaleString()+'</div>'
+          + '</div>'
+          + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
+          + '<div style="font-size:10px;color:var(--text3);">30d Avg</div>'
+          + '<div style="font-size:12px;font-weight:600;">'+avg30.toFixed(2)+'%</div>'
+          + '</div>'
+          + '</div>'
+          + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+          + '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:'+(level.includes('Easy')?'rgba(13,155,107,.1)':'rgba(209,63,48,.08)')+';color:'+(level.includes('Easy')?'var(--green)':'var(--red)')+';">'+level+'</span>'
+          + '<span style="font-size:11px;color:var(--text3);"><span style="color:'+(trend==='Rising'?'var(--red)':'var(--green)')+';">'+trend+'</span> 30d</span>'
+          + '</div>'
+          + '<div style="display:flex;gap:2px;margin-top:10px;align-items:flex-end;height:28px;">'+bars+'</div>'
+          + '</div>';
+      })
+      .catch(function() {
+        var el = document.getElementById('borrow-data-' + ticker);
+        if(el) el.innerHTML = '<div style="color:var(--text3);">Borrow data unavailable</div>';
+      });
+  }, 100);
 
   // ── INSTITUTIONAL 13F ──
   var inst = data.institutional;
