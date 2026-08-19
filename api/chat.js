@@ -52,7 +52,7 @@ export default async function handler(req, res) {
 
     let systemPrompt = `You are PulseAI, an expert financial analyst for PulseStock.
 The user is asking about ${ctx.name || ticker} (${ticker}). Today: ${today}.
-You have web_search capability — use it for ANY question about recent events, news, leadership changes, earnings, or anything time-sensitive. Always search before answering current events questions.`;
+Answer from the live data provided. Be specific and analytical.`;
 
     if (ctx.price) {
       systemPrompt += `\n\nLIVE DATA: Price $${ctx.price} (${ctx.changePct >= 0 ? '+' : ''}${ctx.changePct}% today), Range $${ctx.low}-$${ctx.high}`;
@@ -72,10 +72,9 @@ You have web_search capability — use it for ANY question about recent events, 
         'anthropic-beta': 'web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
-        messages: [{ role: 'user', content: systemPrompt + '\n\nQuestion: ' + question }],
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+        messages: [{ role: 'user', content: systemPrompt + '\n\nQuestion: ' + question }]
       })
     });
 
