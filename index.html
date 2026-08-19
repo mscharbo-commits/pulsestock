@@ -4121,6 +4121,7 @@ function renderIntelligence(ticker, data) {
     + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
     + '<div style="font-size:10px;color:var(--text3);">Short % Float</div>'
     + '<div style="font-size:18px;font-weight:700;color:var(--text);">'+(shortPct ? shortPct+'%' : '—')+'</div>'
+    + (br && br.settlementDate ? '<div style="font-size:9px;color:var(--text3);margin-top:2px;">as of '+br.settlementDate+'</div>' : '')
     + '</div>'
     + '<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;">'
     + '<div style="font-size:10px;color:var(--text3);">Days to Cover</div>'
