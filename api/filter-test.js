@@ -1,86 +1,111 @@
 export const config = { runtime: 'edge' };
 
-const POLYGON = '2c90554e-b7d3-485f-a497-b350eb8136f5';
+const FINNHUB = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
 
 export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response('', { headers: CORS });
 
   try {
-    // Most recent weekday
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    if (d.getDay() === 0) d.setDate(d.getDate() - 2);
-    if (d.getDay() === 6) d.setDate(d.getDate() - 1);
-    const dateStr = d.toISOString().split('T')[0];
-
-    const resp = await fetch(
-      `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${dateStr}?adjusted=true&apiKey=${POLYGON}`
+    // Step 1: Get full US stock universe from Finnhub
+    const symbolsResp = await fetch(
+      `https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB}`
     );
-    if (!resp.ok) return new Response(JSON.stringify({ error: `Polygon ${resp.status}`, date: dateStr }), { headers: CORS });
+    if (!symbolsResp.ok) {
+      return new Response(JSON.stringify({ error: `Finnhub symbols ${symbolsResp.status}` }), { headers: CORS });
+    }
+    const symbols = await symbolsResp.json();
 
-    const data = await resp.json();
-    if (!data.results?.length) return new Response(JSON.stringify({ error: 'No results', date: dateStr }), { headers: CORS });
-
-    const all = data.results;
-
-    // Hard filters: price > $2, dollar volume > $500k, no warrants/preferreds
-    const filtered = all.filter(s =>
-      s.T && !s.T.includes('.') && !s.T.includes('/') && s.T.length <= 5 &&
-      s.c >= 2.0 && s.v >= 10000 && (s.c * s.v) >= 500000
+    // Step 2: Apply hard filters on symbol data alone (no price yet)
+    // type=Common Stock, no dots/slashes, ticker length <= 5
+    const filtered = symbols.filter(s =>
+      s.type === 'Common Stock' &&
+      s.symbol &&
+      !s.symbol.includes('.') &&
+      !s.symbol.includes('/') &&
+      s.symbol.length <= 5 &&
+      s.currency === 'USD'
     );
 
-    // Price distribution
-    const byPrice = { '$2-5':0,'$5-10':0,'$10-20':0,'$20-50':0,'$50-100':0,'$100-200':0,'$200+':0 };
-    const byDV    = { '$500k-1M':0,'$1M-5M':0,'$5M-25M':0,'$25M-100M':0,'$100M+':0 };
+    // Step 3: Sample 50 random stocks and get quotes to estimate
+    // price > $2 and dollar volume > $500k filter pass rate
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+    const sample = shuffled.slice(0, 50);
 
-    filtered.forEach(s => {
-      const p = s.c, dv = s.c * s.v;
-      if (p < 5) byPrice['$2-5']++;
-      else if (p < 10) byPrice['$5-10']++;
-      else if (p < 20) byPrice['$10-20']++;
-      else if (p < 50) byPrice['$20-50']++;
-      else if (p < 100) byPrice['$50-100']++;
-      else if (p < 200) byPrice['$100-200']++;
-      else byPrice['$200+']++;
+    // Fetch quotes in batches of 10
+    const quotes = [];
+    for (let i = 0; i < sample.length; i += 10) {
+      const batch = sample.slice(i, i + 10);
+      const results = await Promise.all(
+        batch.map(s =>
+          fetch(`https://finnhub.io/api/v1/quote?symbol=${s.symbol}&token=${FINNHUB}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(q => q ? { ticker: s.symbol, price: q.c, volume: q.v || 0, dollarVol: (q.c || 0) * (q.v || 0) } : null)
+            .catch(() => null)
+        )
+      );
+      quotes.push(...results.filter(Boolean));
+      // Small delay to respect rate limits
+      if (i + 10 < sample.length) await new Promise(r => setTimeout(r, 500));
+    }
 
-      if (dv < 1e6) byDV['$500k-1M']++;
-      else if (dv < 5e6) byDV['$1M-5M']++;
-      else if (dv < 25e6) byDV['$5M-25M']++;
-      else if (dv < 100e6) byDV['$25M-100M']++;
-      else byDV['$100M+']++;
+    // Apply price + dollar volume filter to sample
+    const passingSample = quotes.filter(q => q.price >= 2.0 && q.dollarVol >= 500000);
+    const passRate = quotes.length > 0 ? passingSample.length / quotes.length : 0;
+
+    // Extrapolate to full universe
+    const estimatedSurvivors = Math.round(filtered.length * passRate);
+    const costPerRun = estimatedSurvivors * 0.055;
+
+    // Price distribution of sample
+    const byPrice = { 'under$2':0,'$2-5':0,'$5-10':0,'$10-20':0,'$20-50':0,'$50-100':0,'$100+':0 };
+    quotes.forEach(q => {
+      if (q.price < 2) byPrice['under$2']++;
+      else if (q.price < 5) byPrice['$2-5']++;
+      else if (q.price < 10) byPrice['$5-10']++;
+      else if (q.price < 20) byPrice['$10-20']++;
+      else if (q.price < 50) byPrice['$20-50']++;
+      else if (q.price < 100) byPrice['$50-100']++;
+      else byPrice['$100+']++;
     });
 
-    // Top 30 and bottom 20 by dollar volume
-    const sorted = [...filtered].sort((a,b) => (b.c*b.v)-(a.c*a.v));
-    const top30 = sorted.slice(0,30).map(s => ({
-      ticker: s.T, price: `$${s.c.toFixed(2)}`,
-      dollarVol: `$${((s.c*s.v)/1e6).toFixed(1)}M`,
-      vol: Math.round(s.v).toLocaleString()
-    }));
-    const bottom20 = sorted.slice(-20).map(s => ({
-      ticker: s.T, price: `$${s.c.toFixed(2)}`,
-      dollarVol: `$${((s.c*s.v)/1000).toFixed(0)}k`,
-      vol: Math.round(s.v).toLocaleString()
-    }));
-
-    const costPerRun = filtered.length * 0.055;
+    // Top passing stocks in sample
+    const topStocks = passingSample
+      .sort((a,b) => b.dollarVol - a.dollarVol)
+      .slice(0, 20)
+      .map(q => ({
+        ticker: q.ticker,
+        price: `$${q.price.toFixed(2)}`,
+        dollarVol: `$${(q.dollarVol/1e6).toFixed(1)}M`
+      }));
 
     return new Response(JSON.stringify({
-      date: dateStr,
-      summary: {
-        totalFromPolygon: all.length,
-        afterFilter: filtered.length,
-        filterEliminated: `${((1 - filtered.length/all.length)*100).toFixed(1)}%`,
-        costPerFridayRun: `$${costPerRun.toFixed(2)}`,
-        costPerMonth4Fridays: `$${(costPerRun*4).toFixed(2)}`,
-        note: 'Sonnet + 1 web search + prompt caching per stock'
+      universe: {
+        totalFinnhubUS: symbols.length,
+        commonStockUSD: filtered.length,
+        sampleSize: quotes.length,
+        samplePassing: passingSample.length,
+        passRate: `${(passRate*100).toFixed(1)}%`
       },
-      filters: { minPrice: '$2.00', minDollarVolume: '$500k/day' },
-      priceDistribution: byPrice,
-      dollarVolumeDistribution: byDV,
-      top30ByDollarVolume: top30,
-      bottom20NearThreshold: bottom20
+      projectedSurvivors: {
+        estimated: estimatedSurvivors,
+        range: `${Math.round(estimatedSurvivors*0.8)}–${Math.round(estimatedSurvivors*1.2)}`,
+        note: 'Extrapolated from 50-stock random sample'
+      },
+      costEstimate: {
+        perFridayRun: `$${costPerRun.toFixed(2)}`,
+        perMonth4Fridays: `$${(costPerRun*4).toFixed(2)}`,
+        model: 'Sonnet + 1 web search + prompt caching per stock @ $0.055'
+      },
+      filters: {
+        type: 'Common Stock only',
+        currency: 'USD only',
+        minPrice: '$2.00',
+        minDollarVolume: '$500k/day',
+        excluded: 'tickers with dots, slashes, length > 5'
+      },
+      samplePriceDistribution: byPrice,
+      topStocksInSample: topStocks
     }, null, 2), { headers: CORS });
 
   } catch(e) {
