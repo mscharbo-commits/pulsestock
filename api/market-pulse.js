@@ -237,11 +237,11 @@ if(_cache&&_cacheKey===thisCacheKey&&Date.now()-_cacheTime<CACHE_TTL)return new 
   if(ANTHROPIC){
     const aiResp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
         max_tokens:1800,
-        system:`You are a seasoned Wall Street market commentator writing the definitive daily market narrative for serious institutional investors. You write with authority, precision, and depth. Every sentence contains a specific number or data point. No hedging. No vague language.
+        system:[{type:'text',text:`You are a seasoned Wall Street market commentator writing the definitive daily market narrative for serious institutional investors. You write with authority, precision, and depth. Every sentence contains a specific number or data point. No hedging. No vague language.
 
 MANDATORY FORMAT — output exactly this structure:
 
@@ -269,7 +269,7 @@ WRITING RULES:
 - No "it remains to be seen" or "investors will be watching"
 - Total output: 450-600 words
 - The hook must be exactly 3 sentences before the --- separator
-- Sound like: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."`,
+- Sound like: "Nasdaq's 1.85% collapse masks a sharp geopolitical pivot: energy and inflation trades are roaring back as US military strikes on Iran disrupt the fragile ceasefire narrative that had anchored tech valuations for weeks."`,,cache_control:{type:'ephemeral'}}]
         messages:[{role:'user',content:`${context}\n\nWrite the 6-sentence market pulse.`}]
       })
     });
