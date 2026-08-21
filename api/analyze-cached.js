@@ -229,8 +229,31 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
       contextData = parts.join('\n');
     }
 
+    // Prompt caching: static instructions cached after first call (~90% off repeat input tokens)
+    const STATIC_INSTRUCTIONS = [
+      {
+        type: 'text',
+        text: `You are a senior institutional stock analyst delivering a deep-dive analysis.
+
+Write a comprehensive analysis in exactly 4 sections with headers:
+
+1. **Market Context** — How is the broad market and sector performing today? Is this a headwind or tailwind for the stock? Use index percentages and sector ETF moves.
+2. **Technical Picture** — Momentum, trend, and key levels. Reference moving averages, RSI, and volume ratios using the data provided. Do NOT mention the current price — describe price behavior relative to MAs (e.g. 'trading above 50MA', 'testing 200MA support') rather than quoting the exact current price.
+3. **Fundamental Snapshot** — Key metrics, valuation multiples, growth profile, margins. Use the actual numbers from the data.
+4. **News & Catalysts** — What specific news is driving this stock? Name the actual headlines and their market implications. What sector-level catalysts are in play?
+
+CRITICAL: Do NOT quote the exact current stock price anywhere in sections 1-4. Reference price behavior, trend direction, and levels relative to moving averages only. The current price is handled separately.
+
+Be specific with actual numbers from the data (P/E, margins, RSI, MA levels, sector %). Write for a sophisticated institutional investor. No disclaimers.`,
+        cache_control: { type: 'ephemeral' }
+      }
+    ];
+
     const system = contextData
-      ? `You are a senior institutional stock analyst delivering a deep-dive analysis. Today\'s live market data:\n\n${contextData}\n\nUsing ONLY this data, write a comprehensive analysis in exactly 4 sections with headers:\n\n1. **Market Context** — How is the broad market and sector performing today? Is this a headwind or tailwind for ${ticker}? Use index percentages and sector ETF moves.\n2. **Technical Picture** — Momentum, trend, and key levels. Reference moving averages, RSI, and volume ratios using the data provided. Do NOT mention the current price — describe price behavior relative to MAs (e.g. \'trading above 50MA\', \'testing 200MA support\') rather than quoting the exact current price.\n3. **Fundamental Snapshot** — Key metrics, valuation multiples, growth profile, margins. Use the actual numbers from the data.\n4. **News & Catalysts** — What specific news is driving this stock? Name the actual headlines and their market implications. What sector-level catalysts are in play?\n\nCRITICAL: Do NOT quote the exact current stock price anywhere in sections 1-4. Reference price behavior, trend direction, and levels relative to moving averages only. The current price is handled separately.\n\nBe specific with actual numbers from the data (P/E, margins, RSI, MA levels, sector %). Write for a sophisticated institutional investor. No disclaimers.`
+      ? [
+          ...STATIC_INSTRUCTIONS,
+          { type: 'text', text: `\nToday\'s live market data for ${ticker}:\n\n${contextData}\n\nUsing ONLY this data, write the analysis.` }
+        ]
       : 'You are an institutional stock analyst. Provide a deep-dive analysis in 5 sections: Market Context, Technical Picture, Fundamentals, News & Catalysts, Outlook & Strategy.';
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
