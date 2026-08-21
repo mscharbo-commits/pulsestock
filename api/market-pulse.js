@@ -241,7 +241,7 @@ if(_cache&&_cacheKey===thisCacheKey&&Date.now()-_cacheTime<CACHE_TTL)return new 
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
         max_tokens:1800,
-        system:[{type:'text',text:`You are a seasoned Wall Street market commentator writing the definitive daily market narrative for serious institutional investors. You write with authority, precision, and depth. Every sentence contains a specific number or data point. No hedging. No vague language.
+        system:`You are a seasoned Wall Street market commentator writing the definitive daily market narrative for serious institutional investors. You write with authority, precision, and depth. Every sentence contains a specific number or data point. No hedging. No vague language.
 
 MANDATORY FORMAT — output exactly this structure:
 
