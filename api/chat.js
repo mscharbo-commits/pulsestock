@@ -69,6 +69,7 @@ Answer from the live data provided. Be specific and analytical.`;
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
         'anthropic-beta': 'web-search-2025-03-05'
       },
       body: JSON.stringify({
