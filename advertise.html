@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Advertise on PulseStock — Reach Active Investors Daily</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,sans-serif;background:#fff;color:#0F172A;-webkit-font-smoothing:antialiased;line-height:1.6;}
+
+/* NAV */
+.nav{background:#fff;border-bottom:1px solid #E2E8F0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;position:sticky;top:0;z-index:100;}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none;}
+.nav-logo-icon{width:30px;height:30px;background:#1A6BF5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;}
+.nav-logo-name{font-size:16px;font-weight:700;color:#0F172A;letter-spacing:-.4px;}
+.nav-logo-name span{color:#1A6BF5;}
+.nav-cta{background:#1A6BF5;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;}
+.nav-cta:hover{background:#1558D6;}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#0F172A 0%,#1E3A5F 100%);padding:80px 40px 72px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231A6BF5' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(26,107,245,.2);color:#93C5FD;font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;margin-bottom:20px;border:1px solid rgba(26,107,245,.3);position:relative;}
+.hero h1{font-size:48px;font-weight:800;letter-spacing:-2px;color:#fff;margin-bottom:16px;line-height:1.1;position:relative;}
+.hero h1 span{color:#60A5FA;}
+.hero p{font-size:18px;color:#94A3B8;max-width:580px;margin:0 auto 40px;line-height:1.65;position:relative;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;}
+.btn-hero-primary{padding:14px 30px;background:#1A6BF5;color:#fff;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .15s;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-hero-primary:hover{background:#1558D6;}
+.btn-hero-outline{padding:14px 24px;background:rgba(255,255,255,.08);color:#E2E8F0;border:1px solid rgba(255,255,255,.2);border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;transition:all .15s;}
+.btn-hero-outline:hover{background:rgba(255,255,255,.14);}
+
+/* TICKER PREVIEW */
+.ticker-preview{background:#0F172A;padding:0;border-bottom:1px solid #1E293B;}
+.ticker-bar-demo{background:#fff;height:48px;display:flex;align-items:center;border-bottom:2.5px solid #1A6BF5;overflow:hidden;}
+.tb-brand{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid #E2E8F0;height:100%;flex-shrink:0;}
+.tb-icon{width:26px;height:26px;background:#1A6BF5;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.tb-name{font-size:13px;font-weight:700;color:#0F172A;letter-spacing:-.4px;}
+.tb-name span{color:#1A6BF5;}
+.tb-tape{flex:1;display:flex;align-items:center;overflow:hidden;height:100%;gap:0;}
+.tb-tick{display:inline-flex;align-items:center;gap:5px;padding:0 12px;height:100%;border-right:1px solid #F1F5F9;flex-shrink:0;}
+.tb-sym{font-size:12px;font-weight:700;color:#0F172A;}
+.tb-price{font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace;}
+.tb-chg{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.tb-chg.up{color:#16A34A;}.tb-chg.dn{color:#DC2626;}
+.tb-nd{width:5px;height:5px;border-radius:50%;background:#DC2626;}
+.ad-preview{width:300px;height:100%;border-left:1px solid #E2E8F0;display:flex;align-items:center;gap:8px;padding:0 12px;flex-shrink:0;position:relative;}
+.ad-label{position:absolute;top:3px;right:6px;font-size:8px;font-weight:600;color:#94A3B8;letter-spacing:.05em;}
+.ap-logo{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;}
+.ap-body{display:flex;flex-direction:column;gap:2px;flex:1;}
+.ap-hl{font-size:11px;font-weight:700;color:#0F172A;}
+.ap-sub{font-size:9px;color:#475569;}
+.ap-cta{font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;border:1.5px solid;white-space:nowrap;flex-shrink:0;}
+.tb-exit{width:38px;height:100%;display:flex;align-items:center;justify-content:center;border-left:1px solid #E2E8F0;color:#94A3B8;font-size:14px;flex-shrink:0;}
+.preview-caption{text-align:center;padding:12px;font-size:11px;color:#475569;background:#F8FAFC;border-top:1px solid #E2E8F0;}
+
+/* STATS */
+.stats{padding:64px 40px;background:#F8FAFC;}
+.stats-inner{max-width:1000px;margin:0 auto;}
+.section-tag{font-size:12px;font-weight:600;color:#1A6BF5;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;text-align:center;}
+.section-title{font-size:32px;font-weight:800;letter-spacing:-1px;color:#0F172A;margin-bottom:8px;text-align:center;}
+.section-sub{font-size:16px;color:#64748B;margin-bottom:48px;text-align:center;max-width:520px;margin-left:auto;margin-right:auto;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat-card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:24px 20px;text-align:center;}
+.stat-num{font-size:36px;font-weight:800;color:#1A6BF5;letter-spacing:-1px;margin-bottom:4px;}
+.stat-label{font-size:13px;color:#64748B;line-height:1.4;}
+.stat-sub{font-size:11px;color:#94A3B8;margin-top:4px;}
+
+/* IMPRESSION CALC */
+.calc{padding:64px 40px;background:#fff;}
+.calc-inner{max-width:1000px;margin:0 auto;}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start;}
+.calc-table{width:100%;border-collapse:collapse;margin-top:16px;}
+.calc-table th{text-align:left;font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;border-bottom:1px solid #E2E8F0;}
+.calc-table td{padding:10px 12px;font-size:14px;color:#0F172A;border-bottom:1px solid #F1F5F9;}
+.calc-table tr:last-child td{border-bottom:none;}
+.calc-table .highlight td{background:#EFF6FF;font-weight:700;color:#1558D6;}
+.calc-table .total td{background:#0F172A;color:#fff;font-weight:700;}
+.calc-box{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:24px;}
+.calc-box h3{font-size:16px;font-weight:700;margin-bottom:16px;}
+.revenue-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F1F5F9;}
+.revenue-row:last-child{border-bottom:none;}
+.rev-cpm{font-size:13px;color:#64748B;}
+.rev-amount{font-size:15px;font-weight:700;color:#0F172A;}
+.rev-amount.accent{color:#1A6BF5;}
+.rev-amount.green{color:#16A34A;}
+
+/* FORMATS */
+.formats{padding:64px 40px;background:#F8FAFC;}
+.formats-inner{max-width:1000px;margin:0 auto;}
+.formats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px;}
+.format-card{background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:28px 24px;position:relative;}
+.format-card.featured{border-color:#1A6BF5;border-width:2px;}
+.format-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1A6BF5;color:#fff;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
+.format-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;}
+.format-name{font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px;}
+.format-price{font-size:28px;font-weight:800;color:#1A6BF5;letter-spacing:-1px;margin-bottom:4px;}
+.format-period{font-size:12px;color:#94A3B8;}
+.format-divider{border:none;border-top:1px solid #F1F5F9;margin:16px 0;}
+.format-features{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.format-features li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#475569;}
+.format-features li::before{content:'✓';color:#16A34A;font-weight:700;flex-shrink:0;margin-top:1px;}
+.format-cta{width:100%;margin-top:20px;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .15s;}
+.format-cta.primary{background:#1A6BF5;color:#fff;}
+.format-cta.primary:hover{background:#1558D6;}
+.format-cta.outline{background:#fff;color:#1A6BF5;border:1.5px solid #1A6BF5;}
+.format-cta.outline:hover{background:#EFF6FF;}
+
+/* AUDIENCE */
+.audience{padding:64px 40px;background:#0F172A;}
+.audience-inner{max-width:1000px;margin:0 auto;}
+.audience-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px;}
+.aud-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;}
+.aud-icon{font-size:24px;margin-bottom:12px;}
+.aud-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;}
+.aud-desc{font-size:13px;color:#94A3B8;line-height:1.6;}
+
+/* WHY */
+.why{padding:64px 40px;background:#fff;}
+.why-inner{max-width:1000px;margin:0 auto;}
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px;}
+.why-card{border:1px solid #E2E8F0;border-radius:12px;padding:24px;}
+.why-icon{width:40px;height:40px;border-radius:10px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px;}
+.why-title{font-size:14px;font-weight:700;color:#0F172A;margin-bottom:6px;}
+.why-desc{font-size:13px;color:#64748B;line-height:1.6;}
+
+/* CTA */
+.cta-section{background:#1A6BF5;padding:72px 40px;text-align:center;}
+.cta-section h2{font-size:36px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:12px;}
+.cta-section p{font-size:16px;color:#BFDBFE;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto;}
+.cta-email{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.cta-input{padding:12px 18px;border-radius:9px;border:none;font-size:14px;font-family:'Inter',sans-serif;width:280px;outline:none;}
+.cta-btn{padding:12px 24px;background:#0F172A;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;}
+.cta-btn:hover{background:#1E293B;}
+.cta-note{font-size:12px;color:#93C5FD;margin-top:12px;}
+
+/* FOOTER */
+.footer{background:#0F172A;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;}
+.footer-logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.footer-logo-icon{width:24px;height:24px;background:#1A6BF5;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.footer-logo-name{font-size:14px;font-weight:700;color:#fff;}
+.footer-logo-name span{color:#60A5FA;}
+.footer-links{display:flex;gap:20px;}
+.footer-links a{font-size:13px;color:#64748B;text-decoration:none;transition:color .15s;}
+.footer-links a:hover{color:#94A3B8;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">P</div>
+    <div class="nav-logo-name">Pulse<span>Stock</span></div>
+  </a>
+  <a href="mailto:advertise@pulsestock.io" class="nav-cta">Request media kit</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">📊 Advertising & Sponsorship</div>
+  <h1>Reach active investors<br><span>every second they trade.</span></h1>
+  <p>PulseStock's always-on desktop ticker puts your brand in front of engaged investors all day long — not just when they visit a website.</p>
+  <div class="hero-btns">
+    <a href="mailto:advertise@pulsestock.io" class="btn-hero-primary">Get started →</a>
+    <a href="#formats" class="btn-hero-outline">View ad formats</a>
+  </div>
+</div>
+
+<!-- TICKER PREVIEW -->
+<div class="ticker-preview">
+  <div class="ticker-bar-demo">
+    <div class="tb-brand"><div class="tb-icon">P</div><div class="tb-name">Pulse<span>Stock</span></div></div>
+    <div class="tb-tape">
+      <div class="tb-tick"><div class="tb-nd"></div><span class="tb-sym">AAPL</span><span class="tb-price">$319.70</span><span class="tb-chg up">▲ +1.63%</span></div>
+      <div class="tb-tick"><div class="tb-nd"></div><span class="tb-sym">NVDA</span><span class="tb-price">$131.45</span><span class="tb-chg up">▲ +2.95%</span></div>
+      <div class="tb-tick"><span class="tb-sym">MSFT</span><span class="tb-price">$379.40</span><span class="tb-chg up">▲ +0.13%</span></div>
+      <div class="tb-tick"><div class="tb-nd"></div><span class="tb-sym">TSLA</span><span class="tb-price">$348.75</span><span class="tb-chg dn">▼ -1.71%</span></div>
+      <div class="tb-tick"><div class="tb-nd"></div><span class="tb-sym">META</span><span class="tb-price">$578.02</span><span class="tb-chg up">▲ +1.21%</span></div>
+      <div class="tb-tick"><span class="tb-sym">AMZN</span><span class="tb-price">$266.43</span><span class="tb-chg up">▲ +3.97%</span></div>
+      <div class="tb-tick"><span class="tb-sym">JPM</span><span class="tb-price">$281.55</span><span class="tb-chg dn">▼ -0.44%</span></div>
+    </div>
+    <div class="ad-preview" style="background:#F7FEF7;">
+      <span class="ad-label">AD</span>
+      <div class="ap-logo" style="background:#00C805">RH</div>
+      <div class="ap-body">
+        <span class="ap-hl">$0 commissions. Always.</span>
+        <span class="ap-sub">Stocks · ETFs · Options · Crypto</span>
+      </div>
+      <span class="ap-cta" style="color:#00C805;border-color:#00C805;">See why →</span>
+    </div>
+    <div class="tb-exit">✕</div>
+  </div>
+  <div class="preview-caption">↑ Your ad appears here — always visible, always on top of every window on the user's screen</div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div class="section-tag">The numbers</div>
+    <div class="section-title">Unmatched impression volume</div>
+    <div class="section-sub">Based on 15,000 active users with 25% keeping the ticker open 4 hours daily.</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num">81M</div>
+        <div class="stat-label">Monthly impressions</div>
+        <div class="stat-sub">Across all ad slots</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">16.2M</div>
+        <div class="stat-label">Impressions per sponsor</div>
+        <div class="stat-sub">Per month, per slot</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">4 hrs</div>
+        <div class="stat-label">Avg daily session</div>
+        <div class="stat-sub">Always-on placement</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">20 sec</div>
+        <div class="stat-label">Ad rotation interval</div>
+        <div class="stat-sub">Optimal for recall</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPRESSION CALC -->
+<div class="calc">
+  <div class="calc-inner">
+    <div class="section-tag">Revenue model</div>
+    <div class="section-title">Transparent CPM pricing</div>
+    <div class="section-sub">One exclusive sponsor per rotation slot. Maximum 5 sponsors total.</div>
+    <div class="calc-grid">
+      <div>
+        <table class="calc-table">
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Active users</td><td>15,000</td></tr>
+          <tr><td>Sessions open 4hrs/day</td><td>3,750</td></tr>
+          <tr><td>Impressions per session</td><td>720</td></tr>
+          <tr class="highlight"><td>Daily impressions (all slots)</td><td>2,700,000</td></tr>
+          <tr class="highlight"><td>Monthly impressions (all slots)</td><td>81,000,000</td></tr>
+          <tr class="total"><td>Per sponsor per month</td><td>16,200,000</td></tr>
+        </table>
+      </div>
+      <div class="calc-box">
+        <h3>Monthly revenue per sponsor slot</h3>
+        <div class="revenue-row">
+          <span class="rev-cpm">At $10 CPM</span>
+          <span class="rev-amount">$162,000</span>
+        </div>
+        <div class="revenue-row">
+          <span class="rev-cpm">At $15 CPM</span>
+          <span class="rev-amount accent">$243,000</span>
+        </div>
+        <div class="revenue-row">
+          <span class="rev-cpm">At $20 CPM</span>
+          <span class="rev-amount accent">$324,000</span>
+        </div>
+        <div class="revenue-row">
+          <span class="rev-cpm">At $40 CPM</span>
+          <span class="rev-amount green">$648,000</span>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:12px;color:#166534;">
+          💡 For context, LinkedIn charges $25–$45 CPM for financial audiences. PulseStock offers guaranteed, always-visible placement.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIENCE -->
+<div class="audience">
+  <div class="audience-inner">
+    <div class="section-tag" style="color:#60A5FA;">Who's watching</div>
+    <div class="section-title" style="color:#fff;">A premium financial audience</div>
+    <div class="section-sub" style="color:#94A3B8;">People who run a live stock ticker all day are serious investors — exactly who financial brands want to reach.</div>
+    <div class="audience-grid">
+      <div class="aud-card">
+        <div class="aud-icon">📈</div>
+        <div class="aud-title">Active traders</div>
+        <div class="aud-desc">Daily market participants watching their portfolios in real time. High-intent buyers of trading tools, platforms, and financial services.</div>
+      </div>
+      <div class="aud-card">
+        <div class="aud-icon">💼</div>
+        <div class="aud-title">Finance professionals</div>
+        <div class="aud-desc">Analysts, advisors, and portfolio managers who keep market data visible throughout their workday.</div>
+      </div>
+      <div class="aud-card">
+        <div class="aud-icon">🎯</div>
+        <div class="aud-title">Engaged investors</div>
+        <div class="aud-desc">Long-term investors who track individual positions, read earnings reports, and act on market news — not passive index fund holders.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHY -->
+<div class="why">
+  <div class="why-inner">
+    <div class="section-tag">Why PulseStock</div>
+    <div class="section-title">Unlike any other ad format</div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon">🖥️</div>
+        <div class="why-title">Always on top</div>
+        <div class="why-desc">The ticker bar sits above every other window on the user's screen. Your ad is visible whether they're in Excel, Chrome, or Slack.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🚫</div>
+        <div class="why-title">No ad blockers</div>
+        <div class="why-desc">Desktop app ads can't be blocked. Every impression you pay for is actually seen — no wasted spend on blocked or below-the-fold placements.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🔒</div>
+        <div class="why-title">Exclusive placement</div>
+        <div class="why-desc">Only 5 sponsors total. No programmatic bidding wars, no competitor ads running alongside yours. Clean, premium inventory.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">⏱️</div>
+        <div class="why-title">Maximum dwell time</div>
+        <div class="why-desc">Average 4-hour daily session. Users aren't scrolling past — your ad rotates into view every 20 seconds for the entire session.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">📊</div>
+        <div class="why-title">Verified impressions</div>
+        <div class="why-desc">Full impression and click reporting. See exactly how many times your ad was shown and clicked each day.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🎨</div>
+        <div class="why-title">Your creative</div>
+        <div class="why-desc">You provide the creative. We provide the placement. Simple logo + headline + CTA format that fits naturally in the ticker bar.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AD FORMATS -->
+<div class="formats" id="formats">
+  <div class="formats-inner">
+    <div class="section-tag">Ad formats & pricing</div>
+    <div class="section-title">Choose your sponsorship level</div>
+    <div class="section-sub">All plans include impression reporting, click tracking, and dedicated account support.</div>
+    <div class="formats-grid">
+      <div class="format-card">
+        <div class="format-icon" style="background:#F1F5F9;">📌</div>
+        <div class="format-name">Standard</div>
+        <div class="format-price">$10–15<span style="font-size:16px;font-weight:400;color:#94A3B8;"> CPM</span></div>
+        <div class="format-period">1 of 5 rotation slots · monthly</div>
+        <hr class="format-divider"/>
+        <ul class="format-features">
+          <li>16.2M monthly impressions</li>
+          <li>Logo + headline + CTA</li>
+          <li>20-second rotation</li>
+          <li>Click-through tracking</li>
+          <li>Monthly impression report</li>
+        </ul>
+        <button class="format-cta outline" onclick="window.location.href='mailto:advertise@pulsestock.io'">Get started</button>
+      </div>
+      <div class="format-card featured">
+        <div class="format-badge">Most popular</div>
+        <div class="format-icon" style="background:#EFF6FF;">⭐</div>
+        <div class="format-name">Premium</div>
+        <div class="format-price">$20–25<span style="font-size:16px;font-weight:400;color:#94A3B8;"> CPM</span></div>
+        <div class="format-period">2 of 5 slots + featured placement · monthly</div>
+        <hr class="format-divider"/>
+        <ul class="format-features">
+          <li>32.4M monthly impressions</li>
+          <li>2 ad slot positions</li>
+          <li>Priority rotation (slots 1 & 2)</li>
+          <li>Featured in Morning Picks email</li>
+          <li>Weekly performance reports</li>
+          <li>Custom CTA copy</li>
+        </ul>
+        <button class="format-cta primary" onclick="window.location.href='mailto:advertise@pulsestock.io'">Contact us</button>
+      </div>
+      <div class="format-card">
+        <div class="format-icon" style="background:#FFF7ED;">👑</div>
+        <div class="format-name">Exclusive</div>
+        <div class="format-price">Custom</div>
+        <div class="format-period">Full ownership · negotiated</div>
+        <hr class="format-divider"/>
+        <ul class="format-features">
+          <li>All 5 rotation slots</li>
+          <li>81M monthly impressions</li>
+          <li>Category exclusivity</li>
+          <li>Co-branded content</li>
+          <li>Dedicated account manager</li>
+          <li>Real-time dashboard access</li>
+        </ul>
+        <button class="format-cta outline" onclick="window.location.href='mailto:advertise@pulsestock.io'">Let's talk</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>Ready to reach active investors?</h2>
+  <p>Send us your email and we'll follow up with a full media kit, audience data, and availability.</p>
+  <div class="cta-email">
+    <input class="cta-input" type="email" placeholder="your@company.com" id="cta-email" />
+    <button class="cta-btn" onclick="submitEmail()">Request media kit →</button>
+  </div>
+  <div class="cta-note" id="cta-note">Or email us directly at advertise@pulsestock.io</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <a href="/" class="footer-logo">
+    <div class="footer-logo-icon">P</div>
+    <div class="footer-logo-name">Pulse<span>Stock</span></div>
+  </a>
+  <div class="footer-links">
+    <a href="/">Platform</a>
+    <a href="/desktop.html">Desktop App</a>
+    <a href="/terms.html">Terms</a>
+    <a href="mailto:advertise@pulsestock.io">Contact</a>
+  </div>
+</div>
+
+<script>
+function submitEmail() {
+  var email = document.getElementById('cta-email').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('cta-note').textContent = 'Please enter a valid email address.';
+    document.getElementById('cta-note').style.color = '#FCA5A5';
+    return;
+  }
+  document.getElementById('cta-note').textContent = '✓ Got it! We\'ll be in touch within 24 hours.';
+  document.getElementById('cta-note').style.color = '#BBF7D0';
+  document.getElementById('cta-email').value = '';
+}
+document.getElementById('cta-email').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitEmail();
+});
+</script>
+</body>
+</html>
