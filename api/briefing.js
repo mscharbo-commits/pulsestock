@@ -4,11 +4,15 @@ async function getQuote(symbol) {
   try {
     const r = await fetch('https://finnhub.io/api/v1/quote?symbol='+symbol+'&token='+FINNHUB_KEY);
     const d = await r.json();
-    const price = (d.c && d.c > 0) ? d.c : (d.pc || 0);
-    const change = (d.c && d.c > 0) ? (d.d || 0) : 0;
-    const pct = (d.c && d.c > 0) ? (d.dp || 0) : 0;
-    return { symbol, price, change, pct, prevClose: d.pc||0, isAfterHours: !(d.c && d.c > 0) };
-  } catch(e) { return { symbol, price: 0, change: 0, pct: 0, prevClose: 0 }; }
+    // After hours: c=0, use pc (prev close) as price
+    // During hours: use c (current price)
+    const isAfterHours = !(d.c && d.c > 0);
+    const price = isAfterHours ? (d.pc || 0) : d.c;
+    // After hours show day's change (close vs prev close)
+    const change = isAfterHours ? ((d.pc && d.pc2) ? d.pc - d.pc2 : (d.d || 0)) : (d.d || 0);
+    const pct = isAfterHours ? ((d.dp && d.dp !== 0) ? d.dp : 0) : (d.dp || 0);
+    return { symbol, price, change, pct, prevClose: d.pc||0, open: d.o||0, high: d.h||0, low: d.l||0, isAfterHours };
+  } catch(e) { return { symbol, price: 0, change: 0, pct: 0, prevClose: 0, isAfterHours: true }; }
 }
 async function getEarnings() { try { const today = new Date().toISOString().split('T')[0]; const tom = new Date(Date.now()+86400000).toISOString().split('T')[0]; const r = await fetch('https://finnhub.io/api/v1/calendar/earnings?from='+today+'&to='+tom+'&token='+FINNHUB_KEY); const d = await r.json(); return (d.earningsCalendar||[]).slice(0,10); } catch(e) { return []; } }
 async function getNews() { try { const r = await fetch('https://finnhub.io/api/v1/news?category=general&minId=0&token='+FINNHUB_KEY); const d = await r.json(); return (d||[]).slice(0,8); } catch(e) { return []; } }
