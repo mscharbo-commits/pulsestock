@@ -15,17 +15,122 @@ async function safeFetch(url, opts) {
 
 // ── 1. DARK POOL / SHORT SALE VOLUME & DOLLAR FLOW (FINRA CDN) ─────────────
 async function getDarkPool(ticker) {
-  // Dark pool / RegSHO data — FINRA CDN calls removed (10 calls, slow)
-  // Coming soon with proper data provider
-  return null;
+  const dates = [];
+  const d = new Date();
+  while (dates.length < 10) {
+    d.setDate(d.getDate() - 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth()+1).padStart(2,'0');
+      const dt = String(d.getDate()).padStart(2,'0');
+      dates.push(`${yr}${mo}${dt}`);
+    }
+  }
+
+  // Fetch price for dollar flow calc
+  let price = 0;
+  try {
+    const q = await safeFetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+    price = q?.c || q?.pc || 0;
+  } catch(e) {}
+
+  const history = [];
+  for (const date of dates) {
+    const txt = await safeFetch(`https://cdn.finra.org/equity/regsho/daily/CNMSshvol${date}.txt`);
+    if (!txt || typeof txt !== 'string') continue;
+    // Format: DATE|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market
+    const line = txt.split('\n').find(l => { const p = l.split('|'); return p[1] === ticker; });
+    if (!line) continue;
+    const parts = line.split('|');
+    const sv = parseFloat(parts[2]) || 0;
+    const tv = parseFloat(parts[4]) || 0;
+    if (!tv) continue;
+    const longVol = tv - sv;
+    const shortSalePct = parseFloat((sv / tv * 100).toFixed(1));
+    const p = price || 100;
+    const shortDollar = sv * p;
+    const longDollar  = longVol * p;
+    const netDollar   = longDollar - shortDollar;
+    history.push({
+      date: `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
+      shortVolume: sv, longVolume: longVol, totalVolume: tv,
+      shortSalePct, shortDollar, longDollar, netDollar,
+      bullish: netDollar > 0,
+    });
+    if (history.length >= 5) break;
+  }
+
+  if (!history.length) return null;
+  const latest  = history[0];
+  const avg5    = parseFloat((history.reduce((s,h)=>s+h.shortSalePct,0)/history.length).toFixed(1));
+  const trend   = history.length >= 2 ? (history[0].shortSalePct > history[history.length-1].shortSalePct ? 'Rising' : 'Falling') : 'Stable';
+  const sentiment = latest.shortSalePct > 55 ? 'Heavy Short Selling' : latest.shortSalePct > 45 ? 'Elevated' : latest.shortSalePct > 35 ? 'Normal' : 'Low';
+  const netFlowTrend = history.filter(h=>h.bullish).length > history.length/2 ? 'Net Buying' : 'Net Selling';
+
+  return { latest, history, avg5Day: avg5, trend, sentiment, netFlowTrend, price, source: 'FINRA CNMS Daily' };
 }
 
+// ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
 async function getBorrowRate(ticker) {
-  // Short data coming soon — Fintel/Quiver integration pending
-  // Returns null immediately — no network calls, no timeout delays
-  return null;
+  // FINRA EquityShortInterest — POST endpoint, free, all US stocks, twice monthly
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const monthAgo = new Date(Date.now()-45*86400000).toISOString().split('T')[0];
+
+    // FINRA requires POST with JSON body
+    const finraResp = await fetch('https://api.finra.org/data/group/otcMarket/name/EquityShortInterest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        compareFilters: [
+          { compareType: 'EQUAL', fieldName: 'issueSymbolIdentifier', fieldValue: ticker },
+          { compareType: 'GREATER_THAN_OR_EQUAL', fieldName: 'settlementDate', fieldValue: monthAgo }
+        ],
+        
+        limit: 1,
+        sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
+      }),
+      signal: AbortSignal.timeout(7000)
+    });
+
+    let shortPct = null, shortRatio = null, shortInterest = null, settlementDate = null;
+
+    if (finraResp.ok) {
+      const finraData = await finraResp.json();
+      if (Array.isArray(finraData) && finraData.length > 0) {
+        const row = finraData[0];
+        shortInterest  = row.currentShortShareNumber || null;
+        shortRatio     = row.daysToCoverNumber ? parseFloat(row.daysToCoverNumber).toFixed(1) : null;
+        settlementDate = row.settlementDate || null;
+      }
+    }
+
+    // Finnhub for shares outstanding to compute short % float
+    const fhData = await safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`, 5000);
+    if (fhData && fhData.metric) {
+      const m = fhData.metric;
+      const sharesOut = (m.sharesOutstandingTTM || m.sharesOutstandingQ || 0) * 1e6;
+      if (shortInterest && sharesOut > 0) {
+        shortPct = parseFloat(((shortInterest / sharesOut) * 100).toFixed(2));
+      }
+      if (!shortRatio && (m.shortRatioQ || m.shortRatio)) {
+        shortRatio = parseFloat(m.shortRatioQ || m.shortRatio).toFixed(1);
+      }
+    }
+
+    if (!shortRatio && !shortPct) return null;
+
+    const ratio = parseFloat(shortRatio) || 0;
+    const level = ratio > 10 ? 'Hard to Borrow' : ratio > 5 ? 'Moderate' : ratio > 2 ? 'Easy to Borrow' : 'Very Easy';
+
+    return { shortRatio, shortPct, level, settlementDate, source: 'FINRA' };
+
+  } catch(e) {
+    return null;
+  }
 }
 
+// ── 3. INSTITUTIONAL 13F (SEC EDGAR) ──────────────────────────────────────
 async function get13F(ticker) {
   const headers = { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'application/json' };
 
