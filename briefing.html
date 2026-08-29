@@ -381,6 +381,7 @@ function renderBriefing(data, type) {
   const mktText = isOpenNow ? '&#x1F7E2; Market Open' : '&#x1F7E1; After Hours';
   const briefLabel = isPre ? '&#x1F9E0; Generate Pre-Market AI Briefing' : '&#x1F9E0; Generate Post-Market AI Briefing';
 
+  console.log('[renderBriefing] setting innerHTML, type='+type+' data keys='+Object.keys(data||{}).join(','));
   el.innerHTML =
     // Header bar matching Live Market layout
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">'
