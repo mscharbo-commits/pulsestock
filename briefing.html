@@ -494,28 +494,14 @@ async function loadAIBriefing() {
       body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
     });
 
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = '';
-    let buffer = '';
+    if(!resp.ok) throw new Error('API error ' + resp.status);
+    const result = await resp.json();
+    const text = result.content?.[0]?.text || result.choices?.[0]?.message?.content || '';
+    if(!text) throw new Error('No response text');
 
-    while(true) {
-      const { done, value } = await reader.read();
-      if(done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-      for(const line of lines) {
-        if(!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if(!data || data === '[DONE]') continue;
-        try {
-          const parsed = JSON.parse(data);
-          if(parsed.type === 'content_block_delta' && parsed.delta?.text) fullText += parsed.delta.text;
-          else if(parsed.delta?.type === 'text_delta' && parsed.delta?.text) fullText += parsed.delta.text;
-          if(body && fullText) body.innerHTML = '<div class="ai-brief-body">' + fullText.replace(/\n\n/g,'</p><p style="margin:10px 0 0;">').replace(/\n/g,' ') + '</div>';
-        } catch(e) {}
-      }
+    if(body) {
+      body.style.display = 'block';
+      body.innerHTML = '<p style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>';
     }
 
     if(btn) btn.style.display = 'none';
