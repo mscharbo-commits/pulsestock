@@ -300,8 +300,10 @@ function renderBriefing(data, type) {
     return '<div class="index-tile">'
       + '<div class="index-sym">' + i.symbol + '</div>'
       + '<div class="index-price ' + (up?'up':'down') + '">$' + price.toFixed(2) + '</div>'
-      + (isAH
-        ? '<div style="font-size:10.5px;color:var(--text3);">Prev Close: $' + (i.prevClose||price).toFixed(2) + '</div>'
+      + (isAH && price > 0
+        ? '<div class="index-chg ' + (up?'up':'down') + '">' + (i.pct !== 0 ? (up?'▲':'▼') + ' ' + fmt(i.pct) : 'Closing Price') + '</div>'
+        : isAH
+        ? '<div style="font-size:10.5px;color:var(--text3);">No data</div>'
         : '<div class="index-chg ' + (up?'up':'down') + '">' + (up?'▲':'▼') + ' ' + fmt(i.pct) + '</div>')
       + '</div>';
   }).join('');
