@@ -15,62 +15,11 @@ async function safeFetch(url, opts) {
 
 // ── 1. DARK POOL / SHORT SALE VOLUME & DOLLAR FLOW (FINRA CDN) ─────────────
 async function getDarkPool(ticker) {
-  const dates = [];
-  const d = new Date();
-  while (dates.length < 10) {
-    d.setDate(d.getDate() - 1);
-    if (d.getDay() !== 0 && d.getDay() !== 6) {
-      const yr = d.getFullYear();
-      const mo = String(d.getMonth()+1).padStart(2,'0');
-      const dt = String(d.getDate()).padStart(2,'0');
-      dates.push(`${yr}${mo}${dt}`);
-    }
-  }
-
-  // Fetch price for dollar flow calc
-  let price = 0;
-  try {
-    const q = await safeFetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
-    price = q?.c || q?.pc || 0;
-  } catch(e) {}
-
-  const history = [];
-  for (const date of dates) {
-    const txt = await safeFetch(`https://cdn.finra.org/equity/regsho/daily/CNMSshvol${date}.txt`);
-    if (!txt || typeof txt !== 'string') continue;
-    // Format: DATE|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market
-    const line = txt.split('\n').find(l => { const p = l.split('|'); return p[1] === ticker; });
-    if (!line) continue;
-    const parts = line.split('|');
-    const sv = parseFloat(parts[2]) || 0;
-    const tv = parseFloat(parts[4]) || 0;
-    if (!tv) continue;
-    const longVol = tv - sv;
-    const shortSalePct = parseFloat((sv / tv * 100).toFixed(1));
-    const p = price || 100;
-    const shortDollar = sv * p;
-    const longDollar  = longVol * p;
-    const netDollar   = longDollar - shortDollar;
-    history.push({
-      date: `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
-      shortVolume: sv, longVolume: longVol, totalVolume: tv,
-      shortSalePct, shortDollar, longDollar, netDollar,
-      bullish: netDollar > 0,
-    });
-    if (history.length >= 5) break;
-  }
-
-  if (!history.length) return null;
-  const latest  = history[0];
-  const avg5    = parseFloat((history.reduce((s,h)=>s+h.shortSalePct,0)/history.length).toFixed(1));
-  const trend   = history.length >= 2 ? (history[0].shortSalePct > history[history.length-1].shortSalePct ? 'Rising' : 'Falling') : 'Stable';
-  const sentiment = latest.shortSalePct > 55 ? 'Heavy Short Selling' : latest.shortSalePct > 45 ? 'Elevated' : latest.shortSalePct > 35 ? 'Normal' : 'Low';
-  const netFlowTrend = history.filter(h=>h.bullish).length > history.length/2 ? 'Net Buying' : 'Net Selling';
-
-  return { latest, history, avg5Day: avg5, trend, sentiment, netFlowTrend, price, source: 'FINRA CNMS Daily' };
+  // Dark pool / RegSHO data — FINRA CDN calls removed (10 calls, slow)
+  // Coming soon with proper data provider
+  return null;
 }
 
-// ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
 async function getBorrowRate(ticker) {
   // Short data coming soon — Fintel/Quiver integration pending
   // Returns null immediately — no network calls, no timeout delays
