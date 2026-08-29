@@ -488,20 +488,38 @@ async function loadAIBriefing() {
       ? 'Write a concise pre-market briefing for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup — key index levels, futures direction, and macro backdrop.\nParagraph 2: Commodity and currency impacts — how oil, gold, dollar, and crypto are setting up the day.\nParagraph 3: Notable movers, catalysts, and earnings to watch.\nParagraph 4: Key risks and trading opportunities for today.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with numbers. 250 words max.'
       : 'Write a concise post-market wrap-up for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the major indices performed and the key macro drivers today.\nParagraph 2: Commodity and currency moves that impacted the market.\nParagraph 3: Notable stock moves, sector rotation, and earnings results.\nParagraph 4: What to watch overnight and tomorrow.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 250 words max.';
 
-    const resp = await fetch('/api/support', {
+    const resp = await fetch('/api/analyze', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
     });
 
-    if(!resp.ok) throw new Error('API error ' + resp.status);
-    const result = await resp.json();
-    const text = result.content?.[0]?.text || result.choices?.[0]?.message?.content || '';
-    if(!text) throw new Error('No response text');
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+    let buffer = '';
 
-    if(body) {
-      body.style.display = 'block';
-      body.innerHTML = '<p style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>';
+    if(body) { body.style.display = 'block'; body.innerHTML = ''; }
+
+    while(true) {
+      const { done, value } = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines) {
+        if(!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if(!data || data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.delta?.text || parsed.type === 'content_block_delta' ? parsed.delta?.text : '';
+          if(delta) {
+            fullText += delta;
+            if(body) body.innerHTML = '<p style="font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;">' + fullText + '</p>';
+          }
+        } catch(e) {}
+      }
     }
 
     if(btn) btn.style.display = 'none';
