@@ -1,16 +1,31 @@
 export const config = { runtime: 'edge' };
 const FINNHUB_KEY = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
+const POLYGON_KEY = '2c90554e-b7d3-485f-a497-b350eb8136f5';
 async function getQuote(symbol) {
   try {
+    // Try Finnhub first
     const r = await fetch('https://finnhub.io/api/v1/quote?symbol='+symbol+'&token='+FINNHUB_KEY);
     const d = await r.json();
-    // After hours: c=0, use pc (prev close) as price
-    // During hours: use c (current price)
     const isAfterHours = !(d.c && d.c > 0);
-    const price = isAfterHours ? (d.pc || 0) : d.c;
-    // After hours show day's change (close vs prev close)
-    const change = isAfterHours ? ((d.pc && d.pc2) ? d.pc - d.pc2 : (d.d || 0)) : (d.d || 0);
-    const pct = isAfterHours ? ((d.dp && d.dp !== 0) ? d.dp : 0) : (d.dp || 0);
+    let price = isAfterHours ? (d.pc || 0) : d.c;
+    let change = isAfterHours ? (d.d || 0) : (d.d || 0);
+    let pct = isAfterHours ? (d.dp || 0) : (d.dp || 0);
+
+    // If Finnhub returns 0, try Polygon previous close
+    if (price === 0) {
+      try {
+        const pr = await fetch('https://api.polygon.io/v2/aggs/ticker/'+symbol+'/prev?adjusted=true&apiKey='+POLYGON_KEY);
+        const pd = await pr.json();
+        const result = pd.results?.[0];
+        if (result && result.c > 0) {
+          price = result.c;
+          const prevPrev = result.o || result.c;
+          change = result.c - prevPrev;
+          pct = prevPrev > 0 ? ((result.c - prevPrev) / prevPrev * 100) : 0;
+        }
+      } catch(e) {}
+    }
+
     return { symbol, price, change, pct, prevClose: d.pc||0, open: d.o||0, high: d.h||0, low: d.l||0, isAfterHours };
   } catch(e) { return { symbol, price: 0, change: 0, pct: 0, prevClose: 0, isAfterHours: true }; }
 }
