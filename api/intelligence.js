@@ -72,65 +72,11 @@ async function getDarkPool(ticker) {
 
 // ── 2. BORROW RATE (iborrowdesk) ──────────────────────────────────────────
 async function getBorrowRate(ticker) {
-  // FINRA EquityShortInterest — POST endpoint, free, all US stocks, twice monthly
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const monthAgo = new Date(Date.now()-45*86400000).toISOString().split('T')[0];
-
-    // FINRA requires POST with JSON body
-    const finraResp = await fetch('https://api.finra.org/data/group/otcMarket/name/EquityShortInterest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        compareFilters: [
-          { compareType: 'EQUAL', fieldName: 'issueSymbolIdentifier', fieldValue: ticker },
-          { compareType: 'GREATER_THAN_OR_EQUAL', fieldName: 'settlementDate', fieldValue: monthAgo }
-        ],
-        
-        limit: 1,
-        sortFields: [{ fieldName: 'settlementDate', sortType: 'DESC' }]
-      }),
-      signal: AbortSignal.timeout(7000)
-    });
-
-    let shortPct = null, shortRatio = null, shortInterest = null, settlementDate = null;
-
-    if (finraResp.ok) {
-      const finraData = await finraResp.json();
-      if (Array.isArray(finraData) && finraData.length > 0) {
-        const row = finraData[0];
-        shortInterest  = row.currentShortShareNumber || null;
-        shortRatio     = row.daysToCoverNumber ? parseFloat(row.daysToCoverNumber).toFixed(1) : null;
-        settlementDate = row.settlementDate || null;
-      }
-    }
-
-    // Finnhub for shares outstanding to compute short % float
-    const fhData = await safeFetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`, 5000);
-    if (fhData && fhData.metric) {
-      const m = fhData.metric;
-      const sharesOut = (m.sharesOutstandingTTM || m.sharesOutstandingQ || 0) * 1e6;
-      if (shortInterest && sharesOut > 0) {
-        shortPct = parseFloat(((shortInterest / sharesOut) * 100).toFixed(2));
-      }
-      if (!shortRatio && (m.shortRatioQ || m.shortRatio)) {
-        shortRatio = parseFloat(m.shortRatioQ || m.shortRatio).toFixed(1);
-      }
-    }
-
-    if (!shortRatio && !shortPct) return null;
-
-    const ratio = parseFloat(shortRatio) || 0;
-    const level = ratio > 10 ? 'Hard to Borrow' : ratio > 5 ? 'Moderate' : ratio > 2 ? 'Easy to Borrow' : 'Very Easy';
-
-    return { shortRatio, shortPct, level, settlementDate, source: 'FINRA' };
-
-  } catch(e) {
-    return null;
-  }
+  // Short data coming soon — Fintel/Quiver integration pending
+  // Returns null immediately — no network calls, no timeout delays
+  return null;
 }
 
-// ── 3. INSTITUTIONAL 13F (SEC EDGAR) ──────────────────────────────────────
 async function get13F(ticker) {
   const headers = { 'User-Agent': 'PulseStock research@pulsestock.com', 'Accept': 'application/json' };
 
