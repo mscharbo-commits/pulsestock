@@ -485,7 +485,7 @@ async function loadAIBriefing() {
       ? 'Write a concise pre-market briefing for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: Overall market setup — key index levels, futures direction, and macro backdrop.\nParagraph 2: Commodity and currency impacts — how oil, gold, dollar, and crypto are setting up the day.\nParagraph 3: Notable movers, catalysts, and earnings to watch.\nParagraph 4: Key risks and trading opportunities for today.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Earnings: ' + (earnings||'none') + '. Economic events: ' + (econ||'none') + '. Be specific with numbers. 250 words max.'
       : 'Write a concise post-market wrap-up for US stock traders. 4 short paragraphs. Plain text only, no markdown, no bullets.\n\nParagraph 1: How the major indices performed and the key macro drivers today.\nParagraph 2: Commodity and currency moves that impacted the market.\nParagraph 3: Notable stock moves, sector rotation, and earnings results.\nParagraph 4: What to watch overnight and tomorrow.\n\nData: Indices: ' + indSummary + '. Macro: ' + macroStr + 'Top sectors: ' + topSectors + '. Gainers: ' + gainers + '. Losers: ' + losers + '. Be specific. 250 words max.';
 
-    const resp = await fetch('/api/analyze', {
+    const resp = await fetch('/api/support', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] })
