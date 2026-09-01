@@ -20,12 +20,12 @@ const SECTOR_SYMS = ['XLK','XLF','XLE','XLV','XLI','XLY','XLP','XLU','XLRE','XLC
 const COMMOD_SYMS = ['GLD','SLV','USO','UNG','CPER','WEAT'];
 const LIVE_SYMS   = ['SPY','QQQ','DIA','IWM','VIX','AAPL','NVDA','MSFT','META','TSLA','AMZN','JPM'];
 const CRYPTO_PAIRS = [
-  {sym:'BTC-USD',name:'Bitcoin',disp:'BTC'},
-  {sym:'ETH-USD',name:'Ethereum',disp:'ETH'},
-  {sym:'SOL-USD',name:'Solana',disp:'SOL'},
-  {sym:'XRP-USD',name:'XRP',disp:'XRP'},
-  {sym:'AVAX-USD',name:'Avalanche',disp:'AVAX'},
-  {sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE'},
+  {sym:'BTC-USD',name:'Bitcoin',disp:'BTC',cgId:'bitcoin'},
+  {sym:'ETH-USD',name:'Ethereum',disp:'ETH',cgId:'ethereum'},
+  {sym:'SOL-USD',name:'Solana',disp:'SOL',cgId:'solana'},
+  {sym:'XRP-USD',name:'XRP',disp:'XRP',cgId:'ripple'},
+  {sym:'AVAX-USD',name:'Avalanche',disp:'AVAX',cgId:'avalanche-2'},
+  {sym:'DOGE-USD',name:'Dogecoin',disp:'DOGE',cgId:'dogecoin'},
 ];
 const SECTOR_NAMES = {
   XLK:'Technology',XLF:'Financials',XLE:'Energy',XLV:'Healthcare',
