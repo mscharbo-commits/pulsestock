@@ -4283,12 +4283,23 @@ loadTickerBar();
   if (ticker) {
     ticker = ticker.toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
     if (ticker) {
+      // Known crypto symbols — redirect to CoinGecko
+      var cryptoMap = {
+        'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple',
+        'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','DOT':'polkadot',
+        'LINK':'chainlink','MATIC':'matic-network','UNI':'uniswap','LTC':'litecoin',
+        'NEAR':'near','APT':'aptos','ARB':'arbitrum'
+      };
+      if (cryptoMap[ticker]) {
+        window.location.href = 'https://www.coingecko.com/en/coins/' + cryptoMap[ticker];
+        return;
+      }
       // Delay to let the page and APIs fully initialize before analyzing
       setTimeout(function() {
         goAnalyze(ticker);
         // Clean up URL without reloading
         window.history.replaceState({}, '', '/');
-      }, 1500);
+      }, 3000);
     }
   }
 })();
