@@ -174,54 +174,16 @@ function pctClass(n) { return n >= 0 ? 'up' : 'dn'; }
 
 // ── LOAD COIN ─────────────────────────────────────────────────────────────────
 async function loadCoin(coinId) {
-  // Try direct CoinGecko first (works from browser), fall back to proxy
-  var urls = [
-    'https://api.coingecko.com/api/v3/coins/' + coinId + '?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false',
-    '/api/crypto?id=' + encodeURIComponent(coinId)
-  ];
-  for (var i = 0; i < urls.length; i++) {
-    try {
-      var ctrl = new AbortController();
-      var tid = setTimeout(function(){ ctrl.abort(); }, 8000);
-      var resp = await fetch(urls[i], { signal: ctrl.signal });
-      clearTimeout(tid);
-      if (!resp.ok) continue;
-      var c = await resp.json();
-      if (c.error) continue;
-      // Normalize CoinGecko full response vs flat proxy response
-      if (c.market_data) {
-        // Full CoinGecko response — convert to flat
-        var m = c.market_data;
-        c = {
-          id: coinId, sym: (c.symbol||'').toUpperCase(), name: c.name,
-          tvSym: TV_SYMS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT'),
-          image: c.image, rank: c.market_cap_rank,
-          price: m.current_price && m.current_price.usd || 0,
-          chg24: m.price_change_percentage_24h || 0,
-          chg7:  m.price_change_percentage_7d  || 0,
-          chg30: m.price_change_percentage_30d || 0,
-          chg1y: m.price_change_percentage_1y  || 0,
-          marketCap: m.market_cap && m.market_cap.usd,
-          volume24:  m.total_volume && m.total_volume.usd,
-          fdv: m.fully_diluted_valuation && m.fully_diluted_valuation.usd,
-          circSupply: m.circulating_supply, totalSupply: m.total_supply, maxSupply: m.max_supply,
-          ath: m.ath && m.ath.usd, athChg: m.ath_change_percentage && m.ath_change_percentage.usd,
-          athDate: m.ath_date && m.ath_date.usd,
-          atl: m.atl && m.atl.usd, atlChg: m.atl_change_percentage && m.atl_change_percentage.usd,
-          atlDate: m.atl_date && m.atl_date.usd,
-          sentiment_up: c.sentiment_votes_up_percentage,
-          sentiment_dn: c.sentiment_votes_down_percentage,
-          coingecko_score: c.coingecko_score,
-          description: c.description && c.description.en,
-          links: c.links,
-        };
-      }
-      renderCoin(c);
-      return;
-    } catch(e) { continue; }
+  try {
+    var resp = await fetch('/api/crypto?id=' + encodeURIComponent(coinId));
+    if (!resp.ok) { showNotFound(coinId); return; }
+    var c = await resp.json();
+    if (c.error) { showNotFound(coinId); return; }
+    renderCoin(c);
+  } catch(e) {
+    var el = document.getElementById('main-content');
+    if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Failed to load data. <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
   }
-  var el = document.getElementById('main-content');
-  if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Failed to load data. <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
 }
 
 function renderCoin(c) {
@@ -541,54 +503,16 @@ function pctClass(n) { return n >= 0 ? 'up' : 'dn'; }
 
 // ── LOAD COIN ─────────────────────────────────────────────────────────────────
 async function loadCoin(coinId) {
-  // Try direct CoinGecko first (works from browser), fall back to proxy
-  var urls = [
-    'https://api.coingecko.com/api/v3/coins/' + coinId + '?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false',
-    '/api/crypto?id=' + encodeURIComponent(coinId)
-  ];
-  for (var i = 0; i < urls.length; i++) {
-    try {
-      var ctrl = new AbortController();
-      var tid = setTimeout(function(){ ctrl.abort(); }, 8000);
-      var resp = await fetch(urls[i], { signal: ctrl.signal });
-      clearTimeout(tid);
-      if (!resp.ok) continue;
-      var c = await resp.json();
-      if (c.error) continue;
-      // Normalize CoinGecko full response vs flat proxy response
-      if (c.market_data) {
-        // Full CoinGecko response — convert to flat
-        var m = c.market_data;
-        c = {
-          id: coinId, sym: (c.symbol||'').toUpperCase(), name: c.name,
-          tvSym: TV_SYMS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT'),
-          image: c.image, rank: c.market_cap_rank,
-          price: m.current_price && m.current_price.usd || 0,
-          chg24: m.price_change_percentage_24h || 0,
-          chg7:  m.price_change_percentage_7d  || 0,
-          chg30: m.price_change_percentage_30d || 0,
-          chg1y: m.price_change_percentage_1y  || 0,
-          marketCap: m.market_cap && m.market_cap.usd,
-          volume24:  m.total_volume && m.total_volume.usd,
-          fdv: m.fully_diluted_valuation && m.fully_diluted_valuation.usd,
-          circSupply: m.circulating_supply, totalSupply: m.total_supply, maxSupply: m.max_supply,
-          ath: m.ath && m.ath.usd, athChg: m.ath_change_percentage && m.ath_change_percentage.usd,
-          athDate: m.ath_date && m.ath_date.usd,
-          atl: m.atl && m.atl.usd, atlChg: m.atl_change_percentage && m.atl_change_percentage.usd,
-          atlDate: m.atl_date && m.atl_date.usd,
-          sentiment_up: c.sentiment_votes_up_percentage,
-          sentiment_dn: c.sentiment_votes_down_percentage,
-          coingecko_score: c.coingecko_score,
-          description: c.description && c.description.en,
-          links: c.links,
-        };
-      }
-      renderCoin(c);
-      return;
-    } catch(e) { continue; }
+  try {
+    var resp = await fetch('/api/crypto?id=' + encodeURIComponent(coinId));
+    if (!resp.ok) { showNotFound(coinId); return; }
+    var c = await resp.json();
+    if (c.error) { showNotFound(coinId); return; }
+    renderCoin(c);
+  } catch(e) {
+    var el = document.getElementById('main-content');
+    if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Failed to load data. <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
   }
-  var el = document.getElementById('main-content');
-  if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Failed to load data. <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
 }
 
 function renderCoin(c, chart) {
