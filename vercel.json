@@ -20,6 +20,10 @@
   ],
   "routes": [
     {
+      "src": "/crypto/(.*)",
+      "dest": "/crypto.html"
+    },
+    {
       "src": "/signin",
       "dest": "/signin.html"
     },
