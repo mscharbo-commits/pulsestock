@@ -5282,8 +5282,8 @@ function renderMarketTab(tab) {
       var up2 = q&&q.pct>=0; var c2 = up2?'var(--green)':'var(--red)';
       var bw = q&&q.pct!=null?Math.min(100,Math.abs(q.pct)*10).toFixed(0):0;
       var pr = q&&q.price?(q.price>=10000?'$'+Math.round(q.price).toLocaleString():'$'+q.price.toFixed(2)):'--';
-      var ch = q&&q.pct!=null?((up2?'▲ +':'▼ ')+q.pct.toFixed(2)+'%'):'--';
-      return '<div class="mo-row" style="cursor:pointer" onclick="window.location.href='/crypto/'+cid+''"><div class="mo-row-sym">'+sym+'</div><div class="mo-row-name">'+name+'</div><div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+bw+'%;background:'+c2+'"></div></div><div class="mo-row-price">'+pr+'</div><div class="mo-row-chg" style="color:'+c2+'">'+ch+'</div></div>';
+      var ch = q&&q.pct!=null?((up2?'&#x25B2; +':'&#x25BC; ')+q.pct.toFixed(2)+'%'):'--';
+      return '<div class="mo-row mo-crypto-row" data-cid="'+cid+'" style="cursor:pointer"><div class="mo-row-sym">'+sym+'</div><div class="mo-row-name">'+name+'</div><div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+bw+'%;background:'+c2+'"></div></div><div class="mo-row-price">'+pr+'</div><div class="mo-row-chg" style="color:'+c2+'">'+ch+'</div></div>';
     }
     return _moRow(sym, name, q, true);
   }).join('');
@@ -5412,5 +5412,11 @@ document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketO
 </script>
 
 
+<script>
+document.addEventListener('click', function(e) {
+  var cr = e.target.closest('.mo-crypto-row');
+  if (cr) window.location.href = '/crypto/' + cr.dataset.cid;
+});
+</script>
 </body>
 </html>
