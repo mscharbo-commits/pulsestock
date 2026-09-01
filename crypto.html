@@ -225,12 +225,13 @@ function loadTVChart(coinId) {
 
 async function loadCoin(coinId) {
   try {
-    var resp = await fetch('https://api.coingecko.com/api/v3/coins/' + coinId + '?localization=false&tickers=false&community_data=false&developer_data=false');
+    var resp = await fetch('/api/crypto?id=' + encodeURIComponent(coinId));
+    if (!resp.ok) { showNotFound(coinId); return; }
     var c = await resp.json();
     if (c.error) { showNotFound(coinId); return; }
     renderCoin(c);
   } catch(e) {
-    document.getElementById('main-content').innerHTML = '<div class="loading-state">Failed to load data. Please try again.</div>';
+    document.getElementById('main-content').innerHTML = '<div class="loading-state" style="color:var(--red);">Failed to load data. <a href="javascript:location.reload()" style="color:var(--accent);">Try again</a></div>';
   }
 }
 
