@@ -4,11 +4,16 @@ const FINNHUB = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l
 const POLYGON = process.env.POLYGON_API_KEY || '';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'no-store'};
 
+const CG_KEY = process.env.COINGECKO_API_KEY || 'CG-pwDvU5d2bQqDKVha9KGCkaCf';
+
 async function sf(url, t=5000) {
   try {
     const ctrl = new AbortController();
     const id = setTimeout(()=>ctrl.abort(), t);
-    const r = await fetch(url, {signal:ctrl.signal});
+    const headers = url.includes('coingecko.com')
+      ? { 'x-cg-demo-api-key': CG_KEY, 'Accept': 'application/json' }
+      : {};
+    const r = await fetch(url, {signal:ctrl.signal, headers});
     clearTimeout(id);
     if(!r.ok) return null;
     return await r.json();
