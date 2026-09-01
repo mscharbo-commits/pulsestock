@@ -2259,8 +2259,8 @@ function formatAIResponse(raw){
       // Use Target 2 from the deep dive analysis if available — it's more accurate
       // than the quick VERDICT line target which doesn't have full context
       const target2Match = raw.match(/🎯[\s\S]*?Target\s*2[\s\S]*?\$([\d,.-]+)/i)
-                        || fullText.match(/TARGET\s*2[\s\S]*?\$([\d,.-]+)/i)
-                        || fullText.match(/\$([\d]+).*?12.month/i);
+                        || raw.match(/TARGET\s*2[\s\S]*?\$([\d,.-]+)/i)
+                        || raw.match(/\$([\d]+).*?12.month/i);
       const verdictTarget = targetMatch ? targetMatch[1] : '—';
       const target = target2Match ? target2Match[1].replace(/[^\d]/g,'') : verdictTarget;
       const vc = verdict === 'BUY' ? 'buy' : verdict === 'SELL' ? 'sell' : 'hold';
