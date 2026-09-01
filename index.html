@@ -817,7 +817,8 @@ function showPage(id,btn){
 }
 var CRYPTO_ROUTE={'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple','DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','MATIC':'matic-network','DOT':'polkadot','LINK':'chainlink','UNI':'uniswap','LTC':'litecoin','ATOM':'cosmos','NEAR':'near','SHIB':'shiba-inu','TRX':'tron','TON':'the-open-network','SUI':'sui','PEPE':'pepe','APT':'aptos','ARB':'arbitrum'};
 function qs(t){
-  var sym=t.toUpperCase().replace('-USD','');
+  var sym=t.toUpperCase().replace('-USD','').replace(/USD$/,'');
+  if(CRYPTO_ROUTE[t.toUpperCase()]){window.location.href='/crypto/'+CRYPTO_ROUTE[t.toUpperCase()];return;}
   if(CRYPTO_ROUTE[sym]){window.location.href='/crypto/'+CRYPTO_ROUTE[sym];return;}
   document.getElementById('ticker-input').value=t;
   closeDropdown();
@@ -1335,7 +1336,9 @@ var stockMetrics = null; // declared at module scope
 async function doAnalyze(){
   stockMetrics = null; // reset on each analyze
   var _raw=document.getElementById('ticker-input').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  var _clean=_raw.replace('-USD','').replace('USD','');
   if(CRYPTO_ROUTE[_raw]){window.location.href='/crypto/'+CRYPTO_ROUTE[_raw];return;}
+  if(CRYPTO_ROUTE[_clean]){window.location.href='/crypto/'+CRYPTO_ROUTE[_clean];return;}
   // Hide market overview — user is viewing a stock
   var moEl = document.getElementById('market-overview');
   if(moEl) { moEl.style.display = 'none'; }
