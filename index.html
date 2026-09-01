@@ -2251,8 +2251,8 @@ function formatAIResponse(raw){
       // Use Target 2 from the deep dive analysis if available — it's more accurate
       // than the quick VERDICT line target which doesn't have full context
       const target2Match = raw.match(/🎯[\s\S]*?Target\s*2[\s\S]*?\$([\d,.-]+)/i)
-                        || raw.match(/TARGET\s*2[\s\S]*?\$([\d,.-]+)/i)
-                        || raw.match(/\$([\d]+).*?12.month/i);
+                        || fullText.match(/TARGET\s*2[\s\S]*?\$([\d,.-]+)/i)
+                        || fullText.match(/\$([\d]+).*?12.month/i);
       const verdictTarget = targetMatch ? targetMatch[1] : '—';
       const target = target2Match ? target2Match[1].replace(/[^\d]/g,'') : verdictTarget;
       const vc = verdict === 'BUY' ? 'buy' : verdict === 'SELL' ? 'sell' : 'hold';
@@ -4283,39 +4283,23 @@ loadTickerBar();
   if (ticker) {
     ticker = ticker.toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
     if (ticker) {
-      // Known crypto symbols — route to PulseStock crypto page
+      // Known crypto symbols — redirect to CoinGecko
       var cryptoMap = {
         'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple',
         'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','DOT':'polkadot',
         'LINK':'chainlink','MATIC':'matic-network','UNI':'uniswap','LTC':'litecoin',
-        'NEAR':'near','APT':'aptos','ARB':'arbitrum','SHIB':'shiba-inu',
-        'TRX':'tron','TON':'the-open-network','SUI':'sui','PEPE':'pepe',
-        'ATOM':'cosmos','ALGO':'algorand','FIL':'filecoin','VET':'vechain'
+        'NEAR':'near','APT':'aptos','ARB':'arbitrum'
       };
       if (cryptoMap[ticker]) {
         window.location.href = '/crypto/' + cryptoMap[ticker];
         return;
       }
-      // Check for cached price data passed from desktop ticker
-      var cachedPrice = params.get('price');
-      var cachedChg   = params.get('chg');
-      var cachedPct   = params.get('pct');
-      // Delay to let page initialize, then analyze
-      // If we have cached data, use shorter delay since we don't need Finnhub
-      var delay = (cachedPrice && parseFloat(cachedPrice) > 0) ? 800 : 3000;
+      // Delay to let the page and APIs fully initialize before analyzing
       setTimeout(function() {
-        // Pre-populate quote cache if we have data from ticker
-        if (cachedPrice && parseFloat(cachedPrice) > 0 && typeof QUOTE_CACHE !== 'undefined') {
-          QUOTE_CACHE[ticker] = {
-            price: parseFloat(cachedPrice),
-            change: parseFloat(cachedChg || 0),
-            pct: parseFloat(cachedPct || 0),
-            fromTicker: true
-          };
-        }
         goAnalyze(ticker);
+        // Clean up URL without reloading
         window.history.replaceState({}, '', '/');
-      }, delay);
+      }, 3000);
     }
   }
 })();
@@ -5293,19 +5277,13 @@ function renderMarketTab(tab) {
     var sym = item.disp||item.sym;
     var name = (q&&q.name)?q.name:item.name;
     if (tab === 'crypto') {
-      var cryptoIdMap = {'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple','DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','MATIC':'matic-network','DOT':'polkadot','LINK':'chainlink','UNI':'uniswap','LTC':'litecoin','ATOM':'cosmos','NEAR':'near','SHIB':'shiba-inu','TRX':'tron','TON':'the-open-network','SUI':'sui'};
-      var coinId = cryptoIdMap[sym] || sym.toLowerCase().replace('-usd','');
-      var up = q&&q.pct>=0, c = up?'var(--green)':'var(--red)';
-      var barW = q&&q.pct!=null?Math.min(100,Math.abs(q.pct)*10).toFixed(0):0;
-      var price = q&&q.price?(q.price>=10000?'$'+Math.round(q.price).toLocaleString():'$'+q.price.toFixed(2)):'--';
-      var chg = q&&q.pct!=null?((up?'▲ +:':'▼ ')+q.pct.toFixed(2)+'%'):'--';
-      return '<div class="mo-row" style="cursor:pointer;" onclick="window.location.href='/crypto/'+coinId+''">'
-        +'<div class="mo-row-sym">'+sym+'</div>'
-        +'<div class="mo-row-name">'+name+'</div>'
-        +'<div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+barW+'%;background:'+c+';"></div></div>'
-        +'<div class="mo-row-price">'+price+'</div>'
-        +'<div class="mo-row-chg" style="color:'+c+';">'+chg+'</div>'
-        +'</div>';
+      var cmap = {'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple','DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','MATIC':'matic-network','DOT':'polkadot','LINK':'chainlink','UNI':'uniswap','LTC':'litecoin','ATOM':'cosmos','NEAR':'near','SHIB':'shiba-inu','TRX':'tron','TON':'the-open-network','SUI':'sui'};
+      var cid = cmap[sym] || sym.toLowerCase().replace('-usd','');
+      var up2 = q&&q.pct>=0; var c2 = up2?'var(--green)':'var(--red)';
+      var bw = q&&q.pct!=null?Math.min(100,Math.abs(q.pct)*10).toFixed(0):0;
+      var pr = q&&q.price?(q.price>=10000?'$'+Math.round(q.price).toLocaleString():'$'+q.price.toFixed(2)):'--';
+      var ch = q&&q.pct!=null?((up2?'▲ +':'▼ ')+q.pct.toFixed(2)+'%'):'--';
+      return '<div class="mo-row" style="cursor:pointer" onclick="window.location.href='/crypto/'+cid+''"><div class="mo-row-sym">'+sym+'</div><div class="mo-row-name">'+name+'</div><div class="mo-row-bar"><div class="mo-row-bar-fill" style="width:'+bw+'%;background:'+c2+'"></div></div><div class="mo-row-price">'+pr+'</div><div class="mo-row-chg" style="color:'+c2+'">'+ch+'</div></div>';
     }
     return _moRow(sym, name, q, true);
   }).join('');
