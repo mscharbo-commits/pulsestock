@@ -248,9 +248,7 @@ function renderCoin(c) {
     ? c.description.replace(/<[^>]+>/g,'').split('. ').slice(0,3).join('. ') + '.'
     : '';
 
-  const links = [];
-  if (c.links && c.links.homepage && c.links.homepage[0]) links.push(`<a class="about-link" href="${c.links.homepage[0]}" target="_blank">🌐 Website</a>`);
-  if (c.links && c.links.blockchain_site && c.links.blockchain_site[0]) links.push(`<a class="about-link" href="${c.links.blockchain_site[0]}" target="_blank">🔗 Explorer</a>`);
+
 
   const html = `
 <div class="loading-state" style="padding:0;">
@@ -281,7 +279,7 @@ function renderCoin(c) {
             <span class="chart-title">Price Chart</span>
             <span style="font-size:11px;color:var(--text3);">Interactive chart with RSI · MACD</span>
           </div>
-          <div id="tv-chart-container" style="height:560px;width:100%;border-radius:0 0 12px 12px;overflow:hidden;"></div>
+          <div id="tv-chart-container" style="height:640px;width:100%;border-radius:0 0 12px 12px;overflow:hidden;"></div>
         </div>
 
         <!-- PERFORMANCE -->
@@ -293,7 +291,7 @@ function renderCoin(c) {
           ${perfBar('1Y', chg1y)}
         </div>
 
-        ${desc ? `<div class="about-card"><div class="about-title">About ${c.name}</div><div class="about-text">${desc}</div>${links.length ? '<div class="about-links">' + links.join('') + '</div>' : ''}</div>` : ''}
+
       </div>
 
       <div>
@@ -568,7 +566,7 @@ function renderCoin(c, chart) {
         <span class="chart-title">Price Chart (7 days)</span>
         <div class="chart-periods" style="font-size:11px;color:var(--text3);">Interactive chart with RSI · MACD</div>
       </div>
-      <div id="tv-chart-container" style="height:560px;width:100%;border-radius:0 0 12px 12px;overflow:hidden;"></div>
+      <div id="tv-chart-container" style="height:640px;width:100%;border-radius:0 0 12px 12px;overflow:hidden;"></div>
     </div>
 
     <!-- PERFORMANCE -->
@@ -674,7 +672,7 @@ function loadTVChart(coinId) {
   var sym = TV_SYMS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT');
   var el = document.getElementById('tv-chart-container');
   if (!el) return;
-  el.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + encodeURIComponent(sym) + '&interval=D&theme=light&style=1&locale=en&toolbar_bg=F4F7FD&withdateranges=1&hide_top_toolbar=0&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&showpopupbutton=1" style="width:100%;height:560px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
+  el.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + encodeURIComponent(sym) + '&interval=D&theme=light&style=1&locale=en&toolbar_bg=F4F7FD&withdateranges=1&hide_top_toolbar=0&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&showpopupbutton=1" style="width:100%;height:640px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
