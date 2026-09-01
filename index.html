@@ -815,7 +815,10 @@ function showPage(id,btn){
   btn.classList.add('active');
   if(id==='portfolio'){ renderPortfolio(); setTimeout(populatePortL2Select, 100); }
 }
+var CRYPTO_ROUTE={'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple','DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','MATIC':'matic-network','DOT':'polkadot','LINK':'chainlink','UNI':'uniswap','LTC':'litecoin','ATOM':'cosmos','NEAR':'near','SHIB':'shiba-inu','TRX':'tron','TON':'the-open-network','SUI':'sui','PEPE':'pepe','APT':'aptos','ARB':'arbitrum'};
 function qs(t){
+  var sym=t.toUpperCase().replace('-USD','');
+  if(CRYPTO_ROUTE[sym]){window.location.href='/crypto/'+CRYPTO_ROUTE[sym];return;}
   document.getElementById('ticker-input').value=t;
   closeDropdown();
   doAnalyze();
@@ -1331,6 +1334,8 @@ async function fetchAnalyst(ticker){
 var stockMetrics = null; // declared at module scope
 async function doAnalyze(){
   stockMetrics = null; // reset on each analyze
+  var _raw=document.getElementById('ticker-input').value.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  if(CRYPTO_ROUTE[_raw]){window.location.href='/crypto/'+CRYPTO_ROUTE[_raw];return;}
   // Hide market overview — user is viewing a stock
   var moEl = document.getElementById('market-overview');
   if(moEl) { moEl.style.display = 'none'; }
