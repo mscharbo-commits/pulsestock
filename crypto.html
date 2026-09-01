@@ -322,6 +322,7 @@ function renderCoin(c, chart) {
 
   document.getElementById('main-content').innerHTML = html;
   document.title = sym + ' $' + price.toLocaleString() + ' — PulseStock';
+  setTimeout(function() { loadTVChart(coinId); }, 400);
 }
 
 function showNotFound(coinId) {
