@@ -4288,12 +4288,14 @@ loadTickerBar();
   if (ticker) {
     ticker = ticker.toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
     if (ticker) {
-      // Known crypto symbols — redirect to CoinGecko
+      // Known crypto symbols — route to /crypto/ page
       var cryptoMap = {
         'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple',
         'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','DOT':'polkadot',
         'LINK':'chainlink','MATIC':'matic-network','UNI':'uniswap','LTC':'litecoin',
-        'NEAR':'near','APT':'aptos','ARB':'arbitrum'
+        'NEAR':'near','APT':'aptos','ARB':'arbitrum','SHIB':'shiba-inu',
+        'TRX':'tron','TON':'the-open-network','SUI':'sui','PEPE':'pepe',
+        'ATOM':'cosmos','ALGO':'algorand','BCH':'bitcoin-cash','XMR':'monero'
       };
       if (cryptoMap[ticker]) {
         window.location.href = '/crypto/' + cryptoMap[ticker];
