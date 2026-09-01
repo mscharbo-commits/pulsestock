@@ -4,7 +4,7 @@ const FINNHUB = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l
 const POLYGON = process.env.POLYGON_API_KEY || '';
 const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json','Cache-Control':'no-store'};
 
-const CG_KEY = process.env.COINGECKO_API_KEY || 'CG-pwDvU5d2bQqDKVha9KGCkaCf';
+const CG_KEY = process.env.COINGECKO_API_KEY || '';
 
 async function sf(url, t=5000) {
   try {
