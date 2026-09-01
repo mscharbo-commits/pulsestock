@@ -190,8 +190,8 @@ function fmtPct(n) {
 
 function pctClass(n) { return parseFloat(n) >= 0 ? 'up' : 'dn'; }
 
-function loadTVChart(coinId) {
-  var tvSym = TV_SYMBOLS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT');
+function loadTVChart(coinId, tvSym) {
+  tvSym = tvSym || TV_SYMBOLS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT');
   var container = document.getElementById('tv-container');
   if (!container) return;
   try {
@@ -236,13 +236,13 @@ async function loadCoin(coinId) {
 }
 
 function renderCoin(c) {
-  var m = c.market_data || {};
-  var price = m.current_price && m.current_price.usd || 0;
-  var chg24 = m.price_change_percentage_24h || 0;
-  var chg7  = m.price_change_percentage_7d  || 0;
-  var chg30 = m.price_change_percentage_30d || 0;
-  var chg1y = m.price_change_percentage_1y  || 0;
-  var sym = (c.symbol || '').toUpperCase();
+  // Flat response from /api/crypto
+  var price = c.price || 0;
+  var chg24 = c.chg24 || 0;
+  var chg7  = c.chg7  || 0;
+  var chg30 = c.chg30 || 0;
+  var chg1y = c.chg1y || 0;
+  var sym = c.sym || currentCoinId.toUpperCase();
   var chgClass = chg24 >= 0 ? 'up' : 'dn';
 
   document.title = sym + ' ' + fmt(price) + ' — PulseStock';
@@ -252,8 +252,8 @@ function renderCoin(c) {
     : '<div class="coin-logo-fallback">' + sym.slice(0,2) + '</div>';
 
   var aboutHtml = '';
-  if (c.description && c.description.en) {
-    var desc = c.description.en.replace(/<[^>]+>/g, '').split('. ').slice(0,3).join('. ') + '.';
+  if (c.description) {
+    var desc = c.description.replace(/<[^>]+>/g, '').split('. ').slice(0,3).join('. ') + '.';
     var links = [];
     if (c.links && c.links.homepage && c.links.homepage[0]) links.push('<a class="about-link" href="' + c.links.homepage[0] + '" target="_blank">🌐 Website</a>');
     if (c.links && c.links.blockchain_site && c.links.blockchain_site[0]) links.push('<a class="about-link" href="' + c.links.blockchain_site[0] + '" target="_blank">🔗 Explorer</a>');
@@ -266,7 +266,7 @@ function renderCoin(c) {
     + '<div class="coin-header">'
     + logoHtml
     + '<div class="coin-meta">'
-    + '<div class="coin-name-row"><span class="coin-name">' + c.name + '</span><span class="coin-sym">' + sym + '</span>' + (c.market_cap_rank ? '<span class="coin-rank">#' + c.market_cap_rank + '</span>' : '') + '</div>'
+    + '<div class="coin-name-row"><span class="coin-name">' + c.name + '</span><span class="coin-sym">' + sym + '</span>' + (c.rank ? '<span class="coin-rank">#' + c.rank + '</span>' : '') + '</div>'
     + '<div class="coin-price-row"><span class="coin-price">' + fmt(price) + '</span><span class="coin-chg ' + chgClass + '">' + fmtPct(chg24) + ' 24h</span></div>'
     + '<div class="coin-updated">Real-time via CoinGecko · Updated just now</div>'
     + '</div></div>'
@@ -287,12 +287,12 @@ function renderCoin(c) {
 
     // Key metrics grid
     + '<div class="stat-grid" id="stats">'
-    + metBox('Market Cap', fmt(m.market_cap && m.market_cap.usd))
-    + metBox('24h Volume', fmt(m.total_volume && m.total_volume.usd))
+    + metBox('Market Cap', fmt(c.marketCap))
+    + metBox('24h Volume', fmt(c.volume24))
     + metBox('24h Change', fmtPct(chg24), chgClass)
     + metBox('7D Change', fmtPct(chg7), chg7 >= 0 ? 'up' : 'dn')
-    + metBox('All-Time High', fmt(m.ath && m.ath.usd))
-    + metBox('From ATH', fmtPct(m.ath_change_percentage && m.ath_change_percentage.usd), m.ath_change_percentage && m.ath_change_percentage.usd >= 0 ? 'up' : 'dn')
+    + metBox('All-Time High', fmt(c.ath))
+    + metBox('From ATH', fmtPct(c.athChg), c.athChg >= 0 ? 'up' : 'dn')
     + '</div>'
 
     // TradingView chart
@@ -311,29 +311,29 @@ function renderCoin(c) {
     // RIGHT COLUMN
     + '<div>'
     + '<div class="card"><div class="card-title">Market Statistics</div>'
-    + statRow('Market Cap', fmt(m.market_cap && m.market_cap.usd))
-    + statRow('Fully Diluted', fmt(m.fully_diluted_valuation && m.fully_diluted_valuation.usd))
-    + statRow('24h Volume', fmt(m.total_volume && m.total_volume.usd))
-    + statRow('Circulating', m.circulating_supply ? fmtNum(m.circulating_supply) + ' ' + sym : '—')
-    + statRow('Total Supply', m.total_supply ? fmtNum(m.total_supply) + ' ' + sym : '∞')
-    + statRow('Max Supply', m.max_supply ? fmtNum(m.max_supply) + ' ' + sym : '∞')
-    + statRow('Vol/Mkt Cap', m.total_volume && m.total_volume.usd && m.market_cap && m.market_cap.usd ? (m.total_volume.usd/m.market_cap.usd*100).toFixed(2)+'%' : '—')
+    + statRow('Market Cap', fmt(c.marketCap))
+    + statRow('Fully Diluted', fmt(c.fdv))
+    + statRow('24h Volume', fmt(c.volume24))
+    + statRow('Circulating', c.circSupply ? fmtNum(c.circSupply) + ' ' + sym : '—')
+    + statRow('Total Supply', c.totalSupply ? fmtNum(c.totalSupply) + ' ' + sym : '∞')
+    + statRow('Max Supply', c.maxSupply ? fmtNum(c.maxSupply) + ' ' + sym : '∞')
+    + statRow('Vol/Mkt Cap', c.volume24 && c.marketCap ? (c.volume24/c.marketCap*100).toFixed(2)+'%' : '—')
     + '</div>'
 
     + '<div class="card" style="margin-top:0;"><div class="card-title">All-Time Records</div>'
-    + statRow('All-Time High', fmt(m.ath && m.ath.usd))
-    + statRow('ATH Date', m.ath_date && m.ath_date.usd ? new Date(m.ath_date.usd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—')
-    + statRow('From ATH', '<span class="' + (m.ath_change_percentage && m.ath_change_percentage.usd >= 0 ? 'up' : 'dn') + '">' + fmtPct(m.ath_change_percentage && m.ath_change_percentage.usd) + '</span>')
-    + statRow('All-Time Low', fmt(m.atl && m.atl.usd))
-    + statRow('ATL Date', m.atl_date && m.atl_date.usd ? new Date(m.atl_date.usd).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—')
-    + statRow('From ATL', '<span class="' + (m.atl_change_percentage && m.atl_change_percentage.usd >= 0 ? 'up' : 'dn') + '">' + fmtPct(m.atl_change_percentage && m.atl_change_percentage.usd) + '</span>')
+    + statRow('All-Time High', fmt(c.ath))
+    + statRow('ATH Date', c.athDate ? new Date(c.athDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—')
+    + statRow('From ATH', '<span class="' + (c.athChg >= 0 ? 'up' : 'dn') + '">' + fmtPct(c.athChg) + '</span>')
+    + statRow('All-Time Low', fmt(c.atl))
+    + statRow('ATL Date', c.atlDate ? new Date(c.atlDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—')
+    + statRow('From ATL', '<span class="' + (c.atlChg >= 0 ? 'up' : 'dn') + '">' + fmtPct(c.atlChg) + '</span>')
     + '</div>'
 
     + '<div class="card" style="margin-top:0;"><div class="card-title">Supply Info</div>'
-    + statRow('% Circulating', m.circulating_supply && m.max_supply ? (m.circulating_supply/m.max_supply*100).toFixed(1)+'%' : m.max_supply === null ? 'No max' : '—')
+    + statRow('% Circulating', c.circSupply && c.maxSupply ? (c.circSupply/c.maxSupply*100).toFixed(1)+'%' : c.maxSupply === null ? 'No max' : '—')
     + statRow('CoinGecko Score', c.coingecko_score ? c.coingecko_score.toFixed(0)+'/100' : '—')
-    + statRow('Sentiment ▲', c.sentiment_votes_up_percentage ? '<span class="up">'+c.sentiment_votes_up_percentage.toFixed(0)+'%</span>' : '—')
-    + statRow('Sentiment ▼', c.sentiment_votes_down_percentage ? '<span class="dn">'+c.sentiment_votes_down_percentage.toFixed(0)+'%</span>' : '—')
+    + statRow('Sentiment ▲', c.sentiment_up ? '<span class="up">'+c.sentiment_up.toFixed(0)+'%</span>' : '—')
+    + statRow('Sentiment ▼', c.sentiment_dn ? '<span class="dn">'+c.sentiment_dn.toFixed(0)+'%</span>' : '—')
     + '</div>'
 
     + '</div>' // right col
@@ -343,7 +343,8 @@ function renderCoin(c) {
   document.getElementById('main-content').innerHTML = html;
 
   // Load TradingView chart after DOM is ready
-  setTimeout(function() { loadTVChart(currentCoinId); }, 100);
+  var tvSym = c.tvSym || null;
+  setTimeout(function() { loadTVChart(currentCoinId, tvSym); }, 100);
   // Load news
   loadNews(currentCoinId);
 }
