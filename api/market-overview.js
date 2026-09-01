@@ -40,12 +40,12 @@ export default async function handler(req) {
   let result = {};
 
   if(tab === 'crypto') {
-    const quotes = await Promise.all(
-      CRYPTO_PAIRS.map(p => sf(`https://api.polygon.io/v2/aggs/ticker/X:${p.sym.replace('-','')}USD/prev?adjusted=true&apiKey=${POLYGON}`,5000))
-    );
-    CRYPTO_PAIRS.forEach((p,i) => {
-      const r = quotes[i]?.results?.[0];
-      if(r && r.c) result[p.sym] = {name:p.name,disp:p.disp,price:r.c,pct:r.o?((r.c-r.o)/r.o*100):0,change:r.o?(r.c-r.o):0};
+    // Use CoinGecko for crypto — free server-side
+    const cgIds = CRYPTO_PAIRS.map(p => p.cgId).join(',');
+    const cgData = await sf(`https://api.coingecko.com/api/v3/simple/price?ids=${cgIds}&vs_currencies=usd&include_24hr_change=true`, 8000);
+    CRYPTO_PAIRS.forEach(p => {
+      const d = cgData && cgData[p.cgId];
+      if (d && d.usd) result[p.sym] = {name:p.name, disp:p.disp, price:d.usd, pct:d.usd_24h_change||0, change:0};
     });
   } else if(tab === 'sectors') {
     const quotes = await Promise.all(SECTOR_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
