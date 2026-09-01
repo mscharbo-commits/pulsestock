@@ -4291,7 +4291,7 @@ loadTickerBar();
         'NEAR':'near','APT':'aptos','ARB':'arbitrum'
       };
       if (cryptoMap[ticker]) {
-        window.location.href = 'https://www.coingecko.com/en/coins/' + cryptoMap[ticker];
+        window.location.href = '/crypto/' + cryptoMap[ticker];
         return;
       }
       // Check for cached price data passed from desktop ticker
