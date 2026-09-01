@@ -237,12 +237,12 @@ function renderCoin(c, chart) {
 <div class="main-grid">
   <div>
     <!-- CHART -->
-    <div class="chart-card" style="overflow:visible;">
+    <div class="chart-card">
       <div class="chart-header">
         <span class="chart-title">Price Chart (7 days)</span>
         <div class="chart-periods" style="font-size:11px;color:var(--text3);">Interactive chart with RSI · MACD</div>
       </div>
-      <div id="tv-chart-container" style="height:500px;width:100%;"></div>
+      <div id="tv-chart-container" style="height:560px;width:100%;border-radius:0 0 12px 12px;overflow:hidden;"></div>
     </div>
 
     <!-- PERFORMANCE -->
@@ -348,7 +348,7 @@ function loadTVChart(coinId) {
   var sym = TV_SYMS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT');
   var el = document.getElementById('tv-chart-container');
   if (!el) return;
-  el.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + encodeURIComponent(sym) + '&interval=D&theme=light&style=1&locale=en&toolbar_bg=F4F7FD&withdateranges=1&hide_top_toolbar=0&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&showpopupbutton=1" style="width:100%;height:500px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
+  el.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + encodeURIComponent(sym) + '&interval=D&theme=light&style=1&locale=en&toolbar_bg=F4F7FD&withdateranges=1&hide_top_toolbar=0&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&showpopupbutton=1" style="width:100%;height:560px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
