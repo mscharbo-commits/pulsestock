@@ -7,6 +7,7 @@ const CORS = {'Access-Control-Allow-Origin':'*','Content-Type':'application/json
 
 let _cache = null;
 let _cacheTime = 0;
+let _cacheKey = null;
 let _candleCache = {};
 let _candleCacheTime = {};
 const CACHE_TTL  = 5 * 60 * 1000;
