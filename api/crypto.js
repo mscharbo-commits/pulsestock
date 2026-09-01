@@ -78,6 +78,10 @@ export default async function handler(req) {
     });
   }
 
+  // Debug: log what we got
+  console.log('CoinGecko p:', JSON.stringify(p));
+  console.log('CoinGecko m exists:', !!m);
+
   const result = {
     id: coinId,
     sym: meta.sym,
