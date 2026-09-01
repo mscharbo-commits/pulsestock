@@ -529,7 +529,7 @@ async function loadCoin(coinId) {
   }
 }
 
-function renderCoin(c, chart) {
+function renderCoin(c) {
   const m = c.market_data || {};
   const price = m.current_price?.usd || 0;
   const chg24 = m.price_change_percentage_24h || 0;
@@ -539,17 +539,7 @@ function renderCoin(c, chart) {
   const chgClass = chg24 >= 0 ? 'up' : 'dn';
   const sym = (c.symbol || '').toUpperCase();
 
-  // Build sparkline from chart data
-  const prices = (chart.prices || []).map(p => p[1]);
-  const minP = Math.min(...prices);
-  const maxP = Math.max(...prices);
-  const sparkPoints = prices.map((p, i) => {
-    const x = (i / (prices.length - 1)) * 600;
-    const y = 80 - ((p - minP) / (maxP - minP || 1)) * 70;
-    return x + ',' + y;
-  }).join(' ');
-  const sparkColor = chg7 >= 0 ? '#16A34A' : '#DC2626';
-  const sparkFill  = chg7 >= 0 ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.08)';
+  // Chart handled by TradingView
 
   const html = `
 <div class="hero">
