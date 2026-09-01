@@ -173,26 +173,6 @@ function fmtNum(n) {
 function pctClass(n) { return n >= 0 ? 'up' : 'dn'; }
 
 // ── LOAD COIN ─────────────────────────────────────────────────────────────────
-async function loadCoin(coinId) {
-  try {
-    var resp = await fetch('/api/crypto?id=' + encodeURIComponent(coinId));
-    if (!resp.ok) { showNotFound(coinId); return; }
-    var c = await resp.json();
-    if (c.error) { showNotFound(coinId); return; }
-    try {
-      renderCoin(c);
-    } catch(renderErr) {
-      console.error('renderCoin error:', renderErr);
-      var el = document.getElementById('main-content');
-      if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;"><p style="color:#DC2626;font-size:14px;margin-bottom:8px;">Render error: ' + renderErr.message + '</p><pre style="font-size:11px;color:#64748B;text-align:left;max-width:600px;margin:0 auto;overflow:auto;">' + JSON.stringify(c, null, 2).slice(0, 500) + '</pre></div>';
-    }
-  } catch(e) {
-    console.error('loadCoin error:', e);
-    var el = document.getElementById('main-content');
-    if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Network error: ' + e.message + ' <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
-  }
-}
-
 function renderCoin(c) {
   const price  = c.price  || 0;
   const chg24  = c.chg24  || 0;
@@ -550,3 +530,25 @@ if (!coinId || coinId === 'crypto') {
 </script>
 </body>
 </html>
+
+async function loadCoin(coinId) {
+  try {
+    var resp = await fetch('/api/crypto?id=' + encodeURIComponent(coinId));
+    if (!resp.ok) { showNotFound(coinId); return; }
+    var c = await resp.json();
+    if (c.error) { showNotFound(coinId); return; }
+    try {
+      renderCoin(c);
+    } catch(renderErr) {
+      console.error('renderCoin error:', renderErr);
+      var el = document.getElementById('main-content');
+      if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;"><p style="color:#DC2626;font-size:14px;margin-bottom:8px;">Render error: ' + renderErr.message + '</p><pre style="font-size:11px;color:#64748B;text-align:left;max-width:600px;margin:0 auto;overflow:auto;">' + JSON.stringify(c, null, 2).slice(0, 500) + '</pre></div>';
+    }
+  } catch(e) {
+    console.error('loadCoin error:', e);
+    var el = document.getElementById('main-content');
+    if (el) el.innerHTML = '<div style="text-align:center;padding:60px 24px;color:#94A3B8;">Network error: ' + e.message + ' <a href="javascript:location.reload()" style="color:#1A6BF5;">Try again</a></div>';
+  }
+}
+
+
