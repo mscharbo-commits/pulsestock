@@ -6,7 +6,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const CG_KEY = process.env.COINGECKO_API_KEY || 'CG-pwDvU5d2bQqDKVha9KGCkaCf';
+const CG_KEY = process.env.COINGECKO_API_KEY || '';
 
 async function sf(url, t=8000) {
   try {
