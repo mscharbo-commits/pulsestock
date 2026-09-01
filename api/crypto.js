@@ -6,11 +6,16 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+const CG_KEY = process.env.COINGECKO_API_KEY || 'CG-pwDvU5d2bQqDKVha9KGCkaCf';
+
 async function sf(url, t=8000) {
   try {
     const ctrl = new AbortController();
     const id = setTimeout(() => ctrl.abort(), t);
-    const r = await fetch(url, { signal: ctrl.signal });
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { 'x-cg-demo-api-key': CG_KEY, 'Accept': 'application/json' }
+    });
     clearTimeout(id);
     if (!r.ok) return null;
     return await r.json();
@@ -58,14 +63,16 @@ export default async function handler(req) {
     img: null,
   };
 
-  // Use simple/price — proven to work from Vercel edge
-  const fields = 'usd,usd_24h_change,usd_market_cap,usd_24h_vol,usd_7d_change,usd_30d_change,usd_1y_change';
-  const priceData = await sf(
-    `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`
-  );
+  // Fetch full coin data + simple price in parallel
+  const [coinDetail, priceData] = await Promise.all([
+    sf(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`),
+    sf(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`)
+  ]);
 
   const p = priceData && priceData[coinId];
-  if (!p) {
+  const m = coinDetail && coinDetail.market_data;
+
+  if (!p && !m) {
     return new Response(JSON.stringify({ error: 'Coin not found or API unavailable' }), {
       status: 404, headers: { ...CORS, 'Content-Type': 'application/json' }
     });
@@ -74,26 +81,32 @@ export default async function handler(req) {
   const result = {
     id: coinId,
     sym: meta.sym,
-    name: meta.name,
+    name: coinDetail ? coinDetail.name : meta.name,
     tvSym: meta.tvSym,
-    image: meta.img ? { large: meta.img } : null,
-    rank: null,
-    price: p.usd || 0,
-    chg24: p.usd_24h_change || 0,
-    chg7: null,
-    chg30: null,
-    chg1y: null,
-    marketCap: p.usd_market_cap || null,
-    volume24: p.usd_24h_vol || null,
-    fdv: null,
-    circSupply: null,
-    totalSupply: null,
-    maxSupply: null,
-    ath: null, athChg: null, athDate: null,
-    atl: null, atlChg: null, atlDate: null,
-    sentiment_up: null, sentiment_dn: null,
-    coingecko_score: null,
-    description: null, links: null,
+    image: coinDetail ? coinDetail.image : (meta.img ? { large: meta.img } : null),
+    rank: coinDetail ? coinDetail.market_cap_rank : null,
+    price: (p && p.usd) || (m && m.current_price && m.current_price.usd) || 0,
+    chg24: (p && p.usd_24h_change) || (m && m.price_change_percentage_24h) || 0,
+    chg7:  m ? m.price_change_percentage_7d  : null,
+    chg30: m ? m.price_change_percentage_30d : null,
+    chg1y: m ? m.price_change_percentage_1y  : null,
+    marketCap:   (p && p.usd_market_cap)  || (m && m.market_cap && m.market_cap.usd) || null,
+    volume24:    (p && p.usd_24h_vol)     || (m && m.total_volume && m.total_volume.usd) || null,
+    fdv:         m && m.fully_diluted_valuation ? m.fully_diluted_valuation.usd : null,
+    circSupply:  m ? m.circulating_supply : null,
+    totalSupply: m ? m.total_supply       : null,
+    maxSupply:   m ? m.max_supply         : null,
+    ath:    m && m.ath ? m.ath.usd : null,
+    athChg: m && m.ath_change_percentage ? m.ath_change_percentage.usd : null,
+    athDate:m && m.ath_date ? m.ath_date.usd : null,
+    atl:    m && m.atl ? m.atl.usd : null,
+    atlChg: m && m.atl_change_percentage ? m.atl_change_percentage.usd : null,
+    atlDate:m && m.atl_date ? m.atl_date.usd : null,
+    sentiment_up:    coinDetail ? coinDetail.sentiment_votes_up_percentage   : null,
+    sentiment_dn:    coinDetail ? coinDetail.sentiment_votes_down_percentage  : null,
+    coingecko_score: coinDetail ? coinDetail.coingecko_score : null,
+    description:     coinDetail && coinDetail.description ? coinDetail.description.en : null,
+    links:           coinDetail ? coinDetail.links : null,
   };
 
   return new Response(JSON.stringify(result), {
