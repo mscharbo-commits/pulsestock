@@ -4283,12 +4283,14 @@ loadTickerBar();
   if (ticker) {
     ticker = ticker.toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
     if (ticker) {
-      // Known crypto symbols — redirect to CoinGecko
+      // Known crypto symbols — route to PulseStock crypto page
       var cryptoMap = {
         'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple',
         'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','DOT':'polkadot',
         'LINK':'chainlink','MATIC':'matic-network','UNI':'uniswap','LTC':'litecoin',
-        'NEAR':'near','APT':'aptos','ARB':'arbitrum'
+        'NEAR':'near','APT':'aptos','ARB':'arbitrum','SHIB':'shiba-inu',
+        'TRX':'tron','TON':'the-open-network','SUI':'sui','PEPE':'pepe',
+        'ATOM':'cosmos','ALGO':'algorand','FIL':'filecoin','VET':'vechain'
       };
       if (cryptoMap[ticker]) {
         window.location.href = '/crypto/' + cryptoMap[ticker];
@@ -5290,7 +5292,25 @@ function renderMarketTab(tab) {
     var q = data[item.sym];
     var sym = item.disp||item.sym;
     var name = (q&&q.name)?q.name:item.name;
-    return _moRow(sym, name, q, tab!=='crypto');
+    if (tab === 'crypto') {
+      var cryptoIdMap = {
+        'BTC':'bitcoin','ETH':'ethereum','SOL':'solana','XRP':'ripple',
+        'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','MATIC':'matic-network',
+        'DOT':'polkadot','LINK':'chainlink','UNI':'uniswap','LTC':'litecoin',
+        'ATOM':'cosmos','NEAR':'near','SHIB':'shiba-inu','TRX':'tron',
+        'TON':'the-open-network','SUI':'sui'
+      };
+      var coinId = cryptoIdMap[sym] || sym.toLowerCase().replace('-usd','');
+      return '<div class="mo-row" style="cursor:pointer;" onclick="window.location.href='/crypto/'+coinId+''">'
+        + '<div class="mo-row-sym">'+sym+'</div>'
+        + '<div class="mo-row-name">'+name+'</div>'
+        + '<div class="mo-row-bar">'+(q&&q.pct!=null?'<div class="mo-row-bar-fill" style="width:'+Math.min(100,Math.abs(q.pct)*10).toFixed(0)+'%;background:'+(q.pct>=0?'var(--green)':'var(--red)')+'"></div>':'')+'</div>'
+        + '<div class="mo-row-price">'+(q&&q.price?(q.price>=10000?'$'+Math.round(q.price).toLocaleString():'$'+q.price.toFixed(2)):'--')+'</div>'
+        + '<div class="mo-row-chg" style="color:'+(q&&q.pct!=null?(q.pct>=0?'var(--green)':'var(--red)'):'var(--text3)')+';">'
+        + (q&&q.pct!=null?((q.pct>=0?'▲ +':'▼ ')+q.pct.toFixed(2)+'%'):'--')+'</div>'
+        + '</div>';
+    }
+    return _moRow(sym, name, q, true);
   }).join('');
   grid.innerHTML = html || '<div class="mo-loading">No data available</div>';
 }
