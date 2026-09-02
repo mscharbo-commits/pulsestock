@@ -245,36 +245,26 @@ function renderCoin(c) {
 
   document.getElementById('main-content').innerHTML = html;
   document.title = sym + ' ' + priceStr + ' — PulseStock';
-  setTimeout(function() { loadTVChart(currentCoinId); }, 500);
+  setTimeout(function() { loadTVChart(currentCoinId, c.tvSym); }, 500);
 }
 
-function loadTVChart(coinId) {
-  var sym = TV_SYMS[coinId] || ('BINANCE:' + coinId.toUpperCase().replace(/-/g,'') + 'USDT');
+function loadTVChart(coinId, tvSymOverride) {
   var el = document.getElementById('tv-container');
   if (!el) return;
-  try {
-    new TradingView.widget({
-      container_id: 'tv-container',
-      symbol: sym,
-      interval: 'D',
-      timezone: 'exchange',
-      theme: 'light',
-      style: '1',
-      locale: 'en',
-      toolbar_bg: '#F4F7FD',
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      withdateranges: true,
-      allow_symbol_change: false,
-      studies: ['RSI@tv-basicstudies','MACD@tv-basicstudies'],
-      width: '100%',
-      height: 560,
-      autosize: true,
-      show_popup_button: true,
-    });
-  } catch(e) {
-    el.innerHTML = '<iframe src="https://s.tradingview.com/widgetembed/?symbol='+encodeURIComponent(sym)+'&interval=D&theme=light&style=1&withdateranges=1&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies&showpopupbutton=1&locale=en" style="width:100%;height:560px;border:none;" allowfullscreen></iframe>';
-  }
+  // Build symbol candidates — try multiple exchanges
+  var base = coinId.toUpperCase().replace(/-/g,'').replace(/[0-9]+$/,'');
+  var sym = tvSymOverride
+    || TV_SYMS[coinId]
+    || ('BINANCE:' + base + 'USDT');
+
+  // Use allow_symbol_change:true so users can search if symbol not found
+  // Also use iframe fallback which handles symbol-not-found more gracefully
+  var iframeSrc = 'https://s.tradingview.com/widgetembed/?symbol=' + encodeURIComponent(sym)
+    + '&interval=D&theme=light&style=1&locale=en&toolbar_bg=F4F7FD'
+    + '&withdateranges=1&allow_symbol_change=1'
+    + '&studies=RSI%40tv-basicstudies%1FMACD%40tv-basicstudies'
+    + '&showpopupbutton=1&hide_top_toolbar=0';
+  el.innerHTML = '<iframe src="' + iframeSrc + '" style="width:100%;height:560px;border:none;" allowtransparency="true" allowfullscreen></iframe>';
 }
 
 async function loadCoin(coinId) {
