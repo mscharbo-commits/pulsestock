@@ -145,7 +145,7 @@ function calcBreadth(data){
 function calcSentiment(data,spyT){
   let sc=50;
   if(data.SPY)sc+=Math.max(-12,Math.min(12,data.SPY.pct*4));
-  if(data.VIX){const v=data.VIX.price;sc+=v<15?12:v<20?6:v<25?0:v<30?-10:-18;}
+  if(data['^VIX']){const v=data['^VIX'].price;sc+=v<15?12:v<20?6:v<25?0:v<30?-10:-18;}
   if(spyT?.vs200!=null)sc+=spyT.vs200>0?8:-8;
   if(spyT?.rsi14!=null){const r=spyT.rsi14;sc+=r>60?5:r<40?-5:0;}
   const b=calcBreadth(data);
@@ -167,7 +167,7 @@ if(_cache&&_cacheKey===thisCacheKey&&Date.now()-_cacheTime<CACHE_TTL)return new 
   const session=isOpen?'Market Open':dow>=1&&dow<=5&&h>=4&&(h<9||(h===9&&m<30))?'Pre-Market':dow>=1&&dow<=5&&h>=16&&h<20?'After Hours':'Market Closed';
   const timeStr=et.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' ET';
 
-  const BASE_SYMS=['SPY','QQQ','DIA','IWM','VIX','TLT','SHY','XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
+  const BASE_SYMS=['SPY','QQQ','DIA','IWM','^VIX','TLT','SHY','XLK','XLE','XLF','XLV','XLI','XLY','XLP','XLU','XLRE','XLC','XLB'];
   const TECH_SYMS=['SPY','QQQ','XLK'];
 
   // Step 1: fetch news first to extract dynamic tickers
@@ -191,7 +191,14 @@ if(_cache&&_cacheKey===thisCacheKey&&Date.now()-_cacheTime<CACHE_TTL)return new 
   // Step 2: fetch all quotes including news-driven tickers
   const allSyms=[...new Set([...BASE_SYMS,...newsTickers])];
   const [quotes,...techArr]=await Promise.all([
-    Promise.all(allSyms.map(s=>sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000))),
+    (async()=>{
+      const results=[];
+      for(const s of allSyms){
+        results.push(await sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000));
+        await new Promise(r=>setTimeout(r,80));
+      }
+      return results;
+    })(),
     ...TECH_SYMS.map(s=>getTech(s)),
   ]);
 
@@ -205,7 +212,7 @@ if(_cache&&_cacheKey===thisCacheKey&&Date.now()-_cacheTime<CACHE_TTL)return new 
   const sentiment=calcSentiment(data,techMap.SPY);
   const sentLabel=sentiment>=70?'Bullish':sentiment>=55?'Mildly Bullish':sentiment>=45?'Neutral':sentiment>=30?'Mildly Bearish':'Bearish';
 
-  const vixVal=data.VIX?.price;
+  const vixVal=data['^VIX']?.price;
   const vixNote=!vixVal?'':vixVal<15?'near multi-year lows — complacency risk':vixVal<20?'low fear — risk-on':vixVal<25?'elevated — caution':vixVal<30?'fear elevated':' fear spike — go defensive';
   const tltPct=data.TLT?.pct,shyPct=data.SHY?.pct;
   const yieldNote=tltPct!=null&&shyPct!=null?(tltPct<shyPct-0.4?'yield curve steepening — reflation signal':tltPct>shyPct+0.4?'yield curve flattening — growth concern':'yield curve stable'):'';
