@@ -5298,25 +5298,7 @@ function renderMarketTab(tab) {
     return _moRow(sym, name, q, true);
   }).join('');
   grid.innerHTML = html || '<div class="mo-loading">No data available</div>';
-  // Trending row for crypto tab
-  if (tab === 'crypto' && _moData['crypto'] && _moData['crypto']._trending) {
-    var tr = _moData['crypto']._trending;
-    var tDiv = document.createElement('div');
-    tDiv.style.cssText = 'margin-top:14px;padding-top:12px;border-top:1px solid var(--border2);';
-    tDiv.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">🔥 Trending</div><div style="display:flex;gap:6px;flex-wrap:wrap;">'
-      + tr.map(function(c) {
-          var col = c.pct>=0?'var(--green)':'var(--red)';
-          var pct = (c.pct>=0?'+':'')+parseFloat(c.pct).toFixed(1)+'%';
-          var href = '/crypto/'+c.id;
-          return '<div class="trend-pill" data-href="'+href+'" style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:5px 9px;cursor:pointer;">'
-            +(c.thumb?'<img src="'+c.thumb+'" style="width:16px;height:16px;border-radius:50%;"/>':'')
-            +'<span style="font-size:12px;font-weight:600;color:var(--text);">'+c.sym+'</span>'
-            +'<span style="font-size:11px;font-weight:600;color:'+col+'"> '+pct+'</span>'
-            +'</div>';
-        }).join('')
-      + '</div>';
-    grid.appendChild(tDiv);
-  }
+
 }
 
 function togglePulse() {
@@ -5445,8 +5427,7 @@ document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketO
 document.addEventListener('click', function(e) {
   var cr = e.target.closest('.mo-crypto-row');
   if (cr) { window.location.href = '/crypto/' + cr.dataset.cid; return; }
-  var tp = e.target.closest('.trend-pill');
-  if (tp) window.location.href = tp.dataset.href;
+
 });
 </script>
 </body>
