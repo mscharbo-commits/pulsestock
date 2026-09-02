@@ -45,14 +45,16 @@ export default async function handler(req) {
   let result = {};
 
   if(tab === 'crypto') {
-    // Use CoinGecko for crypto — free server-side
+    // /coins/markets — one call, returns price + pct + market cap for all coins
     const cgIds = CRYPTO_PAIRS.map(p => p.cgId).join(',');
-    const cgData = await sf(`https://api.coingecko.com/api/v3/simple/price?ids=${cgIds}&vs_currencies=usd&include_24hr_change=true`, 8000);
-    CRYPTO_PAIRS.forEach(p => {
-      const d = cgData && cgData[p.cgId];
-      if (d && d.usd) result[p.sym] = {name:p.name, disp:p.disp, price:d.usd, pct:d.usd_24h_change||0, change:0};
-    });
-  } else if(tab === 'sectors') {
+    const markets = await sf(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${cgIds}&order=market_cap_desc&per_page=20&page=1&price_change_percentage=24h`, 8000);
+    if (Array.isArray(markets)) {
+      markets.forEach(coin => {
+        const pair = CRYPTO_PAIRS.find(p => p.cgId === coin.id);
+        if (pair) result[pair.sym] = {name:pair.name, disp:pair.disp, price:coin.current_price||0, pct:coin.price_change_percentage_24h||0, change:coin.price_change_24h||0};
+      });
+    }
+    } else if(tab === 'sectors') {
     const quotes = await Promise.all(SECTOR_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
     SECTOR_SYMS.forEach((sym,i) => {
       const d = quotes[i];
