@@ -54,6 +54,19 @@ export default async function handler(req) {
         if (pair) result[pair.sym] = {name:pair.name, disp:pair.disp, price:coin.current_price||0, pct:coin.price_change_percentage_24h||0, change:coin.price_change_24h||0};
       });
     }
+    // Fetch trending coins
+    const trending = await sf('https://api.coingecko.com/api/v3/search/trending', 6000);
+    if (trending && trending.coins) {
+      result._trending = trending.coins.slice(0, 7).map(c => ({
+        id:    c.item.id,
+        name:  c.item.name,
+        sym:   c.item.symbol.toUpperCase(),
+        thumb: c.item.thumb,
+        pct:   c.item.data && c.item.data.price_change_percentage_24h && c.item.data.price_change_percentage_24h.usd || 0,
+        price: c.item.data && c.item.data.price || null,
+        spark: c.item.data && c.item.data.sparkline || null,
+      }));
+    }
     } else if(tab === 'sectors') {
     const quotes = await Promise.all(SECTOR_SYMS.map(s => sf(`https://finnhub.io/api/v1/quote?symbol=${s}&token=${FINNHUB}`,4000)));
     SECTOR_SYMS.forEach((sym,i) => {
