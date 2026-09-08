@@ -943,6 +943,24 @@ function initTVChart(ticker){
 
 async function fetchQuote(ticker){
   if(quoteCache[ticker]&&Date.now()-quoteCache[ticker].ts<10000) return quoteCache[ticker].data;
+  // If PulseStock ticker is running locally, use its real-time quotes (free, no delay)
+  if(window._tickerAlive){
+    return fetch('http://127.0.0.1:7432/quote?sym='+ticker,{signal:AbortSignal.timeout(800)})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        var q=data[ticker.toUpperCase()];
+        if(q&&q.price){
+          var result={price:q.price,change:q.change||0,pct:q.changePct||0,high:q.high||q.price,low:q.low||q.price,open:q.open||q.price,prevClose:q.prevClose||q.price};
+          quoteCache[ticker]={data:result,ts:Date.now()};
+          return result;
+        }
+        throw new Error('no data');
+      })
+      .catch(function(){
+        window._tickerAlive=false; // fallback to Finnhub if ticker stops
+        return fetchWithTimeout('https://finnhub.io/api/v1/quote?symbol='+ticker+'&token='+FINNHUB_KEY,5000);
+      });
+  }
   return fetchWithTimeout('https://finnhub.io/api/v1/quote?symbol='+ticker+'&token='+FINNHUB_KEY, 5000)
     .then(function(d){
       if(!d||(d.c===0&&d.pc===0)) return null;
@@ -5424,6 +5442,31 @@ document.addEventListener('DOMContentLoaded', function(){ setTimeout(initMarketO
 
 
 <script>
+// Detect if PulseStock Ticker desktop app is running
+window._tickerAlive = false;
+(function pingTicker(){
+  fetch('http://127.0.0.1:7432/ping',{signal:AbortSignal.timeout(500)})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.alive){
+        window._tickerAlive=true;
+        var badge=document.getElementById('ticker-live-badge');
+        if(!badge){
+          badge=document.createElement('div');
+          badge.id='ticker-live-badge';
+          badge.style.cssText='position:fixed;bottom:16px;right:16px;background:rgba(16,185,129,.15);border:1px solid #10B981;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:#10B981;z-index:9999;display:flex;align-items:center;gap:6px;';
+          badge.innerHTML='<span style="width:6px;height:6px;background:#10B981;border-radius:50%;display:inline-block;animation:pulse 2s infinite;"></span> Ticker Live — Real-Time Quotes Active';
+          document.body.appendChild(badge);
+          setTimeout(function(){badge.style.opacity='0';badge.style.transition='opacity 1s';setTimeout(function(){badge.remove();},1000);},4000);
+        }
+      }
+    })
+    .catch(function(){window._tickerAlive=false;});
+  // Re-check every 30s
+  setTimeout(pingTicker, 30000);
+}());
+
+
 document.addEventListener('click', function(e) {
   var cr = e.target.closest('.mo-crypto-row');
   if (cr) { window.location.href = '/crypto/' + cr.dataset.cid; return; }
