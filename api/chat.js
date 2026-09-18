@@ -125,10 +125,12 @@ export default async function handler(req, res) {
 ${liveContext}
 
 INSTRUCTIONS:
-- Use the live data above to give specific, current answers
+- You HAVE live crypto prices above — ALWAYS use them when crypto is mentioned
+- Never say you don't have crypto data — it is in the CRYPTO section above
+- Use the live data above to give specific, current answers with real numbers
 - When asked what moved the market, reference today's actual sector moves and news headlines above
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
-- Give direct, confident answers — not generic advice
+- Give direct, confident answers with real prices and percentages — not generic advice
 - Keep responses concise: 3-5 paragraphs max, no excessive headers
 - Always tie back to PulseStock tools when relevant`;
 
