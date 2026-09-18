@@ -22,7 +22,7 @@ function bestChange(q) {
 async function getLiveContext() {
   const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
-  const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,cardano,avalanche-2,dogecoin';
+  const CRYPTO_SYMS = ['BINANCE:BTCUSDT','BINANCE:ETHUSDT','BINANCE:SOLUSDT','BINANCE:BNBUSDT','BINANCE:XRPUSDT'];
 
   // Fetch all in parallel
   const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
@@ -32,8 +32,7 @@ async function getLiveContext() {
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).catch(() => []),
-    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_IDS}&vs_currencies=usd&include_24hr_change=true&x_cg_demo_api_key=CG-pwDvU5d2bQqDKVha9KGCkaCf`, {signal: AbortSignal.timeout(4000)})
-      .then(r => r.ok ? r.json() : {}).catch(() => ({}))
+    Promise.all(CRYPTO_SYMS.map(s => fh(`/quote?symbol=${encodeURIComponent(s)}`).then(q => ({s, q})).catch(()=>null)))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
@@ -62,17 +61,16 @@ async function getLiveContext() {
 
   const now = new Date().toLocaleString('en-US', {timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'numeric', minute:'2-digit'});
 
-  // Build crypto lines
-  const cryptoMap = {
-    'bitcoin':'BTC','ethereum':'ETH','solana':'SOL',
-    'binancecoin':'BNB','ripple':'XRP','cardano':'ADA',
-    'avalanche-2':'AVAX','dogecoin':'DOGE'
+  // Build crypto lines from Finnhub quotes
+  const cryptoNameMap = {
+    'BINANCE:BTCUSDT':'BTC','BINANCE:ETHUSDT':'ETH','BINANCE:SOLUSDT':'SOL',
+    'BINANCE:BNBUSDT':'BNB','BINANCE:XRPUSDT':'XRP'
   };
-  const cryptoLines = Object.entries(cryptoMap).map(([id, sym]) => {
-    const p = cryptoPrices[id];
-    if (!p) return null;
-    const chg = p.usd_24h_change?.toFixed(2) || '0.00';
-    return `${sym}: $${p.usd?.toLocaleString()} (${chg > 0 ? '+' : ''}${chg}% 24h)`;
+  const cryptoLines = (cryptoPrices||[]).filter(Boolean).map(({s, q}) => {
+    if (!q || !q.c) return null;
+    const sym = cryptoNameMap[s] || s;
+    const chg = q.dp?.toFixed(2) || '0.00';
+    return `${sym}: $${q.c?.toLocaleString()} (${chg > 0 ? '+' : ''}${chg}% today)`;
   }).filter(Boolean).join(' | ');
 
   return `LIVE MARKET DATA — ${now} ET
