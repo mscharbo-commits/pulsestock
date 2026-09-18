@@ -32,8 +32,8 @@ async function getLiveContext() {
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).catch(() => []),
-    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_IDS}&vs_currencies=usd&include_24hr_change=true`)
-      .then(r => r.json()).catch(() => ({}))
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_IDS}&vs_currencies=usd&include_24hr_change=true&x_cg_demo_api_key=CG-pwDvU5d2bQqDKVha9KGCkaCf`)
+      .then(r => r.ok ? r.json() : {}).catch(() => ({}))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
