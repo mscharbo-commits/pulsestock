@@ -11,6 +11,14 @@ async function fh(path) {
   } catch(e) { return null; }
 }
 
+function bestPrice(q) {
+  // Use current price if market open, prev close otherwise
+  return (q && q.c && q.c > 0) ? q.c : (q && q.pc ? q.pc : null);
+}
+function bestChange(q) {
+  return (q && q.c && q.c > 0 && q.pc) ? ((q.c - q.pc) / q.pc * 100).toFixed(2) : '0.00';
+}
+
 async function getLiveContext() {
   const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
