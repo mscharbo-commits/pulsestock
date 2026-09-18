@@ -1,99 +1,42 @@
-export const config = { runtime: 'nodejs' };
+export const config = { runtime: 'edge' };
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Content-Type': 'application/json'
+};
 
-const FINNHUB = 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
-
-async function getLiveContext(ticker) {
-  const ctx = {};
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const from = new Date(Date.now() - 3*86400000).toISOString().split('T')[0];
-    const [quoteRes, newsRes, profileRes] = await Promise.all([
-      fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB}`),
-      fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${from}&to=${today}&token=${FINNHUB}`),
-      fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB}`)
-    ]);
-    const quote = quoteRes.ok ? await quoteRes.json() : {};
-    const news = newsRes.ok ? await newsRes.json() : [];
-    const profile = profileRes.ok ? await profileRes.json() : {};
-    if (quote.c) {
-      ctx.price = quote.c.toFixed(2);
-      ctx.change = (quote.d||0).toFixed(2);
-      ctx.changePct = (quote.dp||0).toFixed(2);
-      ctx.high = (quote.h||0).toFixed(2);
-      ctx.low = (quote.l||0).toFixed(2);
-      ctx.prevClose = (quote.pc||0).toFixed(2);
-    }
-    if (profile.name) {
-      ctx.name = profile.name;
-      ctx.industry = profile.finnhubIndustry;
-      ctx.marketCap = profile.marketCapitalization ? `$${(profile.marketCapitalization/1000).toFixed(1)}B` : '';
-    }
-    if (news && news.length) {
-      ctx.headlines = news.slice(0,8).map(n => `- ${n.headline}`).join('\n');
-    }
-  } catch(e) {}
-  return ctx;
-}
-
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(req) {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers: CORS });
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { ticker, question } = body;
-    if (!ticker || !question) return res.status(400).json({ error: 'Missing ticker or question' });
-
-    const ctx = await getLiveContext(ticker);
-    const today = new Date().toISOString().split('T')[0];
-
-    let systemPrompt = `You are PulseAI, an expert financial analyst for PulseStock.
-The user is asking about ${ctx.name || ticker} (${ticker}). Today: ${today}.
-Answer from the live data provided. Be specific and analytical.`;
-
-    if (ctx.price) {
-      systemPrompt += `\n\nLIVE DATA: Price $${ctx.price} (${ctx.changePct >= 0 ? '+' : ''}${ctx.changePct}% today), Range $${ctx.low}-$${ctx.high}`;
-      if (ctx.marketCap) systemPrompt += `, Market Cap ${ctx.marketCap}`;
+    const { messages, system } = await req.json();
+    if (!messages || !messages.length) {
+      return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: CORS });
     }
-    if (ctx.headlines) {
-      systemPrompt += `\n\nRECENT HEADLINES:\n${ctx.headlines}`;
-    }
-    systemPrompt += `\n\nBe specific and analytical. Reference real data. 3-4 paragraphs max. Not financial advice.`;
 
-    const apiResp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'prompt-caching-2024-07-31',
-        'anthropic-beta': 'web-search-2025-03-05'
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: systemPrompt + '\n\nQuestion: ' + question }]
+        max_tokens: 600,
+        system: system || 'You are PulseStock AI, an expert financial analyst.',
+        messages
       })
     });
 
-    if (!apiResp.ok) {
-      const err = await apiResp.text();
-      return res.status(500).json({ error: 'Claude error: ' + apiResp.status + ' — ' + err.slice(0,150) });
+    if (!resp.ok) {
+      const err = await resp.text();
+      return new Response(JSON.stringify({ error: err }), { status: resp.status, headers: CORS });
     }
 
-    const data = await apiResp.json();
-    const text = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('\n')
-      .trim() || 'No response generated.';
-
-    return res.status(200).json({ text });
-
+    const data = await resp.json();
+    return new Response(JSON.stringify(data), { headers: CORS });
   } catch(e) {
-    return res.status(500).json({ error: e.message });
+    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: CORS });
   }
 }
