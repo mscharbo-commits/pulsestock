@@ -417,6 +417,13 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 @keyframes typing{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* AI CHAT COLLAPSE */
+.ai-chat-body{transition:all .3s ease;overflow:hidden;}
+.ai-chat-panel.collapsed .ai-chat-body{display:none;}
+.ai-chat-panel.collapsed{margin-bottom:8px;}
+.ai-chat-panel.collapsed .ai-chat-header{border-bottom:none;}
+#ai-collapse-icon.up{transform:rotate(180deg);}
 </style>
 </head>
 <body>
@@ -514,16 +521,20 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
     </div>
     <!-- AI CHAT PANEL -->
     <div class="ai-chat-panel" id="ai-chat-panel">
-      <div class="ai-chat-header">
+      <div class="ai-chat-header" onclick="toggleAIPanel()" style="cursor:pointer;" title="Click to collapse">
         <div class="ai-chat-header-left">
           <div class="ai-msg-avatar ai" style="width:32px;height:32px;font-size:14px;">⚡</div>
           <div>
             <div class="ai-chat-title">PulseStock AI</div>
-            <div class="ai-chat-subtitle">Ask about any stock, strategy, portfolio or market</div>
+            <div class="ai-chat-subtitle" id="ai-chat-subtitle">Ask about any stock, strategy, portfolio or market</div>
           </div>
         </div>
-        <div class="ai-agent-badge"><div class="ai-agent-dot"></div>Online</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="ai-agent-badge"><div class="ai-agent-dot"></div>Online</div>
+          <div id="ai-collapse-icon" style="font-size:16px;color:var(--text3);transition:transform .2s;">▾</div>
+        </div>
       </div>
+      <div class="ai-chat-body">
       <div class="ai-suggested" id="ai-suggested">
         <button class="ai-suggest-btn" onclick="aiSuggest(this)">What's moving markets today?</button>
         <button class="ai-suggest-btn" onclick="aiSuggest(this)">Best defensive stocks for a recession?</button>
@@ -543,6 +554,7 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIChat();}"/>
         <button class="ai-send-btn" id="ai-send-btn" onclick="sendAIChat()">↑</button>
       </div>
+      </div><!-- end ai-chat-body -->
     </div>
 
     <!-- MARKET OVERVIEW -->
@@ -4831,8 +4843,33 @@ async function chatAsk(ticker, question) {
 
 <!-- SUPPORT WIDGET -->
 <style>
-#spbtn{position:fixed;bottom:24px;right:24px;width:54px;height:54px;border-radius:50%;background:#1A6BF5;color:#fff;border:none;font-size:22px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(26,107,245,.45);z-index:99999;display:flex;align-items:center;justify-content:center;}
+#spbtn{position:fixed;bottom:24px;right:24px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;border:none;font-size:20px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(26,107,245,.45);z-index:99999;display:flex;align-items:center;justify-content:center;transition:transform .2s;}
 #spbtn:hover{transform:scale(1.08);}
+/* AI SIDE PANEL */
+#ai-side-panel{position:fixed;top:0;right:-420px;width:400px;height:100vh;background:var(--surface,#111827);border-left:1px solid var(--border,#1E2D45);z-index:999998;display:flex;flex-direction:column;transition:right .3s ease;box-shadow:-8px 0 40px rgba(0,0,0,.3);}
+#ai-side-panel.open{right:0;}
+#ai-side-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border,#1E2D45);background:linear-gradient(135deg,rgba(26,107,245,.08),rgba(99,102,241,.05));}
+#ai-side-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+#ai-side-input-row{padding:12px 16px;border-top:1px solid var(--border,#1E2D45);display:flex;gap:8px;}
+#ai-side-input{flex:1;background:var(--surface2,#1A2236);border:1px solid var(--border,#1E2D45);border-radius:10px;color:var(--text,#F0F4FF);font-size:13px;padding:10px 12px;outline:none;font-family:inherit;}
+#ai-side-input:focus{border-color:#1A6BF5;}
+#ai-side-input::placeholder{color:var(--text3,#475569);}
+#ai-side-send{background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;border:none;border-radius:10px;padding:0 14px;font-size:15px;cursor:pointer;height:40px;}
+#ai-side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999997;display:none;}
+#ai-side-overlay.open{display:block;}
+.ai-side-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border,#1E2D45);}
+.ai-side-chip{font-size:11px;font-weight:600;padding:4px 10px;background:var(--surface2,#1A2236);border:1px solid var(--border,#1E2D45);border-radius:20px;color:var(--text2,#94A3B8);cursor:pointer;white-space:nowrap;}
+.ai-side-chip:hover{border-color:#1A6BF5;color:#1A6BF5;}
+.ai-side-msg{display:flex;gap:8px;animation:fadeIn .2s ease;}
+.ai-side-avatar{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.ai-side-avatar.ai{background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;}
+.ai-side-avatar.user{background:var(--surface2,#1A2236);color:var(--text2,#94A3B8);font-size:10px;}
+.ai-side-text{font-size:13px;line-height:1.6;color:var(--text2,#94A3B8);padding-top:3px;flex:1;}
+.ai-side-text.ai{color:var(--text,#F0F4FF);}
+.ai-typing-side{display:flex;gap:3px;align-items:center;padding:4px 0;}
+.ai-typing-side span{width:5px;height:5px;background:#1A6BF5;border-radius:50%;animation:typing .8s infinite;}
+.ai-typing-side span:nth-child(2){animation-delay:.15s;}
+.ai-typing-side span:nth-child(3){animation-delay:.3s;}
 #spbox{position:fixed;bottom:88px;right:24px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:99999;display:none;flex-direction:column;overflow:hidden;font-family:'DM Sans',sans-serif;max-height:560px;}
 #spmsgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:200px;max-height:280px;}
 .spm{max-width:85%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;}
@@ -5564,6 +5601,29 @@ function hideTyping() {
   if (el) el.remove();
 }
 
+
+var aiPanelCollapsed = false;
+
+function toggleAIPanel(forceCollapse) {
+  var panel = document.getElementById('ai-chat-panel');
+  var icon  = document.getElementById('ai-collapse-icon');
+  var sub   = document.getElementById('ai-chat-subtitle');
+  if (!panel) return;
+  aiPanelCollapsed = forceCollapse !== undefined ? forceCollapse : !aiPanelCollapsed;
+  if (aiPanelCollapsed) {
+    panel.classList.add('collapsed');
+    if (icon) icon.classList.add('up');
+    if (sub) sub.textContent = 'Click to expand · ask about stocks, markets, strategies';
+  } else {
+    panel.classList.remove('collapsed');
+    if (icon) icon.classList.remove('up');
+    if (sub) sub.textContent = 'Ask about any stock, strategy, portfolio or market';
+  }
+}
+
+// Auto-collapse after first message sent
+var origSend = window.sendAIChat;
+
 async function sendAIChat() {
   var input = document.getElementById('ai-chat-input');
   var q = (input.value || '').trim();
@@ -5626,6 +5686,132 @@ async function sendAIChat() {
   input.focus();
 }
 
+
+// ── AI SIDE PANEL ─────────────────────────────────────────────────────────────
+var sideAIHistory = [];
+var sideAITyping = false;
+
+function toggleAISide() {
+  var panel   = document.getElementById('ai-side-panel');
+  var overlay = document.getElementById('ai-side-overlay');
+  if (!panel) return;
+  var isOpen = panel.classList.contains('open');
+  if (isOpen) { closeAISide(); } else { openAISide(); }
+}
+
+function openAISide() {
+  document.getElementById('ai-side-panel').classList.add('open');
+  document.getElementById('ai-side-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('ai-side-input').focus();
+}
+
+function closeAISide() {
+  document.getElementById('ai-side-panel').classList.remove('open');
+  document.getElementById('ai-side-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function sideAISuggest(el) {
+  document.getElementById('ai-side-input').value = el.textContent;
+  sendSideAI();
+}
+
+function addSideMsg(role, content) {
+  var area = document.getElementById('ai-side-messages');
+  var empty = area.querySelector('.empty');
+  if (empty) empty.remove();
+  var div = document.createElement('div');
+  div.className = 'ai-side-msg';
+  var isAI = role === 'assistant';
+  div.innerHTML = '<div class="ai-side-avatar ' + (isAI ? 'ai' : 'user') + '">' + (isAI ? '⚡' : 'You') + '</div>'
+    + '<div class="ai-side-text ' + (isAI ? 'ai' : '') + '">'
+    + content.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^# .+\n/gm,'').replace(/^## /gm,'<strong>').replace(/\n/g,'<br>')
+    + '</div>';
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function showSideTyping() {
+  var area = document.getElementById('ai-side-messages');
+  var div = document.createElement('div');
+  div.className = 'ai-side-msg'; div.id = 'side-typing';
+  div.innerHTML = '<div class="ai-side-avatar ai">⚡</div><div class="ai-typing-side"><span></span><span></span><span></span></div>';
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function sendSideAI() {
+  var input = document.getElementById('ai-side-input');
+  var q = (input.value || '').trim();
+  if (!q || sideAITyping) return;
+  var suggested = document.getElementById('ai-side-suggested');
+  if (suggested) suggested.style.display = 'none';
+  input.value = '';
+  sideAITyping = true;
+  document.getElementById('ai-side-send').disabled = true;
+  addSideMsg('user', q);
+  sideAIHistory.push({role:'user', content:q});
+  showSideTyping();
+  try {
+    var messages = sideAIHistory.slice(-8);
+    var resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        system: AI_SYSTEM,
+        messages: messages
+      })
+    });
+    var data = await resp.json();
+    var reply = data.content && data.content[0] && data.content[0].text || 'Could not get response — try again.';
+    var typing = document.getElementById('side-typing');
+    if (typing) typing.remove();
+    sideAIHistory.push({role:'assistant', content:reply});
+    addSideMsg('assistant', reply);
+  } catch(e) {
+    var typing = document.getElementById('side-typing');
+    if (typing) typing.remove();
+    addSideMsg('assistant', 'Connection issue — please try again.');
+  }
+  sideAITyping = false;
+  document.getElementById('ai-side-send').disabled = false;
+  input.focus();
+}
+
 </script>
+
+<!-- AI SIDE PANEL -->
+<div id="ai-side-overlay" onclick="closeAISide()"></div>
+<div id="ai-side-panel">
+  <div id="ai-side-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="ai-side-avatar ai" style="width:32px;height:32px;font-size:16px;">⚡</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text,#F0F4FF);">PulseStock AI</div>
+        <div style="font-size:11px;color:var(--text3,#475569);">Live market context · Always available</div>
+      </div>
+    </div>
+    <button onclick="closeAISide()" style="background:none;border:none;color:var(--text3,#475569);font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
+  </div>
+  <div class="ai-side-suggested" id="ai-side-suggested">
+    <div class="ai-side-chip" onclick="sideAISuggest(this)">What's moving today?</div>
+    <div class="ai-side-chip" onclick="sideAISuggest(this)">Top sectors right now</div>
+    <div class="ai-side-chip" onclick="sideAISuggest(this)">Today's picks</div>
+    <div class="ai-side-chip" onclick="sideAISuggest(this)">Market outlook</div>
+    <div class="ai-side-chip" onclick="sideAISuggest(this)">Best defensive stocks</div>
+  </div>
+  <div id="ai-side-messages">
+    <div class="ai-side-msg">
+      <div class="ai-side-avatar ai">⚡</div>
+      <div class="ai-side-text ai">Hi! Ask me anything — I have live market data including today's sector moves, VIX, yields, and PulseStock's current picks.</div>
+    </div>
+  </div>
+  <div id="ai-side-input-row">
+    <input id="ai-side-input" placeholder="Ask anything about markets..." maxlength="500"
+      onkeydown="if(event.key==='Enter')sendSideAI()"/>
+    <button id="ai-side-send" onclick="sendSideAI()">↑</button>
+  </div>
+</div>
 </body>
 </html>
