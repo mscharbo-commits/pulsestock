@@ -4917,6 +4917,8 @@ function toggleAISide() {
   p.classList.contains('open') ? closeAISide() : openAISide();
 }
 function openAISide() {
+  sideBusy = false; // reset in case previous session got stuck
+  document.getElementById('ai-side-sendbtn').disabled = false;
   document.getElementById('ai-side-panel').classList.add('open');
   document.getElementById('ai-side-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -4963,7 +4965,7 @@ async function sendSideAI() {
     var r = await fetch('/api/chat', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: typeof AI_SYSTEM !== 'undefined' ? AI_SYSTEM : 'You are PulseStock AI, an expert financial analyst with live market data.',
+        system: 'You are PulseStock AI, an expert financial analyst. Give direct, specific, actionable answers. Keep responses concise — 3 paragraphs max.',
         messages: sideHistory.slice(-8)
       })
     });
