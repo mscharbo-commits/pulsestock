@@ -4888,7 +4888,7 @@ async function chatAsk(ticker, question) {
     <button onclick="closeAISide()" style="background:none;border:none;color:#475569;font-size:20px;cursor:pointer;">✕</button>
   </div>
   <div class="ai-schips" id="ai-schips">
-    <div class="ai-schip" onclick="aiSideQ(this)">What's moving today?</div>
+    <div class="ai-schip" onclick="console.log('chip clicked');aiSideQ(this)">What's moving today?</div>
     <div class="ai-schip" onclick="aiSideQ(this)">Hot sectors right now</div>
     <div class="ai-schip" onclick="aiSideQ(this)">Today's picks</div>
     <div class="ai-schip" onclick="aiSideQ(this)">Market outlook</div>
@@ -4904,13 +4904,14 @@ async function chatAsk(ticker, question) {
   <div id="ai-side-inputrow">
     <input id="ai-side-input" placeholder="Ask about stocks, markets, strategies..." maxlength="500"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendSideAI()"/>
-    <button id="ai-side-sendbtn" onclick="sendSideAI()">↑</button>
+    <button id="ai-side-sendbtn" onclick="console.log('btn clicked');sendSideAI()">↑</button>
   </div>
 </div>
 
 <script>
 var sideHistory = [];
 var sideBusy = false;
+console.log('[SideAI] script block loaded');
 
 function toggleAISide() {
   var p = document.getElementById('ai-side-panel');
