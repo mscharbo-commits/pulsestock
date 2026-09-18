@@ -22,15 +22,18 @@ function bestChange(q) {
 async function getLiveContext() {
   const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
+  const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,cardano,avalanche-2,dogecoin';
 
   // Fetch all in parallel
-  const [sectorQuotes, marketNews, econCal, openPicks] = await Promise.all([
+  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    }).then(r => r.json()).catch(() => [])
+    }).then(r => r.json()).catch(() => []),
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_IDS}&vs_currencies=usd&include_24hr_change=true`)
+      .then(r => r.json()).catch(() => ({}))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
@@ -59,12 +62,27 @@ async function getLiveContext() {
 
   const now = new Date().toLocaleString('en-US', {timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'numeric', minute:'2-digit'});
 
+  // Build crypto lines
+  const cryptoMap = {
+    'bitcoin':'BTC','ethereum':'ETH','solana':'SOL',
+    'binancecoin':'BNB','ripple':'XRP','cardano':'ADA',
+    'avalanche-2':'AVAX','dogecoin':'DOGE'
+  };
+  const cryptoLines = Object.entries(cryptoMap).map(([id, sym]) => {
+    const p = cryptoPrices[id];
+    if (!p) return null;
+    const chg = p.usd_24h_change?.toFixed(2) || '0.00';
+    return `${sym}: $${p.usd?.toLocaleString()} (${chg > 0 ? '+' : ''}${chg}% 24h)`;
+  }).filter(Boolean).join(' | ');
+
   return `LIVE MARKET DATA — ${now} ET
 
 MARKET: SPY $${spy?.c?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% today)
 VIX: ${vix?.c?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
 10yr Yield: ${tnx?.c?.toFixed(2)||'N/A'}%
 GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(1)||'0'}% | TLT: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(1)||'0'}%
+
+CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
 SECTORS TODAY: ${sectorLines}
 
