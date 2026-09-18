@@ -1,5 +1,5 @@
-export const config = { runtime: 'edge' };
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' };
+// serverless runtime — full network access for CoinGecko/Binance
+
 const FHK  = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
 const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Y3BycWtvaWJpenRpYmhwc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNTk5NjcsImV4cCI6MjA5NTkzNTk2N30.kO-a0NYLQ0rrAV1V7Aj4O8Mwm7KFq2NPfIQl2uY5sDY';
@@ -22,7 +22,7 @@ function bestChange(q) {
 async function getLiveContext() {
   const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
-  const CRYPTO_SYMS = ['BINANCE:BTCUSDT','BINANCE:ETHUSDT','BINANCE:SOLUSDT','BINANCE:BNBUSDT','BINANCE:XRPUSDT'];
+  const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
 
   // Fetch all in parallel
   const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
@@ -32,7 +32,8 @@ async function getLiveContext() {
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).catch(() => []),
-    Promise.all(CRYPTO_SYMS.map(s => fh(`/quote?symbol=${encodeURIComponent(s)}`).then(q => ({s, q})).catch(()=>null)))
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_IDS}&vs_currencies=usd&include_24hr_change=true&x_cg_demo_api_key=CG-pwDvU5d2bQqDKVha9KGCkaCf`)
+      .then(r => r.ok ? r.json() : {}).catch(() => ({}))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
@@ -61,16 +62,13 @@ async function getLiveContext() {
 
   const now = new Date().toLocaleString('en-US', {timeZone:'America/New_York', weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'numeric', minute:'2-digit'});
 
-  // Build crypto lines from Finnhub quotes
-  const cryptoNameMap = {
-    'BINANCE:BTCUSDT':'BTC','BINANCE:ETHUSDT':'ETH','BINANCE:SOLUSDT':'SOL',
-    'BINANCE:BNBUSDT':'BNB','BINANCE:XRPUSDT':'XRP'
-  };
-  const cryptoLines = (cryptoPrices||[]).filter(Boolean).map(({s, q}) => {
-    if (!q || !q.c) return null;
-    const sym = cryptoNameMap[s] || s;
-    const chg = q.dp?.toFixed(2) || '0.00';
-    return `${sym}: $${q.c?.toLocaleString()} (${chg > 0 ? '+' : ''}${chg}% today)`;
+  // Build crypto lines from CoinGecko
+  const cryptoNameMap = {'bitcoin':'BTC','ethereum':'ETH','solana':'SOL','binancecoin':'BNB','ripple':'XRP','dogecoin':'DOGE'};
+  const cryptoLines = Object.entries(cryptoNameMap).map(([id, sym]) => {
+    const p = cryptoPrices[id];
+    if (!p) return null;
+    const chg = p.usd_24h_change?.toFixed(2) || '0.00';
+    return `${sym}: $${p.usd?.toLocaleString()} (${Number(chg) > 0 ? '+' : ''}${chg}% 24h)`;
   }).filter(Boolean).join(' | ');
 
   return `LIVE MARKET DATA — ${now} ET
@@ -94,13 +92,15 @@ PULSESTOCK OPEN PICKS (AI-selected):
 ${picksLines}`;
 }
 
-export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
-  if (req.method !== 'POST') return new Response(JSON.stringify({error:'POST only'}), {status:405,headers:CORS});
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({error:'POST only'});
 
   try {
-    const { messages, system } = await req.json();
-    if (!messages?.length) return new Response(JSON.stringify({error:'No messages'}), {status:400,headers:CORS});
+    const { messages, system } = req.body || {};
+    if (!messages?.length) return res.status(400).json({error:'No messages'});
 
     // Get live market context
     const liveContext = await getLiveContext();
@@ -134,12 +134,12 @@ INSTRUCTIONS:
 
     if (!resp.ok) {
       const err = await resp.text();
-      return new Response(JSON.stringify({error:err}), {status:resp.status,headers:CORS});
+      return res.status(resp.status).json({error:err});
     }
 
     const data = await resp.json();
-    return new Response(JSON.stringify(data), { headers: CORS });
+    return res.status(200).json(data);
   } catch(e) {
-    return new Response(JSON.stringify({error:e.message}), {status:500,headers:CORS});
+    return res.status(500).json({error:e.message});
   }
 }
