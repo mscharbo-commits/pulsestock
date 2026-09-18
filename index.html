@@ -4908,88 +4908,7 @@ async function chatAsk(ticker, question) {
   </div>
 </div>
 
-<script>
-var sideHistory = [];
-var sideBusy = false;
-console.log('[SideAI] script block loaded');
 
-function toggleAISide() {
-  var p = document.getElementById('ai-side-panel');
-  p.classList.contains('open') ? closeAISide() : openAISide();
-}
-function openAISide() {
-  sideBusy = false; // reset in case previous session got stuck
-  document.getElementById('ai-side-sendbtn').disabled = false;
-  document.getElementById('ai-side-panel').classList.add('open');
-  document.getElementById('ai-side-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  setTimeout(function(){ document.getElementById('ai-side-input').focus(); }, 300);
-}
-function closeAISide() {
-  document.getElementById('ai-side-panel').classList.remove('open');
-  document.getElementById('ai-side-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-function aiSideQ(el) {
-  document.getElementById('ai-side-input').value = el.textContent;
-  sendSideAI();
-}
-function addSideMsg(role, text) {
-  var area = document.getElementById('ai-side-msgs');
-  var div = document.createElement('div');
-  div.className = 'ai-smsg';
-  var isAI = role === 'assistant';
-  div.innerHTML = '<div class="ai-savatar '+(isAI?'ai':'user')+'">'+(isAI?'⚡':'You')+'</div>'
-    +'<div class="ai-stext '+(isAI?'ai':'')+'">'
-    +text.replace(/\n/g,'<br>')+'</div>';
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
-function showSideTyping() {
-  var area = document.getElementById('ai-side-msgs');
-  var div = document.createElement('div');
-  div.className='ai-smsg'; div.id='side-typing';
-  div.innerHTML='<div class="ai-savatar ai">⚡</div><div class="ai-stype"><span></span><span></span><span></span></div>';
-  area.appendChild(div); area.scrollTop = area.scrollHeight;
-}
-async function sendSideAI() {
-  var input = document.getElementById('ai-side-input');
-  var q = (input.value||'').trim();
-  if (!q || sideBusy) return;
-  document.getElementById('ai-schips').style.display = 'none';
-  input.value = ''; sideBusy = true;
-  document.getElementById('ai-side-sendbtn').disabled = true;
-  addSideMsg('user', q);
-  sideHistory.push({role:'user',content:q});
-  showSideTyping();
-  try {
-    console.log('[SideAI] sending:', sideHistory.slice(-1));
-    var r = await fetch('/api/chat', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        system: 'You are PulseStock AI, an expert financial analyst. Give direct, specific, actionable answers. Keep responses concise — 3 paragraphs max.',
-        messages: sideHistory.slice(-8)
-      })
-    });
-    console.log('[SideAI] status:', r.status);
-    var raw = await r.text();
-    console.log('[SideAI] raw response:', raw.substring(0,200));
-    var data = JSON.parse(raw);
-    var reply = (data.content&&data.content[0]&&data.content[0].text)||'Could not get a response — please try again.';
-    console.log('[SideAI] reply:', reply.substring(0,100));
-    var t = document.getElementById('side-typing'); if(t) t.remove();
-    sideHistory.push({role:'assistant',content:reply});
-    addSideMsg('assistant', reply);
-  } catch(e) {
-    console.error('[SideAI] error:', e.message, e.stack);
-    var t = document.getElementById('side-typing'); if(t) t.remove();
-    addSideMsg('assistant','Connection issue — please try again. Error: '+e.message);
-  }
-  sideBusy = false;
-  document.getElementById('ai-side-sendbtn').disabled = false;
-  document.getElementById('ai-side-input').focus();
-}
-</script>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────────── -->
 <footer style="background:#0D1117;color:#8A95A3;padding:48px 24px 32px;border-top:1px solid #1A2535;">
@@ -5795,6 +5714,89 @@ async function sendSideAI() {
   sideAITyping = false;
   document.getElementById('ai-side-send').disabled = false;
   input.focus();
+}
+
+
+
+var sideHistory = [];
+var sideBusy = false;
+console.log('[SideAI] script block loaded');
+
+function toggleAISide() {
+  var p = document.getElementById('ai-side-panel');
+  p.classList.contains('open') ? closeAISide() : openAISide();
+}
+function openAISide() {
+  sideBusy = false; // reset in case previous session got stuck
+  document.getElementById('ai-side-sendbtn').disabled = false;
+  document.getElementById('ai-side-panel').classList.add('open');
+  document.getElementById('ai-side-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ document.getElementById('ai-side-input').focus(); }, 300);
+}
+function closeAISide() {
+  document.getElementById('ai-side-panel').classList.remove('open');
+  document.getElementById('ai-side-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function aiSideQ(el) {
+  document.getElementById('ai-side-input').value = el.textContent;
+  sendSideAI();
+}
+function addSideMsg(role, text) {
+  var area = document.getElementById('ai-side-msgs');
+  var div = document.createElement('div');
+  div.className = 'ai-smsg';
+  var isAI = role === 'assistant';
+  div.innerHTML = '<div class="ai-savatar '+(isAI?'ai':'user')+'">'+(isAI?'⚡':'You')+'</div>'
+    +'<div class="ai-stext '+(isAI?'ai':'')+'">'
+    +text.replace(/\n/g,'<br>')+'</div>';
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+function showSideTyping() {
+  var area = document.getElementById('ai-side-msgs');
+  var div = document.createElement('div');
+  div.className='ai-smsg'; div.id='side-typing';
+  div.innerHTML='<div class="ai-savatar ai">⚡</div><div class="ai-stype"><span></span><span></span><span></span></div>';
+  area.appendChild(div); area.scrollTop = area.scrollHeight;
+}
+async function sendSideAI() {
+  var input = document.getElementById('ai-side-input');
+  var q = (input.value||'').trim();
+  if (!q || sideBusy) return;
+  document.getElementById('ai-schips').style.display = 'none';
+  input.value = ''; sideBusy = true;
+  document.getElementById('ai-side-sendbtn').disabled = true;
+  addSideMsg('user', q);
+  sideHistory.push({role:'user',content:q});
+  showSideTyping();
+  try {
+    console.log('[SideAI] sending:', sideHistory.slice(-1));
+    var r = await fetch('/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        system: 'You are PulseStock AI, an expert financial analyst. Give direct, specific, actionable answers. Keep responses concise — 3 paragraphs max.',
+        messages: sideHistory.slice(-8)
+      })
+    });
+    console.log('[SideAI] status:', r.status);
+    var raw = await r.text();
+    console.log('[SideAI] raw response:', raw.substring(0,200));
+    var data = JSON.parse(raw);
+    var reply = (data.content&&data.content[0]&&data.content[0].text)||'Could not get a response — please try again.';
+    console.log('[SideAI] reply:', reply.substring(0,100));
+    var t = document.getElementById('side-typing'); if(t) t.remove();
+    sideHistory.push({role:'assistant',content:reply});
+    addSideMsg('assistant', reply);
+  } catch(e) {
+    console.error('[SideAI] error:', e.message, e.stack);
+    var t = document.getElementById('side-typing'); if(t) t.remove();
+    addSideMsg('assistant','Connection issue — please try again. Error: '+e.message);
+  }
+  sideBusy = false;
+  document.getElementById('ai-side-sendbtn').disabled = false;
+  document.getElementById('ai-side-input').focus();
 }
 
 </script>
