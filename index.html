@@ -5589,23 +5589,18 @@ async function sendAIChat() {
   showTyping();
 
   try {
-    var messages = [{role: 'user', content: AI_SYSTEM + '\n\nUser question: ' + q}];
-    
-    // Include recent history for context
-    if (aiChatHistory.length > 2) {
-      messages = aiChatHistory.slice(-6).map(function(m) {
-        return {role: m.role, content: m.content};
-      });
-      messages[0].content = AI_SYSTEM + '\n\n' + messages[0].content;
-    }
+    // Build message history — system prompt goes server-side
+    var messages = aiChatHistory.slice(-6).map(function(m) {
+      return {role: m.role, content: m.content};
+    });
+    if (!messages.length) messages = [{role: 'user', content: q}];
 
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        messages: messages,
+        system: AI_SYSTEM,
+        messages: messages.map(function(m){ return {role: m.role, content: m.content}; })
       })
     });
 
