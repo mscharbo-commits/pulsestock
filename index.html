@@ -382,6 +382,41 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
 .mo-row-price{font-size:14px;font-weight:600;font-family:'DM Mono',monospace;text-align:right;min-width:82px;}
 .mo-row-chg{font-size:12px;font-weight:700;text-align:right;min-width:68px;}
 .mo-loading{font-size:13px;color:var(--text3);padding:16px 0;}
+
+/* ── AI CHAT PANEL ─────────────────────────────────────────────────── */
+.ai-chat-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin:0 0 28px;overflow:hidden;}
+.ai-chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(26,107,245,.06),rgba(99,102,241,.04));}
+.ai-chat-header-left{display:flex;align-items:center;gap:10px;}
+.ai-agent-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6366F1;}
+.ai-agent-dot{width:7px;height:7px;background:#10B981;border-radius:50%;animation:pulse 2s infinite;}
+.ai-chat-title{font-size:14px;font-weight:700;color:var(--text);}
+.ai-chat-subtitle{font-size:11px;color:var(--text2);margin-top:1px;}
+.ai-suggested{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg);}
+.ai-suggest-btn{font-size:11px;font-weight:600;padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.ai-suggest-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ai-messages{min-height:80px;max-height:320px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;}
+.ai-msg{display:flex;gap:10px;animation:fadeIn .3s ease;}
+.ai-msg-avatar{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.ai-msg-avatar.ai{background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;}
+.ai-msg-avatar.user{background:var(--surface2);color:var(--text2);}
+.ai-msg-body{flex:1;font-size:13px;line-height:1.6;color:var(--text2);padding-top:4px;}
+.ai-msg-body.ai{color:var(--text);}
+.ai-msg-body a{color:var(--accent);text-decoration:none;font-weight:600;}
+.ai-msg-body a:hover{text-decoration:underline;}
+.ai-chat-input-row{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);}
+.ai-chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 14px;outline:none;font-family:inherit;resize:none;height:40px;line-height:1.4;transition:border-color .15s;}
+.ai-chat-input:focus{border-color:var(--accent);}
+.ai-chat-input::placeholder{color:var(--text3);}
+.ai-send-btn{background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:14px;cursor:pointer;transition:opacity .15s;height:40px;}
+.ai-send-btn:hover{opacity:.9;}
+.ai-send-btn:disabled{opacity:.5;cursor:not-allowed;}
+.ai-typing{display:flex;align-items:center;gap:4px;padding:4px 0;}
+.ai-typing span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:typing .8s infinite;}
+.ai-typing span:nth-child(2){animation-delay:.15s;}
+.ai-typing span:nth-child(3){animation-delay:.3s;}
+@keyframes typing{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 </style>
 </head>
 <body>
@@ -477,6 +512,39 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
         <button class="chip" onclick="qs('JPM')">JPM</button>
       </div>
     </div>
+    <!-- AI CHAT PANEL -->
+    <div class="ai-chat-panel" id="ai-chat-panel">
+      <div class="ai-chat-header">
+        <div class="ai-chat-header-left">
+          <div class="ai-msg-avatar ai" style="width:32px;height:32px;font-size:14px;">⚡</div>
+          <div>
+            <div class="ai-chat-title">PulseStock AI</div>
+            <div class="ai-chat-subtitle">Ask about any stock, strategy, portfolio or market</div>
+          </div>
+        </div>
+        <div class="ai-agent-badge"><div class="ai-agent-dot"></div>Online</div>
+      </div>
+      <div class="ai-suggested" id="ai-suggested">
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">What's moving markets today?</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Best defensive stocks for a recession?</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Explain the yield curve</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">What are today's top picks?</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Compare NVDA vs AMD</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Build me a 60/40 portfolio</button>
+      </div>
+      <div class="ai-messages" id="ai-messages">
+        <div class="ai-msg">
+          <div class="ai-msg-avatar ai">⚡</div>
+          <div class="ai-msg-body ai">Hi! I'm PulseStock AI. Ask me anything about stocks, markets, strategies or portfolios. I can also pull up detailed analysis on any ticker — just ask.</div>
+        </div>
+      </div>
+      <div class="ai-chat-input-row">
+        <input class="ai-chat-input" id="ai-chat-input" placeholder="Ask about any stock, market or strategy..." maxlength="500"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIChat();}"/>
+        <button class="ai-send-btn" id="ai-send-btn" onclick="sendAIChat()">↑</button>
+      </div>
+    </div>
+
     <!-- MARKET OVERVIEW -->
     <div id="market-overview" style="margin-top:28px;">
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;">
@@ -5433,6 +5501,136 @@ document.addEventListener('click', function(e) {
   if (cr) { window.location.href = '/crypto/' + cr.dataset.cid; return; }
 
 });
+
+// ── AI CHAT ────────────────────────────────────────────────────────────────
+var aiChatHistory = [];
+var aiTyping = false;
+
+var AI_SYSTEM = `You are PulseStock AI, an expert financial analyst and investment assistant built into the PulseStock platform.
+
+PulseStock is an AI-powered stock research platform with:
+- Real-time stock quotes and professional charts
+- AI-driven deep analysis on individual stocks
+- Death Spiral Tracker monitoring high-risk convertible note stocks from SEC EDGAR
+- PulseStock Picks — an AI-driven daily picks system with a learning loop that refines its rules over time based on performance
+- Community with pick tracking, leaderboard ranked by return, and sentiment voting
+- Desktop ticker app for real-time quotes
+
+Your role:
+- Answer market, stock, strategy and portfolio questions clearly and concisely
+- When asked about a specific stock (e.g. "should I buy NVDA"), answer the question AND mention they can get a full deep-dive by searching that ticker on PulseStock
+- When asked about today's picks, explain that PulseStock Picks uses an AI system with a learning loop that refines its rules based on historical performance — direct them to the Morning Picks section
+- When asked about high-risk or distressed stocks, mention the Death Spiral Tracker
+- Keep responses concise — 2-4 paragraphs max
+- Never give specific buy/sell financial advice — frame as analysis and education
+- Always add value, never just say "I can't help with that"
+
+Today's date: ${new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}`;
+
+function aiSuggest(btn) {
+  var q = btn.textContent;
+  document.getElementById('ai-chat-input').value = q;
+  sendAIChat();
+}
+
+function addAIMessage(role, content) {
+  var messages = document.getElementById('ai-messages');
+  var div = document.createElement('div');
+  div.className = 'ai-msg';
+  var isAI = role === 'assistant';
+  div.innerHTML = '<div class="ai-msg-avatar ' + (isAI ? 'ai' : 'user') + '">'
+    + (isAI ? '⚡' : 'You')
+    + '</div><div class="ai-msg-body ' + (isAI ? 'ai' : '') + '">'
+    + content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    + '</div>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  var messages = document.getElementById('ai-messages');
+  var div = document.createElement('div');
+  div.className = 'ai-msg';
+  div.id = 'ai-typing-indicator';
+  div.innerHTML = '<div class="ai-msg-avatar ai">⚡</div>'
+    + '<div class="ai-typing"><span></span><span></span><span></span></div>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function hideTyping() {
+  var el = document.getElementById('ai-typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendAIChat() {
+  var input = document.getElementById('ai-chat-input');
+  var q = (input.value || '').trim();
+  if (!q || aiTyping) return;
+
+  // Hide suggested prompts after first use
+  var suggested = document.getElementById('ai-suggested');
+  if (suggested) suggested.style.display = 'none';
+
+  input.value = '';
+  aiTyping = true;
+  document.getElementById('ai-send-btn').disabled = true;
+
+  addAIMessage('user', q);
+
+  // Check if asking about a specific ticker — route to stock page
+  var tickerMatch = q.match(/\b([A-Z]{2,5})\b/g);
+  var stockKeywords = ['analyze', 'analysis', 'buy', 'sell', 'hold', 'price target', 'earnings', 'chart', 'stock'];
+  var isStockQuery = tickerMatch && stockKeywords.some(function(k){ return q.toLowerCase().includes(k); });
+
+  aiChatHistory.push({role: 'user', content: q});
+
+  showTyping();
+
+  try {
+    var messages = [{role: 'user', content: AI_SYSTEM + '\n\nUser question: ' + q}];
+    
+    // Include recent history for context
+    if (aiChatHistory.length > 2) {
+      messages = aiChatHistory.slice(-6).map(function(m) {
+        return {role: m.role, content: m.content};
+      });
+      messages[0].content = AI_SYSTEM + '\n\n' + messages[0].content;
+    }
+
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: messages,
+      })
+    });
+
+    var data = await resp.json();
+    var reply = data.content && data.content[0] && data.content[0].text || 'Sorry, I could not get a response. Please try again.';
+
+    hideTyping();
+    aiChatHistory.push({role: 'assistant', content: reply});
+
+    // If stock query, append a link to the stock page
+    if (isStockQuery && tickerMatch) {
+      reply += '\n\n→ <a href="#" onclick="qs(\'' + tickerMatch[0] + '\');return false;">View full ' + tickerMatch[0] + ' analysis on PulseStock</a>';
+    }
+
+    addAIMessage('assistant', reply);
+  } catch(e) {
+    hideTyping();
+    addAIMessage('assistant', 'I ran into a connection issue. Please try again in a moment.');
+  }
+
+  aiTyping = false;
+  document.getElementById('ai-send-btn').disabled = false;
+  input.focus();
+}
+
 </script>
 </body>
 </html>
