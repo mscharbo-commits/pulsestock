@@ -20,6 +20,10 @@
   ],
   "routes": [
     {
+      "src": "/api/chat",
+      "dest": "/api/chat.js"
+    },
+    {
       "src": "/crypto/(.*)",
       "dest": "/crypto.html"
     },
