@@ -20,7 +20,7 @@ function bestChange(q) {
 }
 
 async function getLiveContext() {
-  const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
+  const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX','USO','GLD','SLV','UUP','FXE','FXY','EWJ','EWG','EWU','EFA','EEM'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
   const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
   // Global indices + futures — Yahoo Finance symbols via Finnhub
@@ -28,7 +28,7 @@ async function getLiveContext() {
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
-  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalQuotes] = await Promise.all([
+  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
@@ -52,13 +52,6 @@ async function getLiveContext() {
       }
       return {};
     })(),
-    // Global proxies via Finnhub ETFs (free tier)
-    // USO=WTI oil, UUP=DXY, EWJ=Nikkei proxy, EWG=DAX proxy, EWU=FTSE proxy, EEM=EM
-    Promise.all(['USO','UUP','EWJ','EWG','EWU','EFA','EEM','QQQ'].map(s =>
-      fh(`/quote?symbol=${s}`)
-        .then(q => q ? ({ s, q }) : null)
-        .catch(() => null)
-    ))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
@@ -105,14 +98,13 @@ GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
-GLOBAL MARKET PROXIES (ETF-based):
-${(globalQuotes||[]).filter(Boolean).map(g => {
-  if (!g.q?.c) return null;
-  const price = g.q.c || g.q.pc;
-  const chg = g.q.dp || 0;
-  const name = globalNames[g.s] || g.s;
-  return `${name} (${g.s}): $${price?.toFixed(2)} (${chg > 0 ? '+' : ''}${chg?.toFixed(2)}% today)`;
-}).filter(Boolean).join(' | ') || 'unavailable - market may be closed'}
+COMMODITIES & CURRENCIES (ETF proxies):
+Oil (USO): $${sq.find(x=>x.s==='USO')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='USO')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='USO')?.dp||0).toFixed(2)}%) | Gold (GLD): $${sq.find(x=>x.s==='GLD')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='GLD')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='GLD')?.dp||0).toFixed(2)}%) | Silver (SLV): $${sq.find(x=>x.s==='SLV')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='SLV')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='SLV')?.dp||0).toFixed(2)}%)
+USD Index (UUP): $${sq.find(x=>x.s==='UUP')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='UUP')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='UUP')?.dp||0).toFixed(2)}%) | Euro (FXE): $${sq.find(x=>x.s==='FXE')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='FXE')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='FXE')?.dp||0).toFixed(2)}%) | Yen (FXY): $${sq.find(x=>x.s==='FXY')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='FXY')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='FXY')?.dp||0).toFixed(2)}%)
+
+GLOBAL EQUITY PROXIES (overnight):
+Japan (EWJ): $${sq.find(x=>x.s==='EWJ')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWJ')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWJ')?.dp||0).toFixed(2)}%) | Germany (EWG): $${sq.find(x=>x.s==='EWG')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWG')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWG')?.dp||0).toFixed(2)}%) | UK (EWU): $${sq.find(x=>x.s==='EWU')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWU')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWU')?.dp||0).toFixed(2)}%)
+Intl Dev (EFA): $${sq.find(x=>x.s==='EFA')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EFA')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EFA')?.dp||0).toFixed(2)}%) | Emerging (EEM): $${sq.find(x=>x.s==='EEM')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EEM')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EEM')?.dp||0).toFixed(2)}%)
 
 SECTORS TODAY: ${sectorLines}
 
@@ -147,7 +139,7 @@ INSTRUCTIONS:
 - You HAVE live crypto prices above — ALWAYS use them when crypto is mentioned
 - You HAVE global markets data above — futures, foreign indices, oil, DXY — ALWAYS use them for pre-market and opening questions
 - Never say you don't have global or crypto data — it is all above
-- When asked "what does the open look like" or "pre-market" questions — use the GLOBAL MARKET PROXIES above: USO for oil direction, UUP for dollar strength, EWJ/EWG/EWU for Asia/Europe overnight, EEM for emerging markets; note these are ETF proxies not live futures
+- When asked "what does the open look like" or "pre-market" questions — ALWAYS give a full snapshot: (1) S&P/Nasdaq direction from SPY/QQQ vs prev close, (2) global overnight from EWJ/EWG/EWU, (3) commodities USO/GLD, (4) dollar UUP/FXE/FXY, (5) VIX fear gauge, (6) geopolitical context from headlines — never just say "market is pre-open" without this data
 - Use the live data above to give specific, current answers with real numbers
 - When asked what moved the market, reference today's actual sector moves and news headlines above
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
@@ -164,9 +156,9 @@ INSTRUCTIONS:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
+        max_tokens: 800,
         system: fullSystem,
-        messages
+        messages: messages.slice(-4) // last 4 messages only — prevents stale history bleeding
       })
     });
 
