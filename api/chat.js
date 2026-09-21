@@ -24,7 +24,7 @@ async function getLiveContext() {
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
   const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
   // Global indices + futures — Yahoo Finance symbols via Finnhub
-  const OANOR_KEY = 'oanor_live_c253215d14aac8c958706c7004eaed548d3cf5fc26b0cf391777359cb7a98a6e';
+  const OANOR_KEY = process.env.OANOR_API_KEY || '';
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
