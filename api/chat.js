@@ -12,6 +12,11 @@ async function fh(path) {
 }
 
 function bestPrice(q) {
+  // Sanity check — SPY should never be above $700 or below $100
+  if (q && q.c && q.c > 100 && q.c < 700) return q.c;
+  return q?.pc || q?.c || null;
+}
+function _bestPrice_orig(q) {
   // Use current price if market open, prev close otherwise
   return (q && q.c && q.c > 0) ? q.c : (q && q.pc ? q.pc : null);
 }
@@ -109,7 +114,7 @@ async function getLiveContext() {
 
   return `LIVE MARKET DATA — ${now} ET
 
-MARKET: SPY last close $${spy?.pc?.toFixed(2)||'N/A'} | Current: $${(spy?.c && spy?.c > 0 && spy?.c !== spy?.pc) ? spy.c.toFixed(2) : 'pre-market/closed'} | Prev day change: ${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}%
+MARKET: SPY $${spy?.pc?.toFixed(2)||'N/A'} (Friday close) | Friday change: ${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% | NOTE: SPY price above is last Friday close — do NOT say SPY is trading at any current price pre-market
 VIX: ${vix?.c?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
 10yr Yield: ${tnx?.c?.toFixed(2)||'N/A'}%
 GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(1)||'0'}% | TLT: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(1)||'0'}%
