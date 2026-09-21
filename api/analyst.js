@@ -13,7 +13,14 @@ export default async function handler(req) {
     ]);
     const rec = recRes.ok ? await recRes.json() : [];
     const target = targetRes.ok ? await targetRes.json() : {};
-    return new Response(JSON.stringify({recommendations:rec.slice(0,3), priceTarget:target}),{headers:CORS});
+    // Normalize price target fields
+    const pt = target && target.targetMean ? {
+      current: target.targetMean,
+      high: target.targetHigh,
+      low: target.targetLow,
+      numberOfAnalysts: target.numberOfAnalysts
+    } : null;
+    return new Response(JSON.stringify({recommendations:rec.slice(0,3), priceTarget:pt}),{headers:CORS});
   } catch(e) {
     return new Response(JSON.stringify({error:e.message}),{status:500,headers:CORS});
   }
