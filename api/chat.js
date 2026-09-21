@@ -91,7 +91,7 @@ async function getLiveContext() {
 
   return `LIVE MARKET DATA — ${now} ET
 
-MARKET: SPY $${spy?.c?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% today)
+MARKET: SPY last close $${spy?.pc?.toFixed(2)||'N/A'} | Current: $${(spy?.c && spy?.c > 0 && spy?.c !== spy?.pc) ? spy.c.toFixed(2) : 'pre-market/closed'} | Prev day change: ${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}%
 VIX: ${vix?.c?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
 10yr Yield: ${tnx?.c?.toFixed(2)||'N/A'}%
 GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(1)||'0'}% | TLT: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(1)||'0'}%
