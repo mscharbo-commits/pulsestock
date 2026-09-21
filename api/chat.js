@@ -23,9 +23,12 @@ async function getLiveContext() {
   const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
   const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
+  // Global indices + futures — Yahoo Finance symbols via Finnhub
+  const globalSyms = ['^GSPC','ES=F','NQ=F','YM=F','CL=F','^N225','^HSI','^GDAXI','^FTSE','^FCHI','DX-Y.NYB'];
+  const globalNames = {'ES=F':'S&P500 Fut','NQ=F':'Nasdaq Fut','YM=F':'Dow Fut','CL=F':'WTI Oil','^N225':'Nikkei','^HSI':'Hang Seng','^GDAXI':'DAX','^FTSE':'FTSE 100','^FCHI':'CAC 40','DX-Y.NYB':'DXY','^GSPC':'S&P 500'};
 
   // Fetch all in parallel
-  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
+  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalQuotes] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
@@ -48,7 +51,25 @@ async function getLiveContext() {
         } catch(e) {}
       }
       return {};
-    })()
+    })(),
+    // Global indices + futures via Yahoo Finance
+    Promise.all(globalSyms.map(s =>
+      fetch(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.chart?.result?.[0]) return null;
+        const meta = d.chart.result[0].meta;
+        return {
+          s,
+          price: meta.regularMarketPrice,
+          prev: meta.chartPreviousClose || meta.previousClose,
+          name: globalNames[s] || s
+        };
+      })
+      .catch(() => null)
+    ))
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
@@ -94,6 +115,13 @@ VIX: ${vix?.c?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c
 GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(1)||'0'}% | TLT: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(1)||'0'}%
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
+
+GLOBAL MARKETS & FUTURES:
+${(globalQuotes||[]).filter(Boolean).map(g => {
+  if (!g.price) return null;
+  const chg = g.prev ? ((g.price - g.prev) / g.prev * 100) : 0;
+  return `${g.name}: ${g.price.toLocaleString('en-US',{maximumFractionDigits:2})} (${chg > 0 ? '+' : ''}${chg.toFixed(2)}%)`;
+}).filter(Boolean).join(' | ') || 'data unavailable'}
 
 SECTORS TODAY: ${sectorLines}
 
