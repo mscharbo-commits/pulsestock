@@ -24,8 +24,8 @@ async function getLiveContext() {
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
   const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
   // Global indices + futures — Yahoo Finance symbols via Finnhub
-  const globalSyms = ['^GSPC','ES=F','NQ=F','YM=F','CL=F','^N225','^HSI','^GDAXI','^FTSE','^FCHI','DX-Y.NYB'];
-  const globalNames = {'ES=F':'S&P500 Fut','NQ=F':'Nasdaq Fut','YM=F':'Dow Fut','CL=F':'WTI Oil','^N225':'Nikkei','^HSI':'Hang Seng','^GDAXI':'DAX','^FTSE':'FTSE 100','^FCHI':'CAC 40','DX-Y.NYB':'DXY','^GSPC':'S&P 500'};
+  // Global proxy ETFs via Finnhub (free tier supports these)
+  const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
   const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalQuotes] = await Promise.all([
@@ -52,23 +52,12 @@ async function getLiveContext() {
       }
       return {};
     })(),
-    // Global indices + futures via Yahoo Finance
-    Promise.all(globalSyms.map(s =>
-      fetch(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s)}?interval=1d&range=1d`, {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-      })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!d?.chart?.result?.[0]) return null;
-        const meta = d.chart.result[0].meta;
-        return {
-          s,
-          price: meta.regularMarketPrice,
-          prev: meta.chartPreviousClose || meta.previousClose,
-          name: globalNames[s] || s
-        };
-      })
-      .catch(() => null)
+    // Global proxies via Finnhub ETFs (free tier)
+    // USO=WTI oil, UUP=DXY, EWJ=Nikkei proxy, EWG=DAX proxy, EWU=FTSE proxy, EEM=EM
+    Promise.all(['USO','UUP','EWJ','EWG','EWU','EFA','EEM','QQQ'].map(s =>
+      fh(`/quote?symbol=${s}`)
+        .then(q => q ? ({ s, q }) : null)
+        .catch(() => null)
     ))
   ]);
 
@@ -116,12 +105,14 @@ GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
-GLOBAL MARKETS & FUTURES:
+GLOBAL MARKET PROXIES (ETF-based):
 ${(globalQuotes||[]).filter(Boolean).map(g => {
-  if (!g.price) return null;
-  const chg = g.prev ? ((g.price - g.prev) / g.prev * 100) : 0;
-  return `${g.name}: ${g.price.toLocaleString('en-US',{maximumFractionDigits:2})} (${chg > 0 ? '+' : ''}${chg.toFixed(2)}%)`;
-}).filter(Boolean).join(' | ') || 'data unavailable'}
+  if (!g.q?.c) return null;
+  const price = g.q.c || g.q.pc;
+  const chg = g.q.dp || 0;
+  const name = globalNames[g.s] || g.s;
+  return `${name} (${g.s}): $${price?.toFixed(2)} (${chg > 0 ? '+' : ''}${chg?.toFixed(2)}% today)`;
+}).filter(Boolean).join(' | ') || 'unavailable - market may be closed'}
 
 SECTORS TODAY: ${sectorLines}
 
@@ -156,7 +147,7 @@ INSTRUCTIONS:
 - You HAVE live crypto prices above — ALWAYS use them when crypto is mentioned
 - You HAVE global markets data above — futures, foreign indices, oil, DXY — ALWAYS use them for pre-market and opening questions
 - Never say you don't have global or crypto data — it is all above
-- When asked "what does the open look like" or "pre-market" questions — lead with S&P futures, Nasdaq futures, then overnight foreign markets (Nikkei, DAX, etc), then oil and DXY
+- When asked "what does the open look like" or "pre-market" questions — use the GLOBAL MARKET PROXIES above: USO for oil direction, UUP for dollar strength, EWJ/EWG/EWU for Asia/Europe overnight, EEM for emerging markets; note these are ETF proxies not live futures
 - Use the live data above to give specific, current answers with real numbers
 - When asked what moved the market, reference today's actual sector moves and news headlines above
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
