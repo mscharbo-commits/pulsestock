@@ -520,41 +520,23 @@ footer{border-top:1px solid var(--border);margin-top:60px;padding:24px;text-alig
       </div>
     </div>
     <!-- AI CHAT PANEL -->
-    <div class="ai-chat-panel" id="ai-chat-panel">
-      <div class="ai-chat-header" onclick="toggleAIPanel()" style="cursor:pointer;" title="Click to collapse">
-        <div class="ai-chat-header-left">
-          <div class="ai-msg-avatar ai" style="width:32px;height:32px;font-size:14px;">⚡</div>
-          <div>
-            <div class="ai-chat-title">PulseStock AI</div>
-            <div class="ai-chat-subtitle" id="ai-chat-subtitle">Ask about any stock, strategy, portfolio or market</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="ai-agent-badge"><div class="ai-agent-dot"></div>Online</div>
-          <div id="ai-collapse-icon" style="font-size:16px;color:var(--text3);transition:transform .2s;">▾</div>
-        </div>
+    <div style="margin:16px 0 20px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+        <span style="font-size:12px;color:var(--text3);font-weight:600;">⚡ Ask AI:</span>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)" style="font-size:11px;padding:4px 10px;">What's moving markets today?</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)" style="font-size:11px;padding:4px 10px;">Today's top picks?</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)" style="font-size:11px;padding:4px 10px;">Explain the yield curve</button>
+        <button class="ai-suggest-btn" onclick="aiSuggest(this)" style="font-size:11px;padding:4px 10px;">Best defensive stocks?</button>
       </div>
-      <div class="ai-chat-body">
-      <div class="ai-suggested" id="ai-suggested">
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">What's moving markets today?</button>
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Best defensive stocks for a recession?</button>
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Explain the yield curve</button>
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">What are today's top picks?</button>
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Compare NVDA vs AMD</button>
-        <button class="ai-suggest-btn" onclick="aiSuggest(this)">Build me a 60/40 portfolio</button>
+      <div style="display:flex;gap:8px;">
+        <input id="ai-chat-input" type="text" placeholder="Ask about any stock, market or strategy..."
+          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:10px 16px;outline:none;font-family:inherit;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();sendAIChat();}"/>
+        <button onclick="sendAIChat()" id="ai-send-btn"
+          style="background:linear-gradient(135deg,#1A6BF5,#6366F1);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:16px;cursor:pointer;">↑</button>
       </div>
-      <div class="ai-messages" id="ai-messages">
-        <div class="ai-msg">
-          <div class="ai-msg-avatar ai">⚡</div>
-          <div class="ai-msg-body ai">Hi! I'm PulseStock AI. Ask me anything about stocks, markets, strategies or portfolios. I can also pull up detailed analysis on any ticker — just ask.</div>
-        </div>
-      </div>
-      <div class="ai-chat-input-row">
-        <input class="ai-chat-input" id="ai-chat-input" placeholder="Ask about any stock, market or strategy..." maxlength="500"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIChat();}"/>
-        <button class="ai-send-btn" id="ai-send-btn" onclick="sendAIChat()">↑</button>
-      </div>
-      </div><!-- end ai-chat-body -->
+      <div id="ai-chat-messages" style="margin-top:12px;display:none;max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface);padding:14px;"></div>
     </div>
 
     <!-- MARKET OVERVIEW -->
