@@ -2202,7 +2202,13 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
       if(!fullText || fullText.trim().length < 10) {
         streamEl.innerHTML = '<p style="color:var(--text2);padding:16px;">Analysis text is empty (length: ' + (fullText||'').length + '). Please click Refresh Analysis.</p>';
       } else {
-        streamEl.innerHTML = formatAIResponse(fullText);
+        var formatted = formatAIResponse(fullText);
+        if(!formatted || formatted.trim().length < 10) {
+          // formatAIResponse returned empty — show raw text for debugging
+          streamEl.innerHTML = '<pre style="white-space:pre-wrap;color:var(--text);font-size:12px;padding:16px;">' + fullText.substring(0,500) + '...</pre>';
+        } else {
+          streamEl.innerHTML = formatted;
+        }
       }
     }
 
