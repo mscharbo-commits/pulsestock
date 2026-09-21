@@ -2198,7 +2198,13 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     // Final render without cursor
     if(!fullText) throw new Error('No response received. Please try again.');
     const streamEl = document.getElementById('ai-stream-body');
-    if(streamEl) streamEl.innerHTML = formatAIResponse(fullText);
+    if(streamEl) {
+      if(!fullText || fullText.trim().length < 10) {
+        streamEl.innerHTML = '<p style="color:var(--text2);padding:16px;">Analysis text is empty (length: ' + (fullText||'').length + '). Please click Refresh Analysis.</p>';
+      } else {
+        streamEl.innerHTML = formatAIResponse(fullText);
+      }
+    }
 
     // Append key metrics boxes below the analysis
     var f2 = FUNDAMENTALS[ticker] || {};
