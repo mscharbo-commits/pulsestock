@@ -2207,10 +2207,10 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
       { label:'Fwd P/E',   val: f2.fwdPe ? f2.fwdPe+'x' : '—' },
       { label:'EV/EBITDA', val: f2.evEbitda ? f2.evEbitda+'x' : '—' },
       { label:'Beta',      val: safeFixed(sm2.beta,2) || safeFixed(f2.beta,2) || '—' },
-      { label:'52W High',  val: safeFixed(sm2['52WeekHigh'],2) ? '$'+safeFixed(sm2['52WeekHigh'],2) : '—' },
-      { label:'52W Low',   val: safeFixed(sm2['52WeekLow'],2)  ? '$'+safeFixed(sm2['52WeekLow'],2)  : '—' },
+      { label:'52W High',  val: sm2.week52High || sm2['52WeekHigh'] || '—' },
+      { label:'52W Low',   val: sm2.week52Low || sm2['52WeekLow'] || '—' },
       { label:'Revenue',   val: f2.rev || '—' },
-      { label:'Net Margin',val: safeFixed(sm2.netProfitMarginAnnual,1) ? safeFixed(sm2.netProfitMarginAnnual,1)+'%' : (f2.margin || '—') },
+      { label:'Net Margin',val: safeFixed(sm2.netMargin?.replace('%','') || sm2.netProfitMarginAnnual,1) ? safeFixed(sm2.netMargin?.replace('%','') || sm2.netProfitMarginAnnual,1)+'%' : (f2.margin || '—') },
     ];
     var boxHtml = '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">'
       + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Key Metrics</div>'
