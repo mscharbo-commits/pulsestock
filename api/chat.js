@@ -113,13 +113,13 @@ GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
-COMMODITIES & CURRENCIES (ETF proxies):
-Oil (USO): $${sq.find(x=>x.s==='USO')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='USO')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='USO')?.dp||0).toFixed(2)}%) | Gold (GLD): $${sq.find(x=>x.s==='GLD')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='GLD')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='GLD')?.dp||0).toFixed(2)}%) | Silver (SLV): $${sq.find(x=>x.s==='SLV')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='SLV')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='SLV')?.dp||0).toFixed(2)}%)
-USD Index (UUP): $${sq.find(x=>x.s==='UUP')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='UUP')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='UUP')?.dp||0).toFixed(2)}%) | Euro (FXE): $${sq.find(x=>x.s==='FXE')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='FXE')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='FXE')?.dp||0).toFixed(2)}%) | Yen (FXY): $${sq.find(x=>x.s==='FXY')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='FXY')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='FXY')?.dp||0).toFixed(2)}%)
+COMMODITIES (live spot):
+Gold: $${spotCommodities?.[0]?.price?.toFixed(2)||'N/A'} (${spotCommodities?.[0]?.change_pct != null ? (spotCommodities[0].change_pct>0?'+':'')+spotCommodities[0].change_pct.toFixed(2)+'%' : 'see ETF GLD prev close $'+sq.find(x=>x.s==='GLD')?.pc?.toFixed(2)})
+WTI Oil: $${spotCommodities?.[1]?.price?.toFixed(2)||'N/A'} (${spotCommodities?.[1]?.change_pct != null ? (spotCommodities[1].change_pct>0?'+':'')+spotCommodities[1].change_pct.toFixed(2)+'%' : 'see ETF USO prev close $'+sq.find(x=>x.s==='USO')?.pc?.toFixed(2)})
+Silver: $${spotCommodities?.[2]?.price?.toFixed(2)||'N/A'} (${spotCommodities?.[2]?.change_pct != null ? (spotCommodities[2].change_pct>0?'+':'')+spotCommodities[2].change_pct.toFixed(2)+'%' : 'see ETF SLV prev close $'+sq.find(x=>x.s==='SLV')?.pc?.toFixed(2)})
 
-GLOBAL EQUITY PROXIES (overnight):
-Japan (EWJ): $${sq.find(x=>x.s==='EWJ')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWJ')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWJ')?.dp||0).toFixed(2)}%) | Germany (EWG): $${sq.find(x=>x.s==='EWG')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWG')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWG')?.dp||0).toFixed(2)}%) | UK (EWU): $${sq.find(x=>x.s==='EWU')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EWU')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EWU')?.dp||0).toFixed(2)}%)
-Intl Dev (EFA): $${sq.find(x=>x.s==='EFA')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EFA')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EFA')?.dp||0).toFixed(2)}%) | Emerging (EEM): $${sq.find(x=>x.s==='EEM')?.c?.toFixed(2)||'N/A'} (${(sq.find(x=>x.s==='EEM')?.dp||0) > 0 ? '+' : ''}${(sq.find(x=>x.s==='EEM')?.dp||0).toFixed(2)}%)
+CURRENCIES (live vs USD):
+EUR/USD: ${forexRates?.rates?.EUR ? (1/forexRates.rates.EUR).toFixed(4) : 'N/A'} | USD/JPY: ${forexRates?.rates?.JPY?.toFixed(2)||'N/A'} | GBP/USD: ${forexRates?.rates?.GBP ? (1/forexRates.rates.GBP).toFixed(4) : 'N/A'} | USD/CNY: ${forexRates?.rates?.CNY?.toFixed(4)||'N/A'} | AUD/USD: ${forexRates?.rates?.AUD ? (1/forexRates.rates.AUD).toFixed(4) : 'N/A'} | USD/CAD: ${forexRates?.rates?.CAD?.toFixed(4)||'N/A'}
 
 SECTORS TODAY: ${sectorLines}
 
