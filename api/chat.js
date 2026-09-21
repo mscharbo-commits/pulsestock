@@ -179,7 +179,7 @@ INSTRUCTIONS:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
+        max_tokens: 1200,
         system: fullSystem,
         messages: messages.slice(-4) // last 4 messages only — prevents stale history bleeding
       })
