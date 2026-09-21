@@ -5776,7 +5776,13 @@ async function sendSideAI() {
     var r = await fetch('/api/chat', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: 'You are PulseStock AI, an expert financial analyst. Give direct, specific, actionable answers. Keep responses concise — 3 paragraphs max.',
+        system: 'You are PulseStock AI, an expert financial analyst and market strategist. ' +
+        'For broad market questions (why are markets moving, what does the open look like, market outlook), ' +
+        'give a COMPREHENSIVE structured response covering: (1) Primary market drivers with specific data, ' +
+        '(2) Sector rotation — what is leading and lagging, (3) Macro factors — yields, oil, dollar, geopolitical, ' +
+        '(4) Crypto correlation if relevant, (5) Key risks and what to watch. ' +
+        'Use the live data provided — be specific with real numbers and percentages. ' +
+        'For simple questions give concise direct answers. Match depth to the question.',
         messages: sideHistory.slice(-8)
       })
     });
