@@ -2303,12 +2303,12 @@ function formatAIResponse(raw){
         } else {
           // Regular paragraph - split on newlines for sub-paragraphs
           var lines = part.split(/\n/).filter(function(l){ return l.trim(); });
-          bodyHtml += '<p style="margin:0 0 14px;color:#0D1117;line-height:1.9;font-size:14.5px;">' + lines.join(' ') + '</p>';
+          bodyHtml += '<p style="margin:0 0 14px;color:var(--text,#0D1117);line-height:1.9;font-size:14.5px;">' + lines.join(' ') + '</p>';
         }
       });
       // Fallback: if no double newlines, split on single newlines
       if (!bodyHtml) {
-        bodyHtml = '<p style="color:#0D1117;line-height:1.9;font-size:14.5px;">' + body.replace(/\n/g, ' ') + '</p>';
+        bodyHtml = '<p style="color:var(--text,#0D1117);line-height:1.9;font-size:14.5px;">' + body.replace(/\n/g, ' ') + '</p>';
       }
       html += '<div class="ai-section ai-section-' + s.cls + '"><div class="ai-section-title">' + s.icon + ' ' + s.title + '</div><div class="ai-section-body">' + bodyHtml + '</div></div>';
     }
