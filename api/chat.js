@@ -20,15 +20,15 @@ function bestChange(q) {
 }
 
 async function getLiveContext() {
-  const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX','USO','GLD','SLV','UUP','FXE','FXY','EWJ','EWG','EWU','EFA','EEM'];
+  const sectors = ['SPY','QQQ','XLK','XLF','XLV','XLE','XLI','XLP','XLY','GLD','TLT','^VIX','^TNX','USO','SLV'];
   const news = ['AAPL','NVDA','MSFT','TSLA','AMZN','GOOGL','META','JPM'];
   const CRYPTO_IDS = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin';
   // Global indices + futures — Yahoo Finance symbols via Finnhub
-  // Global proxy ETFs via Finnhub (free tier supports these)
+  const OANOR_KEY = 'oanor_live_c253215d14aac8c958706c7004eaed548d3cf5fc26b0cf391777359cb7a98a6e';
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
-  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices] = await Promise.all([
+  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, [asiaBoard, europeBoard, forexRates]] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
