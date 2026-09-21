@@ -2297,7 +2297,7 @@ function formatAIResponse(raw){
           var items = part.split(/\n/).filter(function(l){ return l.trim(); });
           bodyHtml += '<ul style="padding-left:20px;margin:0 0 10px;">';
           items.forEach(function(item) {
-            bodyHtml += '<li style="margin-bottom:8px;color:#0D1117;line-height:1.8;font-size:14.5px;">' + item.replace(/^[•\-\*] /, '') + '</li>';
+            bodyHtml += '<li style="margin-bottom:8px;color:var(--text);line-height:1.8;font-size:14.5px;">' + item.replace(/^[•\-\*] /, '') + '</li>';
           });
           bodyHtml += '</ul>';
         } else {
