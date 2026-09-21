@@ -5490,7 +5490,8 @@ function aiSuggest(btn) {
 }
 
 function addAIMessage(role, content) {
-  var messages = document.getElementById('ai-messages');
+  var messages = document.getElementById('ai-chat-messages');
+  if (messages) messages.style.display = 'block';
   var div = document.createElement('div');
   div.className = 'ai-msg';
   var isAI = role === 'assistant';
@@ -5505,7 +5506,7 @@ function addAIMessage(role, content) {
 }
 
 function showTyping() {
-  var messages = document.getElementById('ai-messages');
+  var messages = document.getElementById('ai-chat-messages');
   var div = document.createElement('div');
   div.className = 'ai-msg';
   div.id = 'ai-typing-indicator';
@@ -5547,10 +5548,6 @@ async function sendAIChat() {
   var input = document.getElementById('ai-chat-input');
   var q = (input.value || '').trim();
   if (!q || aiTyping) return;
-
-  // Hide suggested prompts after first use
-  var suggested = document.getElementById('ai-suggested');
-  if (suggested) suggested.style.display = 'none';
 
   input.value = '';
   aiTyping = true;
