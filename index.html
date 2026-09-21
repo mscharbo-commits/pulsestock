@@ -2198,19 +2198,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     // Final render without cursor
     if(!fullText) throw new Error('No response received. Please try again.');
     const streamEl = document.getElementById('ai-stream-body');
-    if(streamEl) {
-      if(!fullText || fullText.trim().length < 10) {
-        streamEl.innerHTML = '<p style="color:var(--text2);padding:16px;">Analysis text is empty (length: ' + (fullText||'').length + '). Please click Refresh Analysis.</p>';
-      } else {
-        var formatted = formatAIResponse(fullText);
-        if(!formatted || formatted.trim().length < 10) {
-          // formatAIResponse returned empty — show raw text for debugging
-          streamEl.innerHTML = '<pre style="white-space:pre-wrap;color:var(--text);font-size:12px;padding:16px;">' + fullText.substring(0,500) + '...</pre>';
-        } else {
-          streamEl.innerHTML = formatted;
-        }
-      }
-    }
+    if(streamEl) streamEl.innerHTML = formatAIResponse(fullText);
 
     // Append key metrics boxes below the analysis
     var f2 = FUNDAMENTALS[ticker] || {};
@@ -2309,18 +2297,18 @@ function formatAIResponse(raw){
           var items = part.split(/\n/).filter(function(l){ return l.trim(); });
           bodyHtml += '<ul style="padding-left:20px;margin:0 0 10px;">';
           items.forEach(function(item) {
-            bodyHtml += '<li style="margin-bottom:8px;color:var(--text);line-height:1.8;font-size:14.5px;">' + item.replace(/^[•\-\*] /, '') + '</li>';
+            bodyHtml += '<li style="margin-bottom:8px;color:#0D1117;line-height:1.8;font-size:14.5px;">' + item.replace(/^[•\-\*] /, '') + '</li>';
           });
           bodyHtml += '</ul>';
         } else {
           // Regular paragraph - split on newlines for sub-paragraphs
           var lines = part.split(/\n/).filter(function(l){ return l.trim(); });
-          bodyHtml += '<p style="margin:0 0 14px;color:var(--text,#0D1117);line-height:1.9;font-size:14.5px;">' + lines.join(' ') + '</p>';
+          bodyHtml += '<p style="margin:0 0 14px;color:#0D1117;line-height:1.9;font-size:14.5px;">' + lines.join(' ') + '</p>';
         }
       });
       // Fallback: if no double newlines, split on single newlines
       if (!bodyHtml) {
-        bodyHtml = '<p style="color:var(--text,#0D1117);line-height:1.9;font-size:14.5px;">' + body.replace(/\n/g, ' ') + '</p>';
+        bodyHtml = '<p style="color:#0D1117;line-height:1.9;font-size:14.5px;">' + body.replace(/\n/g, ' ') + '</p>';
       }
       html += '<div class="ai-section ai-section-' + s.cls + '"><div class="ai-section-title">' + s.icon + ' ' + s.title + '</div><div class="ai-section-body">' + bodyHtml + '</div></div>';
     }
