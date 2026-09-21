@@ -28,7 +28,7 @@ async function getLiveContext() {
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
-  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, spotCommodities] = await Promise.all([
+  const [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
@@ -52,6 +52,21 @@ async function getLiveContext() {
       }
       return {};
     })(),
+    // Live forex rates
+    fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(r => r.ok ? r.json() : null).catch(() => null),
+    // Live spot commodities via Eulerpool
+    Promise.all([
+      fetch('https://api.eulerpool.com/v1/commodities/XAUUSD/quote', {
+        headers: { 'Authorization': `Bearer ${process.env.EULERPOOL_API_KEY}` }
+      }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('https://api.eulerpool.com/v1/commodities/WTICOUSD/quote', {
+        headers: { 'Authorization': `Bearer ${process.env.EULERPOOL_API_KEY}` }
+      }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('https://api.eulerpool.com/v1/commodities/XAGUSD/quote', {
+        headers: { 'Authorization': `Bearer ${process.env.EULERPOOL_API_KEY}` }
+      }).then(r => r.ok ? r.json() : null).catch(() => null)
+    ])
   ]);
 
   const sq = sectorQuotes.filter(Boolean);
