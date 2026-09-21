@@ -154,7 +154,9 @@ ${liveContext}
 
 INSTRUCTIONS:
 - You HAVE live crypto prices above — ALWAYS use them when crypto is mentioned
-- Never say you don't have crypto data — it is in the CRYPTO section above
+- You HAVE global markets data above — futures, foreign indices, oil, DXY — ALWAYS use them for pre-market and opening questions
+- Never say you don't have global or crypto data — it is all above
+- When asked "what does the open look like" or "pre-market" questions — lead with S&P futures, Nasdaq futures, then overnight foreign markets (Nikkei, DAX, etc), then oil and DXY
 - Use the live data above to give specific, current answers with real numbers
 - When asked what moved the market, reference today's actual sector moves and news headlines above
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
