@@ -168,9 +168,18 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         sectorEtf ? safeFetch(`https://finnhub.io/api/v1/company-news?symbol=${sectorEtf}&from=${weekAgo}&to=${today}&token=${FINNHUB_KEY}`) : Promise.resolve(null),
         // Polygon for volume/VWAP
         POLYGON_KEY ? safeFetch(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${POLYGON_KEY}`) : Promise.resolve(null),
+        // Insider transactions (SEC Form 4)
+        safeFetch(`https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${FINNHUB_KEY}`),
+        // Analyst recommendations + price target
+        safeFetch(`https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${FINNHUB_KEY}`),
+        safeFetch(`https://finnhub.io/api/v1/stock/price-target?symbol=${ticker}&token=${FINNHUB_KEY}`),
+        // Short interest
+        safeFetch(`https://finnhub.io/api/v1/stock/short-interest?symbol=${ticker}&token=${FINNHUB_KEY}`),
+        // Institutional ownership
+        safeFetch(`https://finnhub.io/api/v1/institutional/ownership?symbol=${ticker}&token=${FINNHUB_KEY}`),
       ];
 
-      const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap] = await Promise.all(fetchList);
+      const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap, insiderRaw, analystRec, analystTarget, shortInt, institutional] = await Promise.all(fetchList);
 
       const parts = [];
 
