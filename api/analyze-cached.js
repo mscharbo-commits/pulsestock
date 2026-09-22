@@ -229,6 +229,41 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         }
       }
 
+      // === INSIDER TRANSACTIONS ===
+      const insiders = insiderRaw?.data?.filter(t => t.transactionType === 'P-Purchase' || t.transactionType === 'S-Sale').slice(0,5) || [];
+      if (insiders.length) {
+        const buys = insiders.filter(t => t.transactionType === 'P-Purchase').length;
+        const sells = insiders.filter(t => t.transactionType === 'S-Sale').length;
+        parts.push(`\n=== INSIDER ACTIVITY (last 90 days) ===`);
+        parts.push(`${buys} insider purchases, ${sells} insider sales`);
+        insiders.forEach(t => parts.push(`• ${t.name} (${t.officerTitle||'Insider'}): ${t.transactionType==='P-Purchase'?'BUY':'SELL'} ${t.share?.toLocaleString()||0} shares @ $${t.price?.toFixed(2)||0}`));
+      }
+
+      // === ANALYST CONSENSUS ===
+      if (analystRec?.length) {
+        const ar = analystRec[0];
+        const total = (ar.strongBuy||0)+(ar.buy||0)+(ar.hold||0)+(ar.sell||0)+(ar.strongSell||0);
+        const bullPct = total ? (((ar.strongBuy||0)+(ar.buy||0))/total*100).toFixed(0) : 0;
+        parts.push(`\n=== ANALYST CONSENSUS (${ar.period}) ===`);
+        parts.push(`${total} analysts — Strong Buy: ${ar.strongBuy||0}, Buy: ${ar.buy||0}, Hold: ${ar.hold||0}, Sell: ${ar.sell||0}, Strong Sell: ${ar.strongSell||0} | ${bullPct}% bullish`);
+        if (analystTarget?.targetMean) parts.push(`Price Target: Mean $${analystTarget.targetMean.toFixed(2)} | High $${analystTarget.targetHigh?.toFixed(2)} | Low $${analystTarget.targetLow?.toFixed(2)} | ${analystTarget.numberOfAnalysts} analysts`);
+      }
+
+      // === SHORT INTEREST ===
+      if (shortInt?.shortInterest) {
+        const si = Array.isArray(shortInt.shortInterest) ? shortInt.shortInterest[0] : shortInt.shortInterest;
+        if (si) {
+          parts.push(`\n=== SHORT INTEREST ===`);
+          parts.push(`Short Interest: ${si.shortInterest?.toLocaleString()||'N/A'} shares | Days to Cover: ${si.daysToCover?.toFixed(1)||'N/A'} | Short % Float: ${si.shortPercent?.toFixed(1)||'N/A'}%`);
+        }
+      }
+
+      // === INSTITUTIONAL OWNERSHIP ===
+      if (institutional?.ownership?.length) {
+        parts.push(`\n=== INSTITUTIONAL OWNERSHIP ===`);
+        institutional.ownership.slice(0,3).forEach(i => parts.push(`• ${i.name}: ${i.share?.toLocaleString()||0} shares (${i.percentShares?.toFixed(2)||0}%)`));
+      }
+
       // Broad market
       parts.push(`\n=== BROAD MARKET CONTEXT ===`);
       if (spy?.c) parts.push(`SPY (S&P 500): $${spy.c.toFixed(2)} | ${spy.dp >= 0 ? '+' : ''}${spy.dp?.toFixed(2)}% — ${spy.dp > 0.5 ? 'Risk-On' : spy.dp < -0.5 ? 'Risk-Off' : 'Neutral'}`);
