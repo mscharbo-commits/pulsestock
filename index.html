@@ -2126,8 +2126,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
         ticker, tier: 'free',
         forceRefresh: !!forceRefresh,
         system: systemMsg,
-        messages: [{ role: 'user', content: prompt }],
-        intelligence: window._currentIntelligence || null
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
@@ -2163,13 +2162,17 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
             // Handle cache_hit event — update timestamp to show cache info
             if(parsed.type === 'cache_hit'){
               var tsNow = document.getElementById('ai-analysis-timestamp');
-              if(tsNow){ tsNow.style.display='flex'; tsNow.innerHTML='<span style="color:var(--green);font-size:8px;">●</span> Live AI Analysis'; }
+              if(tsNow){ tsNow.style.display='flex'; tsNow.innerHTML='<span style="color:var(--green);font-size:8px;">●</span> Cached Analysis'; }
             }
             // Handle text deltas
             if(parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text){
               fullText += parsed.delta.text;
             } else if(parsed.delta && parsed.delta.type === 'text_delta' && parsed.delta.text){
               fullText += parsed.delta.text;
+            } else if(parsed.type === 'message_start' || parsed.type === 'content_block_start'){
+              // ignore these event types
+            } else if(!['cache_hit','message_delta','message_stop','content_block_stop','ping'].includes(parsed.type)){
+              console.log('[AI] Unhandled event type:', parsed.type, parsed);
             }
             // Handle web search tool use — show searching indicator
             if(parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use'){
@@ -2197,7 +2200,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     const streamEl = document.getElementById('ai-stream-body');
     if(streamEl) streamEl.innerHTML = formatAIResponse(fullText);
 
-        // Append key metrics boxes below the analysis
+    // Append key metrics boxes below the analysis
     var f2 = FUNDAMENTALS[ticker] || {};
     var sm2 = stockMetrics || {};
     function fmtM(n){ if(!n||isNaN(n))return '—'; n=parseFloat(n); if(n>=1e9)return (n/1e9).toFixed(2)+'B'; if(n>=1e6)return (n/1e6).toFixed(1)+'M'; return n.toFixed(0); }
