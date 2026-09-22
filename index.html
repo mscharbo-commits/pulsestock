@@ -2196,43 +2196,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     const streamEl = document.getElementById('ai-stream-body');
     if(streamEl) streamEl.innerHTML = formatAIResponse(fullText);
 
-    // ── FACTOR GRADES ──
-    var sm2g = stockMetrics || {};
-    var f2g  = FUNDAMENTALS[ticker] || {};
-    function gradeColor(g){ var c={'A':'#10B981','B':'#34D399','C':'#F59E0B','D':'#F97316','F':'#EF4444'}; return c[g[0]]||'#94A3B8'; }
-    function calcGrades(sm, f){
-      // Valuation — P/E vs sector norms
-      var pe = parseFloat(sm.peRatio || f2g.pe || 0);
-      var vg = pe <= 0 ? 'N/A' : pe < 15 ? 'A' : pe < 25 ? 'B' : pe < 40 ? 'C' : pe < 80 ? 'D' : 'F';
-      // Growth — revenue growth
-      var rg = parseFloat(sm.revenueGrowthTTM || 0) * 100;
-      var gg = rg > 25 ? 'A' : rg > 15 ? 'B' : rg > 5 ? 'C' : rg > 0 ? 'D' : 'F';
-      // Profitability — net margin
-      var nm = parseFloat(sm.netMargin?.replace('%','') || 0);
-      var pg = nm > 20 ? 'A' : nm > 10 ? 'B' : nm > 3 ? 'C' : nm > 0 ? 'D' : 'F';
-      // Momentum — price vs 52W range
-      var hi = parseFloat(sm.week52High || 0);
-      var lo = parseFloat(sm.week52Low || 0);
-      var pr = parseFloat(sm.price || 0);
-      var pos = (hi > lo && pr > 0) ? ((pr - lo) / (hi - lo)) : 0.5;
-      var mg = pos > 0.8 ? 'A' : pos > 0.6 ? 'B' : pos > 0.4 ? 'C' : pos > 0.2 ? 'D' : 'F';
-      // Short Interest — inverse signal
-      var si = parseFloat(sm.shortRatio || 0);
-      var sg = si < 2 ? 'A' : si < 5 ? 'B' : si < 10 ? 'C' : si < 20 ? 'D' : 'F';
-      return { Valuation: vg, Growth: gg, Profitability: pg, Momentum: mg, 'Short Risk': sg };
-    }
-    var grades = calcGrades(sm2g, f2g);
-    var gradeHTML = '<div style="margin:16px 0;padding:14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2,var(--surface));">'
-      + '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">Factor Grades</div>'
-      + '<div style="display:flex;gap:10px;flex-wrap:wrap;">'
-      + Object.entries(grades).map(([k,v]) => '<div style="text-align:center;min-width:70px;">'
-        + '<div style="font-size:22px;font-weight:900;color:'+gradeColor(v)+';">'+v+'</div>'
-        + '<div style="font-size:10px;color:var(--text3);margin-top:2px;">'+k+'</div>'
-        + '</div>').join('')
-      + '</div></div>';
-    streamEl.insertAdjacentHTML('afterend', gradeHTML);
-
-    // Append key metrics boxes below the analysis
+        // Append key metrics boxes below the analysis
     var f2 = FUNDAMENTALS[ticker] || {};
     var sm2 = stockMetrics || {};
     function fmtM(n){ if(!n||isNaN(n))return '—'; n=parseFloat(n); if(n>=1e9)return (n/1e9).toFixed(2)+'B'; if(n>=1e6)return (n/1e6).toFixed(1)+'M'; return n.toFixed(0); }
