@@ -35,6 +35,20 @@ async function safeFetch(url, timeout = 4000) {
   } catch(e) { return null; }
 }
 
+async function quiverFetch(path, key, timeout = 5000) {
+  try {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), timeout);
+    const r = await fetch(`https://api.quiverquant.com/beta/${path}`, {
+      signal: ctrl.signal,
+      headers: { 'Authorization': `Token ${key}`, 'Accept': 'application/json' }
+    });
+    clearTimeout(id);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
 export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -184,14 +198,12 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
 
       // Debug: log what data we got
       console.log('[analyze] data check:', {
-        hasInsider: !!insiderRaw?.data?.length,
-        insiderCount: insiderRaw?.data?.length || 0,
+        hasInsider: !!insiderRaw?.data?.length, insiderCount: insiderRaw?.data?.length || 0,
         hasAnalystRec: !!analystRec?.length,
-        analystTargetKeys: analystTarget ? Object.keys(analystTarget) : [],
-        hasIntelligence: !!intelligence,
-        hasDarkPool: !!intelligence?.darkPool,
-        hasBorrowRate: !!intelligence?.borrowRate,
-        intelligenceKeys: intelligence ? Object.keys(intelligence) : [],
+        hasIntelligence: !!intelligence, intelligenceKeys: intelligence ? Object.keys(intelligence) : [],
+        congressTrades: congressTrades?.length || 0,
+        quiverShort: quiverShort?.length || 0,
+        lobbying: lobbying?.length || 0,
       });
 
       const parts = [];
@@ -296,6 +308,28 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
       if (intelligence?.congressional?.length) {
         parts.push(`\n=== CONGRESSIONAL TRADES ===`);
         intelligence.congressional.slice(0,3).forEach(t => parts.push(`• ${t.representative} (${t.party}): ${t.type} $${t.amount} on ${t.transactionDate}`));
+      }
+      // Quiver congressional trades
+      if (Array.isArray(congressTrades) && congressTrades.length) {
+        parts.push(`\n=== CONGRESSIONAL TRADES (Quiver) ===`);
+        congressTrades.slice(0,5).forEach(t => parts.push(`• ${t.Representative} (${t.Party||'?'}): ${t.Transaction} $${t.Range} on ${t.TransactionDate} — ${t.Ticker}`));
+      }
+      // Quiver short interest
+      if (Array.isArray(quiverShort) && quiverShort.length) {
+        const si = quiverShort[0];
+        parts.push(`\n=== SHORT INTEREST (Quiver) ===`);
+        parts.push(`Short % of Float: ${si.ShortPercent?.toFixed(1)}% | Short Interest: ${si.ShortInterest?.toLocaleString()} shares | Date: ${si.Date}`);
+        if (quiverShort.length > 1) {
+          const prev = quiverShort[1];
+          const chg = si.ShortPercent - prev.ShortPercent;
+          parts.push(`Trend: ${chg > 0 ? '↑ Short interest INCREASING' : '↓ Short interest DECREASING'} (${chg > 0 ? '+' : ''}${chg.toFixed(1)}% vs prior period)`);
+        }
+      }
+      // Quiver lobbying
+      if (Array.isArray(lobbying) && lobbying.length) {
+        const total = lobbying.reduce((s,l) => s + (l.Amount||0), 0);
+        parts.push(`\n=== LOBBYING SPEND ===`);
+        parts.push(`Total lobbying: $${(total/1e6).toFixed(1)}M | Recent: ${lobbying.slice(0,2).map(l => `${l.Issue||l.SpecificIssue||'general'} ($${((l.Amount||0)/1e3).toFixed(0)}K)`).join(', ')}`);
       }
 
       // Broad market
