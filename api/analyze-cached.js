@@ -181,6 +181,17 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
 
       const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap, insiderRaw, analystRec, analystTarget, shortInt, institutional] = await Promise.all(fetchList);
 
+      // Debug: log what data we got
+      console.log('[analyze] data check:', {
+        hasInsider: !!insiderRaw?.data?.length,
+        insiderCount: insiderRaw?.data?.length || 0,
+        hasAnalystRec: !!analystRec?.length,
+        hasAnalystTarget: !!analystTarget?.targetMean,
+        hasShort: !!shortInt,
+        shortKeys: shortInt ? Object.keys(shortInt) : [],
+        hasInstitutional: !!institutional?.ownership?.length,
+      });
+
       const parts = [];
 
       // Stock data
