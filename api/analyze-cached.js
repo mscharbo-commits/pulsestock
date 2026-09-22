@@ -186,10 +186,8 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         hasInsider: !!insiderRaw?.data?.length,
         insiderCount: insiderRaw?.data?.length || 0,
         hasAnalystRec: !!analystRec?.length,
-        hasAnalystTarget: !!analystTarget?.targetMean,
-        hasShort: !!shortInt,
-        shortKeys: shortInt ? Object.keys(shortInt) : [],
-        hasInstitutional: !!institutional?.ownership?.length,
+        analystTargetKeys: analystTarget ? Object.keys(analystTarget) : [],
+        analystTargetVal: analystTarget,
       });
 
       const parts = [];
@@ -257,7 +255,8 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         const bullPct = total ? (((ar.strongBuy||0)+(ar.buy||0))/total*100).toFixed(0) : 0;
         parts.push(`\n=== ANALYST CONSENSUS (${ar.period}) ===`);
         parts.push(`${total} analysts — Strong Buy: ${ar.strongBuy||0}, Buy: ${ar.buy||0}, Hold: ${ar.hold||0}, Sell: ${ar.sell||0}, Strong Sell: ${ar.strongSell||0} | ${bullPct}% bullish`);
-        if (analystTarget?.targetMean) parts.push(`Price Target: Mean $${analystTarget.targetMean.toFixed(2)} | High $${analystTarget.targetHigh?.toFixed(2)} | Low $${analystTarget.targetLow?.toFixed(2)} | ${analystTarget.numberOfAnalysts} analysts`);
+        if (analystTarget?.targetMean) parts.push(`Price Target: Mean $${analystTarget.targetMean?.toFixed(2)} | High $${analystTarget.targetHigh?.toFixed(2)} | Low $${analystTarget.targetLow?.toFixed(2)} | ${analystTarget.numberOfAnalysts||'N/A'} analysts`);
+        else if (analystTarget?.targetMedian) parts.push(`Price Target: Median $${analystTarget.targetMedian?.toFixed(2)}`);
       }
 
       // === SHORT INTEREST ===
