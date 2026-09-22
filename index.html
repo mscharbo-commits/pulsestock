@@ -2126,7 +2126,8 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
         ticker, tier: 'free',
         forceRefresh: !!forceRefresh,
         system: systemMsg,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: prompt }],
+        intelligence: window._currentIntelligence || null
       })
     });
 
