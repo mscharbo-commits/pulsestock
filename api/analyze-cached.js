@@ -194,7 +194,7 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         safeFetch(`https://finnhub.io/api/v1/institutional/ownership?symbol=${ticker}&token=${FINNHUB_KEY}`),
       ];
 
-      const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap, insiderRaw, analystRec, analystTarget, shortInt, institutional] = await Promise.all(fetchList);
+      const [quote, metrics, news, spy, qqq, vix, sectorQ, sectorNews, polySnap, insiderRaw, analystRec, analystTarget, shortInt, institutional, congressTrades, quiverShort, lobbying] = await Promise.all(fetchList);
 
       // Debug: log what data we got
       console.log('[analyze] data check:', {
