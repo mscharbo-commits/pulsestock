@@ -201,9 +201,6 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         hasInsider: !!insiderRaw?.data?.length, insiderCount: insiderRaw?.data?.length || 0,
         hasAnalystRec: !!analystRec?.length,
         hasIntelligence: !!intelligence, intelligenceKeys: intelligence ? Object.keys(intelligence) : [],
-        congressTrades: congressTrades?.length || 0,
-        quiverShort: quiverShort?.length || 0,
-        lobbying: lobbying?.length || 0,
       });
 
       const parts = [];
