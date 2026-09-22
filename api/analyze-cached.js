@@ -44,6 +44,7 @@ export default async function handler(req) {
     const messages = body.messages || [];
     const ticker = body.ticker || '';
     const forceRefresh = body.forceRefresh || false;
+    const intelligence = body.intelligence || null;
     if (!messages.length) return new Response(JSON.stringify({ error: 'No messages' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     if (!process.env.ANTHROPIC_API_KEY) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
@@ -259,7 +260,23 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         else if (analystTarget?.targetMedian) parts.push(`Price Target: Median $${analystTarget.targetMedian?.toFixed(2)}`);
       }
 
-      // === SHORT INTEREST ===
+      // === SHORT INTEREST (from FINRA via frontend) ===
+      if (intelligence?.darkPool?.latest) {
+        const dp = intelligence.darkPool.latest;
+        parts.push(`\n=== SHORT SALE FLOW (FINRA) ===`);
+        parts.push(`Short Sale Volume: ${dp.shortSalePct}% of total volume | Net flow: ${dp.netDollar >= 0 ? 'Net BUYING' : 'Net SELLING'} ($${Math.abs(dp.netDollar/1e9).toFixed(2)}B net)`);
+        if (intelligence.darkPool.trend) parts.push(`5-Day Trend: ${intelligence.darkPool.trend}`);
+      }
+      if (intelligence?.borrowRate) {
+        const br = intelligence.borrowRate;
+        const brParts = [];
+        if (br.shortPct) brParts.push(`Short Float: ${br.shortPct}%`);
+        if (br.shortRatio) brParts.push(`Days to Cover: ${br.shortRatio}`);
+        if (br.annualFee) brParts.push(`Borrow Rate: ${br.annualFee}% annually`);
+        if (brParts.length) parts.push(`Short Interest: ${brParts.join(' | ')}`);
+      }
+
+      // === SHORT INTEREST (Finnhub fallback) ===
       if (shortInt?.shortInterest) {
         const si = Array.isArray(shortInt.shortInterest) ? shortInt.shortInterest[0] : shortInt.shortInterest;
         if (si) {
@@ -272,6 +289,10 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
       if (institutional?.ownership?.length) {
         parts.push(`\n=== INSTITUTIONAL OWNERSHIP ===`);
         institutional.ownership.slice(0,3).forEach(i => parts.push(`• ${i.name}: ${i.share?.toLocaleString()||0} shares (${i.percentShares?.toFixed(2)||0}%)`));
+      }
+      if (intelligence?.congressional?.length) {
+        parts.push(`\n=== CONGRESSIONAL TRADES ===`);
+        intelligence.congressional.slice(0,3).forEach(t => parts.push(`• ${t.representative} (${t.party}): ${t.type} $${t.amount} on ${t.transactionDate}`));
       }
 
       // Broad market
