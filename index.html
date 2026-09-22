@@ -2199,7 +2199,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
     // ── FACTOR GRADES ──
     var sm2g = stockMetrics || {};
     var f2g  = FUNDAMENTALS[ticker] || {};
-    function gradeColor(g){ return {A:'+':'#10B981','B':'+':'#34D399','C':'#F59E0B','D':'#F97316','F':'#EF4444'}[g[0]] || '#94A3B8'; }
+    function gradeColor(g){ var c={'A':'#10B981','B':'#34D399','C':'#F59E0B','D':'#F97316','F':'#EF4444'}; return c[g[0]]||'#94A3B8'; }
     function calcGrades(sm, f){
       // Valuation — P/E vs sector norms
       var pe = parseFloat(sm.peRatio || f2g.pe || 0);
