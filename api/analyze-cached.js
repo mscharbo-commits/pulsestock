@@ -188,7 +188,10 @@ $[price] — reason: [aggressive target, % upside, catalyst required]
         insiderCount: insiderRaw?.data?.length || 0,
         hasAnalystRec: !!analystRec?.length,
         analystTargetKeys: analystTarget ? Object.keys(analystTarget) : [],
-        analystTargetVal: analystTarget,
+        hasIntelligence: !!intelligence,
+        hasDarkPool: !!intelligence?.darkPool,
+        hasBorrowRate: !!intelligence?.borrowRate,
+        intelligenceKeys: intelligence ? Object.keys(intelligence) : [],
       });
 
       const parts = [];
