@@ -1982,6 +1982,8 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
   if(edgarData.isFullyReporting){
     var fin = edgarData.financials || {};
     otcNote = ticker + ' (' + (edgarData.companyName||name) + ') is a FULLY REPORTING SEC company with audited financials. ';
+    if(profile.finnhubIndustry) otcNote += 'Industry: ' + profile.finnhubIndustry + '. ';
+    if(profile.description) otcNote += 'Business: ' + profile.description.substring(0,300) + '. ';
     otcNote += 'Recent SEC filings: ' + (edgarData.filingTypes||[]).join(', ') + '. Last filing: ' + (edgarData.lastFilingDate||'N/A') + '. ';
     if(fin.revenue) otcNote += 'Revenue: $' + fin.revenue + '. ';
     if(fin.netIncome) otcNote += 'Net Income: $' + fin.netIncome + '. ';
