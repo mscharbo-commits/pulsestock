@@ -2332,7 +2332,19 @@ function formatAIResponse(raw){
                         || raw.match(/\$([\d]+).*?12.month/i);
       const verdictTarget = targetMatch ? targetMatch[1] : '—';
       const target = target2Match ? target2Match[1].replace(/[^\d]/g,'') : verdictTarget;
-      const vc = verdict === 'BUY' ? 'buy' : verdict === 'SELL' ? 'sell' : 'hold';
+      // Sanity check: if HOLD/BUY but target < current price, flip to SELL
+      // if HOLD/SELL but target > current price by >10%, flip to BUY
+      let finalVerdict = verdict;
+      const targetNum = parseFloat(target.replace(/[^\d.]/g,'')) || 0;
+      const curPriceNum = parseFloat(curPrice) || 0;
+      if(targetNum > 0 && curPriceNum > 0) {
+        if((finalVerdict === 'HOLD' || finalVerdict === 'BUY') && targetNum < curPriceNum * 0.95) {
+          finalVerdict = 'SELL';
+        } else if((finalVerdict === 'HOLD' || finalVerdict === 'SELL') && targetNum > curPriceNum * 1.10) {
+          finalVerdict = 'BUY';
+        }
+      }
+      const vc = finalVerdict === 'BUY' ? 'buy' : finalVerdict === 'SELL' ? 'sell' : 'hold';
       html += '<div class="verdict-banner verdict-' + vc + '">'
         + '<div><div style="font-size:11px;font-weight:600;opacity:.6;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Recommendation</div>'
         + '<div class="verdict-word">' + verdict + '</div></div>'
