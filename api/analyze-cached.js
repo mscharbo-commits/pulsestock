@@ -409,10 +409,12 @@ Be specific with actual numbers from the data (P/E, margins, RSI, MA levels, sec
               try {
                 const evt = JSON.parse(line.slice(5));
                 if(evt.delta?.text) fullText += evt.delta.text;
+                else if(evt.delta?.type === 'text_delta' && evt.delta?.text) fullText += evt.delta.text;
+                else if(evt.type === 'content_block_delta' && evt.delta?.text) fullText += evt.delta.text;
               } catch(e) {}
             }
           }
-          if(fullText.length > 100) {
+          if(fullText.length > 1500) { // Only cache complete analyses
             // Extract price and headlines from contextData
             const priceMatch = contextData.match(/Price: \$([\d.]+)/);
             const price = priceMatch ? parseFloat(priceMatch[1]) : null;
