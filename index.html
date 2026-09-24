@@ -1970,7 +1970,7 @@ fetchWithTimeout('/api/intelligence?ticker=' + encodeURIComponent(ticker) + '&fe
         .catch(function(){}),
   ]);
 
-  var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A');
+  var curPrice = liveQuote ? liveQuote.price.toFixed(2) : ((quoteCache[ticker]||{}).price||'N/A'); window._lastCurPrice = curPrice;
   var curChange = liveQuote ? (liveQuote.pct >= 0 ? '+' : '') + liveQuote.pct.toFixed(2) + '%' : '';
   var profile = window._currentProfile || {};
   var exchangeInfo = profile ? (profile.exchange || profile.finnhubIndustry || '') : '';
@@ -2339,7 +2339,7 @@ function formatAIResponse(raw){
       // if HOLD/SELL but target > current price by >10%, flip to BUY
       let finalVerdict = verdict;
       const targetNum = parseFloat(target.replace(/[^\d.]/g,'')) || 0;
-      const curPriceNum = parseFloat(curPrice) || 0;
+      const curPriceNum = parseFloat(typeof curPrice !== 'undefined' ? curPrice : (window._lastCurPrice || 0)) || 0;
       if(targetNum > 0 && curPriceNum > 0) {
         if((finalVerdict === 'HOLD' || finalVerdict === 'BUY') && targetNum < curPriceNum * 0.95) {
           finalVerdict = 'SELL';
