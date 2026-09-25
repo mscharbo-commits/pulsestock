@@ -169,12 +169,14 @@ INSTRUCTIONS:
   3. SECTOR ROTATION — which sectors are leading/lagging with actual ETF percentages, what the rotation signals about investor sentiment
   4. COMMODITIES & DOLLAR — oil (USO), gold (GLD), DXY direction and what they signal about risk appetite and inflation expectations
   5. KEY CATALYSTS TO WATCH — specific events, data releases, geopolitical tripwires for the week ahead with dates if known
-  6. TRADING POSTURE — what conviction level the setup supports, what PulseStock tools to use (Morning Picks, Death Spiral Tracker, AI Analysis)
+  6. TECHNICAL PICTURE — this is MANDATORY for traders: SPY and QQQ position relative to key moving averages (50-day, 200-day), RSI reading and what it signals (overbought >70, oversold <30, neutral), MACD momentum direction, VIX level and trend, key support and resistance levels for SPY/QQQ, whether the market is in an uptrend/downtrend/consolidation, and any chart patterns forming. Use VIX from the data above. Be specific — "SPY testing 50-day MA support" not vague generalities.
+  7. TRADING POSTURE — what conviction level the setup supports based on the technical and macro picture combined, what PulseStock tools to use (Morning Picks, Death Spiral Tracker, AI Analysis)
 - Use the live data above to give specific, current answers with real numbers
 - When asked what moved the market, reference today's actual sector moves and news headlines above
+- When asked about a specific stock or ticker, ALWAYS include: current price vs 52-week range, momentum direction, whether it's overbought/oversold, key support and resistance levels
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
 - Give direct, confident answers with real prices and percentages — not generic advice
-- For weekly outlook questions write 6 structured sections. For daily questions keep to 3-5 paragraphs. Match depth to the question.
+- For weekly outlook questions write all 7 structured sections. For daily questions keep to 3-5 paragraphs but always include technical context. For individual stock questions always include technical analysis. Match depth to the question.
 - Always tie back to PulseStock tools when relevant`;
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
