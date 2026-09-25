@@ -1,7 +1,8 @@
 // serverless runtime — full network access for CoinGecko/Binance
 
 const FHK  = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
-const POLY_KEY = process.env.POLYGON_API_KEY || '';
+const POLY_KEY = process.env.POLYGON_API_KEY || process.env.POLY_KEY || '';
+console.log('[chat] POLY_KEY available:', !!POLY_KEY, 'length:', POLY_KEY.length);
 const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Y3BycWtvaWJpenRpYmhwc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNTk5NjcsImV4cCI6MjA5NTkzNTk2N30.kO-a0NYLQ0rrAV1V7Aj4O8Mwm7KFq2NPfIQl2uY5sDY';
 
@@ -140,7 +141,7 @@ SMA50: $${techData?.spySma50?.toFixed(2)||'N/A'} | SMA200: $${techData?.spySma20
 US EQUITIES (most recent session):
 SPY: $${spy?.c?.toFixed(2)||spy?.pc?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${sq.find(x=>x.s==='QQQ')?.c?.toFixed(2)||sq.find(x=>x.s==='QQQ')?.pc?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
 VIX: ${vix?.c?.toFixed(1)||vix?.pc?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
-10yr Yield (TNX): ${tnx?.c?.toFixed(2)||tnx?.pc?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(3)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
+10yr Yield (TNX): ${(tnx?.pc || tnx?.c || 0) > 0 ? (tnx?.pc || tnx?.c).toFixed(2) : 'N/A'}% last session close | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
 Gold (GLD): ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}% | USE THESE NUMBERS — this is real market data, not estimates
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
@@ -165,7 +166,8 @@ PULSESTOCK OPEN PICKS (AI-selected):
 ${picksLines}`;
 
   // Debug: log what's in the context
-  console.log('[chat] context sample:', {
+  console.log('[chat] sq length:', sq.length, 'tnx pc:', tnx?.pc, 'tnx c:', tnx?.c, 'vix c:', vix?.c);
+console.log('[chat] context sample:', {
     spy_c: sq.find(x=>x.s==='SPY')?.c,
     spy_pc: sq.find(x=>x.s==='SPY')?.pc,
     tnx_c: sq.find(x=>x.s==='^TNX')?.c,
