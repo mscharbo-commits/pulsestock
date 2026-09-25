@@ -1,6 +1,7 @@
 // serverless runtime — full network access for CoinGecko/Binance
 
 const FHK  = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
+const POLY_KEY = process.env.POLYGON_API_KEY || '';
 const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Y3BycWtvaWJpenRpYmhwc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNTk5NjcsImV4cCI6MjA5NTkzNTk2N30.kO-a0NYLQ0rrAV1V7Aj4O8Mwm7KFq2NPfIQl2uY5sDY';
 
@@ -33,9 +34,9 @@ async function getLiveContext() {
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
-  let sectorQuotes=[], marketNews=[], econCal=[], openPicks=[], cryptoPrices={}, globalData=[], forexRates=null, spotCommodities=[null,null,null];
+  let sectorQuotes=[], marketNews=[], econCal=[], openPicks=[], cryptoPrices={}, globalData=[], forexRates=null, spotCommodities=[null,null,null], techData={};
   try {
-  [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities] = await Promise.all([
+  [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities, techData] = await Promise.all([
     Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
@@ -113,6 +114,9 @@ async function getLiveContext() {
   }).filter(Boolean).join(' | ');
 
   return `LIVE MARKET DATA — ${now} ET
+
+TECHNICAL INDICATORS (SPY/QQQ):
+SMA50: $${techData?.spySma50?.toFixed(2)||'N/A'} | SMA200: $${techData?.spySma200?.toFixed(2)||'N/A'} | RSI(14): ${techData?.spyRsi?.toFixed(1)||'N/A'} ${(techData?.spyRsi||50) > 70 ? '— OVERBOUGHT' : (techData?.spyRsi||50) < 30 ? '— OVERSOLD' : '— NEUTRAL'} | QQQ SMA50: $${techData?.qqqSma50?.toFixed(2)||'N/A'}
 
 US EQUITIES (most recent session):
 SPY: $${spy?.c?.toFixed(2)||spy?.pc?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${sq.find(x=>x.s==='QQQ')?.c?.toFixed(2)||sq.find(x=>x.s==='QQQ')?.pc?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
