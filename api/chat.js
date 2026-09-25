@@ -114,10 +114,11 @@ async function getLiveContext() {
 
   return `LIVE MARKET DATA — ${now} ET
 
-MARKET: SPY $${spy?.pc?.toFixed(2)||'N/A'} (Friday close) | Friday change: ${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% | NOTE: SPY price above is last Friday close — do NOT say SPY is trading at any current price pre-market
-VIX: ${vix?.c?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
-10yr Yield: ${tnx?.c?.toFixed(2)||'N/A'}%
-GLD: ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(1)||'0'}% | TLT: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(1)||'0'}%
+US EQUITIES (most recent session):
+SPY: $${(spy?.c && spy?.c > 100 ? spy.c : spy?.pc)?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${(sq.find(x=>x.s==='QQQ')?.c || sq.find(x=>x.s==='QQQ')?.pc)?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
+VIX: ${(vix?.c || vix?.pc)?.toFixed(1)||'N/A'} ${((vix?.c||vix?.pc)||0) > 25 ? '— HIGH FEAR' : ((vix?.c||vix?.pc)||0) > 18 ? '— ELEVATED' : '— CALM'}
+10yr Yield (TNX): ${(tnx?.c || tnx?.pc)?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(2)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%
+Gold (GLD): ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}% | USE THESE NUMBERS — this is real market data, not estimates
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
