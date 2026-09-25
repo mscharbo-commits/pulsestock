@@ -144,6 +144,17 @@ ${econEvents}
 
 PULSESTOCK OPEN PICKS (AI-selected):
 ${picksLines}`;
+
+  // Debug: log what's in the context
+  console.log('[chat] context sample:', {
+    spy_c: sq.find(x=>x.s==='SPY')?.c,
+    spy_pc: sq.find(x=>x.s==='SPY')?.pc,
+    tnx_c: sq.find(x=>x.s==='^TNX')?.c,
+    vix_c: sq.find(x=>x.s==='^VIX')?.c,
+    techData,
+    sectorCount: sq.length,
+    forexEur: forexRates?.rates?.EUR,
+  });
 }
 
 export default async function handler(req, res) {
