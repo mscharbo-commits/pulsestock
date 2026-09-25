@@ -74,7 +74,26 @@ async function getLiveContext() {
       fetch('https://api.eulerpool.com/v1/commodities/XAGUSD/quote', {
         headers: { 'Authorization': `Bearer ${process.env.EULERPOOL_API_KEY}` }
       }).then(r => r.ok ? r.json() : null).catch(() => null)
-    ])
+    ]),
+    // Polygon technical indicators — SMA50, SMA200, RSI14 for SPY
+    POLY_KEY ? (async () => {
+      try {
+        const [sma50, sma200, rsi14, qSma50] = await Promise.all([
+          fetch(`https://api.polygon.io/v1/indicators/sma/SPY?timespan=day&adjusted=true&window=50&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.polygon.io/v1/indicators/sma/SPY?timespan=day&adjusted=true&window=200&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.polygon.io/v1/indicators/rsi/SPY?timespan=day&adjusted=true&window=14&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(`https://api.polygon.io/v1/indicators/sma/QQQ?timespan=day&adjusted=true&window=50&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
+        ]);
+        const result = {
+          spySma50:  sma50?.results?.values?.[0]?.value  || null,
+          spySma200: sma200?.results?.values?.[0]?.value || null,
+          spyRsi:    rsi14?.results?.values?.[0]?.value  || null,
+          qqqSma50:  qSma50?.results?.values?.[0]?.value || null,
+        };
+        console.log('[chat] techData:', result);
+        return result;
+      } catch(e) { console.log('[chat] techData error:', e.message); return {}; }
+    })() : Promise.resolve({})
   ]);
   } catch(fetchErr) { console.error('getLiveContext fetch error:', fetchErr.message); }
 
