@@ -38,7 +38,7 @@ async function getLiveContext() {
   let sectorQuotes=[], marketNews=[], econCal=[], openPicks=[], cryptoPrices={}, globalData=[], forexRates=null, spotCommodities=[null,null,null], techData={};
   try {
   [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities, techData] = await Promise.all([
-    Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, dp:q.dp, d:q.d} : null))),
+    Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, pc:q.pc, dp:q.dp, d:q.d, h:q.h, l:q.l} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
