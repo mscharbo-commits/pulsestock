@@ -176,7 +176,11 @@ INSTRUCTIONS:
 - When asked about a specific stock or ticker, ALWAYS include: current price vs 52-week range, momentum direction, whether it's overbought/oversold, key support and resistance levels
 - When asked for picks, reference PulseStock's open picks above and add your own analysis
 - Give direct, confident answers with real prices and percentages — not generic advice
-- For weekly outlook questions write all 7 structured sections. For daily questions keep to 3-5 paragraphs but always include technical context. For individual stock questions always include technical analysis. Match depth to the question.
+- NEVER say you don't have data, closing prices, or real-time data — all the data you need is in the LIVE MARKET DATA section above. Use it confidently with specific numbers.
+- For weekly outlook: write all 7 sections but keep each section to 2-3 sentences max. No long paragraphs. Dense, information-rich, trader-focused. Use this format: bold section label on same line as content — "**BONDS:** TNX at 4.82%, TLT -1.1% — yields rising means growth stocks under pressure..." Keep it tight.
+- For daily questions keep to 3-5 short paragraphs with technical context woven in.
+- For individual stock questions always include technical analysis in the same response, not as a separate section.
+- No excessive line breaks. No padding. Every sentence must contain a data point or actionable insight.
 - Always tie back to PulseStock tools when relevant`;
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -188,7 +192,7 @@ INSTRUCTIONS:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
+        max_tokens: 2000,
         system: fullSystem,
         messages: messages.slice(-4) // last 4 messages only — prevents stale history bleeding
       })
