@@ -1,8 +1,6 @@
 // serverless runtime — full network access for CoinGecko/Binance
 
 const FHK  = process.env.FINNHUB_KEY || 'd95c889r01qihq3l33k0d95c889r01qihq3l33kg';
-const POLY_KEY = process.env.POLYGON_API_KEY || process.env.POLY_KEY || '';
-console.log('[chat] POLY_KEY available:', !!POLY_KEY, 'length:', POLY_KEY.length);
 const SUPABASE_URL = 'https://ttcprqkoibiztibhpsrp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Y3BycWtvaWJpenRpYmhwc3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNTk5NjcsImV4cCI6MjA5NTkzNTk2N30.kO-a0NYLQ0rrAV1V7Aj4O8Mwm7KFq2NPfIQl2uY5sDY';
 
@@ -35,10 +33,10 @@ async function getLiveContext() {
   const globalNames = {'USO':'WTI Oil ETF','UUP':'USD Index ETF','EWJ':'Japan ETF','EWG':'Germany ETF','EWU':'UK ETF','EFA':'Intl Dev ETF','EEM':'Emerging Mkts','QQQ':'Nasdaq ETF'};
 
   // Fetch all in parallel
-  let sectorQuotes=[], marketNews=[], econCal=[], openPicks=[], cryptoPrices={}, globalData=[], forexRates=null, spotCommodities=[null,null,null], techData={};
+  let sectorQuotes=[], marketNews=[], econCal=[], openPicks=[], cryptoPrices={}, globalData=[], forexRates=null, spotCommodities=[null,null,null];
   try {
-  [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities, techData] = await Promise.all([
-    Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, pc:q.pc, dp:q.dp, d:q.d, h:q.h, l:q.l} : null))),
+  [sectorQuotes, marketNews, econCal, openPicks, cryptoPrices, globalData, forexRates, spotCommodities] = await Promise.all([
+    Promise.all(sectors.map(s => fh(`/quote?symbol=${s}`).then(q => q ? {s, c:q.c, pc:q.pc, dp:q.dp, d:q.d} : null))),
     fh('/news?category=general&minId=0'),
     fh(`/calendar/economic?from=${new Date().toISOString().split('T')[0]}&to=${new Date(Date.now()+3*86400000).toISOString().split('T')[0]}`),
     fetch(`${SUPABASE_URL}/rest/v1/study_picks?status=eq.open&order=picked_at.desc&limit=6&select=ticker,strategy_id,thesis,entry_price,confidence`, {
@@ -75,26 +73,7 @@ async function getLiveContext() {
       fetch('https://api.eulerpool.com/v1/commodities/XAGUSD/quote', {
         headers: { 'Authorization': `Bearer ${process.env.EULERPOOL_API_KEY}` }
       }).then(r => r.ok ? r.json() : null).catch(() => null)
-    ]),
-    // Polygon technical indicators — SMA50, SMA200, RSI14 for SPY
-    POLY_KEY ? (async () => {
-      try {
-        const [sma50, sma200, rsi14, qSma50] = await Promise.all([
-          fetch(`https://api.polygon.io/v1/indicators/sma/SPY?timespan=day&adjusted=true&window=50&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch(`https://api.polygon.io/v1/indicators/sma/SPY?timespan=day&adjusted=true&window=200&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch(`https://api.polygon.io/v1/indicators/rsi/SPY?timespan=day&adjusted=true&window=14&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
-          fetch(`https://api.polygon.io/v1/indicators/sma/QQQ?timespan=day&adjusted=true&window=50&series_type=close&limit=1&apiKey=${POLY_KEY}`).then(r=>r.ok?r.json():null).catch(()=>null),
-        ]);
-        const result = {
-          spySma50:  sma50?.results?.values?.[0]?.value  || null,
-          spySma200: sma200?.results?.values?.[0]?.value || null,
-          spyRsi:    rsi14?.results?.values?.[0]?.value  || null,
-          qqqSma50:  qSma50?.results?.values?.[0]?.value || null,
-        };
-        console.log('[chat] techData:', result);
-        return result;
-      } catch(e) { console.log('[chat] techData error:', e.message); return {}; }
-    })() : Promise.resolve({})
+    ])
   ]);
   } catch(fetchErr) { console.error('getLiveContext fetch error:', fetchErr.message); }
 
@@ -135,13 +114,10 @@ async function getLiveContext() {
 
   return `LIVE MARKET DATA — ${now} ET
 
-TECHNICAL INDICATORS (SPY/QQQ):
-SMA50: $${techData?.spySma50?.toFixed(2)||'N/A'} | SMA200: $${techData?.spySma200?.toFixed(2)||'N/A'} | RSI(14): ${techData?.spyRsi?.toFixed(1)||'N/A'} ${(techData?.spyRsi||50) > 70 ? '— OVERBOUGHT' : (techData?.spyRsi||50) < 30 ? '— OVERSOLD' : '— NEUTRAL'} | QQQ SMA50: $${techData?.qqqSma50?.toFixed(2)||'N/A'}
-
 US EQUITIES (most recent session):
 SPY: $${spy?.c?.toFixed(2)||spy?.pc?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${sq.find(x=>x.s==='QQQ')?.c?.toFixed(2)||sq.find(x=>x.s==='QQQ')?.pc?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
 VIX: ${vix?.c?.toFixed(1)||vix?.pc?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
-10yr Yield (TNX): ${(tnx?.pc || tnx?.c || 0) > 0 ? (tnx?.pc || tnx?.c).toFixed(2) : 'N/A'}% last session close | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
+10yr Yield (TNX): ${tnx?.c?.toFixed(2)||tnx?.pc?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(3)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
 Gold (GLD): ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}% | USE THESE NUMBERS — this is real market data, not estimates
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
@@ -164,18 +140,6 @@ ${econEvents}
 
 PULSESTOCK OPEN PICKS (AI-selected):
 ${picksLines}`;
-
-  // Debug: log what's in the context
-  console.log('[chat] sq length:', sq.length, 'tnx pc:', tnx?.pc, 'tnx c:', tnx?.c, 'vix c:', vix?.c);
-console.log('[chat] context sample:', {
-    spy_c: sq.find(x=>x.s==='SPY')?.c,
-    spy_pc: sq.find(x=>x.s==='SPY')?.pc,
-    tnx_c: sq.find(x=>x.s==='^TNX')?.c,
-    vix_c: sq.find(x=>x.s==='^VIX')?.c,
-    techData,
-    sectorCount: sq.length,
-    forexEur: forexRates?.rates?.EUR,
-  });
 }
 
 export default async function handler(req, res) {
