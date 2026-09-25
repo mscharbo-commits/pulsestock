@@ -118,7 +118,7 @@ US EQUITIES (most recent session):
 SPY: $${spy?.c?.toFixed(2)||spy?.pc?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${sq.find(x=>x.s==='QQQ')?.c?.toFixed(2)||sq.find(x=>x.s==='QQQ')?.pc?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
 VIX: ${vix?.c?.toFixed(1)||vix?.pc?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
 10yr Yield (TNX): ${tnx?.c?.toFixed(2)||tnx?.pc?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(3)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
-Gold (GLD): ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}% | USE THESE NUMBERS — this is real market data, not estimates
+Gold (GLD): $${(sq.find(x=>x.s==='GLD')?.c||sq.find(x=>x.s==='GLD')?.pc||0).toFixed(2)} (${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}%) | Oil (USO): $${(sq.find(x=>x.s==='USO')?.c||sq.find(x=>x.s==='USO')?.pc||0).toFixed(2)} (${sq.find(x=>x.s==='USO')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='USO')?.dp?.toFixed(2)||'0'}%) | Silver (SLV): $${(sq.find(x=>x.s==='SLV')?.c||sq.find(x=>x.s==='SLV')?.pc||0).toFixed(2)} (${sq.find(x=>x.s==='SLV')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='SLV')?.dp?.toFixed(2)||'0'}%) — USE THESE EXACT NUMBERS
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
 
