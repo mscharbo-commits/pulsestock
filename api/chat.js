@@ -12,9 +12,9 @@ async function fh(path) {
 }
 
 function bestPrice(q) {
-  // Sanity check — SPY should never be above $700 or below $100
-  if (q && q.c && q.c > 100 && q.c < 700) return q.c;
-  return q?.pc || q?.c || null;
+  // For yields/indices (TNX ~4.7, VIX ~15-30) use c directly — no equity sanity check
+  if (q && q.c && q.c > 0) return q.c;
+  return q?.pc || null;
 }
 function _bestPrice_orig(q) {
   // Use current price if market open, prev close otherwise
@@ -85,7 +85,7 @@ async function getLiveContext() {
   const sectorLines = sq
     .filter(x => !['SPY','QQQ','^VIX','^TNX','GLD','TLT'].includes(x.s))
     .sort((a,b) => (b.dp||0) - (a.dp||0))
-    .map(x => `${x.s}: ${x.dp > 0 ? '+' : ''}${x.dp?.toFixed(1)}%`)
+    .map(x => `${x.s}: $${x.c?.toFixed(2)||x.pc?.toFixed(2)||'N/A'} (${x.dp > 0 ? '+' : ''}${x.dp?.toFixed(2)||'0'}%)`)
     .join(' | ');
 
   const topNews = (Array.isArray(marketNews) ? marketNews : [])
@@ -115,9 +115,9 @@ async function getLiveContext() {
   return `LIVE MARKET DATA — ${now} ET
 
 US EQUITIES (most recent session):
-SPY: $${(spy?.c && spy?.c > 100 ? spy.c : spy?.pc)?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${(sq.find(x=>x.s==='QQQ')?.c || sq.find(x=>x.s==='QQQ')?.pc)?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
-VIX: ${(vix?.c || vix?.pc)?.toFixed(1)||'N/A'} ${((vix?.c||vix?.pc)||0) > 25 ? '— HIGH FEAR' : ((vix?.c||vix?.pc)||0) > 18 ? '— ELEVATED' : '— CALM'}
-10yr Yield (TNX): ${(tnx?.c || tnx?.pc)?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(2)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%
+SPY: $${spy?.c?.toFixed(2)||spy?.pc?.toFixed(2)||'N/A'} (${spy?.dp > 0 ? '+' : ''}${spy?.dp?.toFixed(2)||'0'}% last session) | QQQ: $${sq.find(x=>x.s==='QQQ')?.c?.toFixed(2)||sq.find(x=>x.s==='QQQ')?.pc?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='QQQ')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='QQQ')?.dp?.toFixed(2)||'0'}%)
+VIX: ${vix?.c?.toFixed(1)||vix?.pc?.toFixed(1)||'N/A'} ${(vix?.c||0) > 25 ? '— HIGH FEAR' : (vix?.c||0) > 18 ? '— ELEVATED' : '— CALM'}
+10yr Yield (TNX): ${tnx?.c?.toFixed(2)||tnx?.pc?.toFixed(2)||'N/A'}% (${tnx?.dp > 0 ? '+' : ''}${tnx?.dp?.toFixed(3)||'0'}% change) | TLT Bond ETF: ${sq.find(x=>x.s==='TLT')?.c?.toFixed(2)||'N/A'} (${sq.find(x=>x.s==='TLT')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='TLT')?.dp?.toFixed(2)||'0'}%)
 Gold (GLD): ${sq.find(x=>x.s==='GLD')?.dp > 0 ? '+' : ''}${sq.find(x=>x.s==='GLD')?.dp?.toFixed(2)||'0'}% | USE THESE NUMBERS — this is real market data, not estimates
 
 CRYPTO (24h): ${cryptoLines || 'data unavailable'}
