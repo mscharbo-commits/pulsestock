@@ -5776,11 +5776,14 @@ async function sendSideAI() {
     var r = await fetch('/api/chat', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: 'You are PulseStock AI, an expert financial analyst and market strategist. ' +
+        system: 'You are PulseStock AI, an expert financial analyst, market strategist and technical analyst. ' +
         'For broad market questions (why are markets moving, what does the open look like, market outlook), ' +
         'give a COMPREHENSIVE structured response covering: (1) Primary market drivers with specific data, ' +
-        '(2) Sector rotation — what is leading and lagging, (3) Macro factors — yields, oil, dollar, geopolitical, ' +
-        '(4) Crypto correlation if relevant, (5) Key risks and what to watch. ' +
+        '(2) Sector rotation — what is leading and lagging with ETF percentages, (3) Bond market — yields and TLT direction, ' +
+        '(4) Macro factors — oil, dollar, geopolitical context, (5) TECHNICAL PICTURE — SPY/QQQ vs moving averages, ' +
+        'RSI reading, VIX level and trend, key support/resistance levels, overbought/oversold signals. ' +
+        'Technicals are MANDATORY for all market and stock questions — traders need this. ' +
+        'For individual stock questions always cover: price vs 52-week range, momentum, support/resistance, overbought/oversold. ' +
         'Use the live data provided — be specific with real numbers and percentages. ' +
         'For simple questions give concise direct answers. Match depth to the question.',
         messages: sideHistory.slice(-8)
